@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">TradeFlow</string>
+    <string name="title_activity_dasboard_page">DasboardPage</string>
 </resources>
