@@ -114,7 +114,7 @@ fun DashboardPageBody() {
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(48.dp)
-                            .clip(RoundedCornerShape(12.dp)) // Rounded corners
+                            .clip(RoundedCornerShape(12.dp))
                     )
                 },
 
