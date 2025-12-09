@@ -22,6 +22,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
@@ -42,6 +43,8 @@ import androidx.compose.ui.unit.dp
 import com.example.tradeflow.ui.theme.Blue
 import com.example.tradeflow.ui.theme.PurpleGrey80
 import com.example.tradeflow.ui.theme.TealBlue
+import com.example.tradeflow.ui.theme.Transparent
+import com.example.tradeflow.ui.theme.TransparentWhite
 import com.example.tradeflow.ui.theme.White
 
 class DashboardPage : ComponentActivity() {
@@ -63,16 +66,19 @@ fun DashboardPageBody() {
 
 
 
-    data class NavItem(val label: String, val icon: Int)
+
+
+    data class NavItem(val label: String, val iconOutlined: Int,val iconFilled:Int)
 
     var selectedIndex by remember { mutableStateOf(0) }
 
     val listItem = listOf(
-        NavItem(label = "Explore", icon = R.drawable.explore),
-        NavItem(label = "Inbox", icon = R.drawable.inbox),
-        NavItem(label = "AddItem", icon = R.drawable.additem),
-        NavItem(label = "Notice", icon = R.drawable.notification),
-        NavItem(label = "Profile", icon = R.drawable.profile),
+        NavItem(label = "Explore", R.drawable.explore,R.drawable.explore_filled),
+        NavItem(label = "Inbox", R.drawable.inbox,R.drawable.inbox_filled),
+        NavItem(label = "AddItem", R.drawable.additem,R.drawable.additem_filled),
+        NavItem(label = "Notice", R.drawable.notification,R.drawable.notification_filled),
+        NavItem(label = "profile", R.drawable.profile,R.drawable.profile_filled),
+
     )
 
     Scaffold(
@@ -135,17 +141,27 @@ fun DashboardPageBody() {
             )
         },
         bottomBar = {
-            NavigationBar {
+            NavigationBar(
+                containerColor = TealBlue
+            ) {
                 listItem.forEachIndexed { index, item ->
+                    val isSelected =selectedIndex==index
                     NavigationBarItem(
+                        selected = isSelected,
+                        onClick = { selectedIndex = index },
                         icon = {
-                            Icon(painter = painterResource(item.icon), contentDescription = null)
+                            Icon(painter = painterResource( if (isSelected) item.iconFilled else item.iconOutlined),
+                                contentDescription = null,tint=White)
                         },
-                        label = { Text(item.label) },
-                        onClick = {
-                            selectedIndex = index
-                        },
-                        selected = selectedIndex == index
+                        label = { Text(item.label,color=White) },
+                        colors = NavigationBarItemDefaults.colors(
+                            selectedIconColor = White,
+                            unselectedIconColor = White,
+                            selectedTextColor = White,
+                            unselectedTextColor = White,
+                            indicatorColor = Transparent
+
+                        )
 
                     )
                 }
