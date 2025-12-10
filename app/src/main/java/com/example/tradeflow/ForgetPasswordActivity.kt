@@ -52,8 +52,6 @@ import kotlinx.coroutines.launch
 import androidx.compose.ui.graphics.Color
 import com.example.TradeFlow.ui.theme.Green1
 
-
-
 class ForgetPasswordActivity: ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -174,6 +172,18 @@ fun ForgotBody() {
                 }
 
                 Spacer(modifier = Modifier.height(15.dp))
+
+                Row(
+                    horizontalArrangement = Arrangement.Center,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = "<- Back to Login",
+                        color = BlueButton,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.clickable { /* Navigate register */ }
+                        )
+                    }
             }
         }
     }
