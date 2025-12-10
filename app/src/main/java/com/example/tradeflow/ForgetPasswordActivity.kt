@@ -52,6 +52,19 @@ import kotlinx.coroutines.launch
 import androidx.compose.ui.graphics.Color
 import com.example.TradeFlow.ui.theme.Green1
 
+
+
+class ForgetPasswordActivity: ComponentActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
+        setContent {
+            ForgotBody()
+        }
+    }
+}
+
+
 @Composable
 fun ForgotBody() {
 
