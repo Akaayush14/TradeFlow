@@ -1,4 +1,7 @@
 <resources>
     <string name="app_name">TradeFlow</string>
     <string name="title_activity_dasboard_page">DasboardPage</string>
+    <string name="title_activity_admin_dashbord">AdminDashbord</string>
+    <string name="title_activity_admin_dashboard">AdminDashboard</string>
+    <string name="title_activity_admin_dash">adminDash</string>
 </resources>
