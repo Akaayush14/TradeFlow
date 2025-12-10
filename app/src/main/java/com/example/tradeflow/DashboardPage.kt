@@ -6,7 +6,9 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -23,9 +25,11 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldColors
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -65,21 +69,18 @@ fun DashboardPageBody() {
     var searchText by remember { mutableStateOf("") }
 
 
-
-
-
-    data class NavItem(val label: String, val iconOutlined: Int,val iconFilled:Int)
+    data class NavItem(val label: String, val iconOutlined: Int, val iconFilled: Int)
 
     var selectedIndex by remember { mutableStateOf(0) }
 
     val listItem = listOf(
-        NavItem(label = "Explore", R.drawable.explore,R.drawable.explore_filled),
-        NavItem(label = "Inbox", R.drawable.inbox,R.drawable.inbox_filled),
-        NavItem(label = "AddItem", R.drawable.additem,R.drawable.additem_filled),
-        NavItem(label = "Notice", R.drawable.notification,R.drawable.notification_filled),
-        NavItem(label = "profile", R.drawable.profile,R.drawable.profile_filled),
+        NavItem(label = "Explore", R.drawable.explore, R.drawable.explore_filled),
+        NavItem(label = "Inbox", R.drawable.inbox, R.drawable.inbox_filled),
+        NavItem(label = "AddItem", R.drawable.additem, R.drawable.additem_filled),
+        NavItem(label = "Notice", R.drawable.notification, R.drawable.notification_filled),
+        NavItem(label = "profile", R.drawable.profile, R.drawable.profile_filled),
 
-    )
+        )
 
     Scaffold(
         topBar = {
@@ -87,49 +88,64 @@ fun DashboardPageBody() {
                 colors = TopAppBarDefaults.topAppBarColors(
                     titleContentColor = White,
                     actionIconContentColor = White,
-                    containerColor =TealBlue,
+                    containerColor = TealBlue,
                     navigationIconContentColor = White
                 ),
 //
 
                 title = {
-                    TextField(
+
+                    OutlinedTextField(
                         value = searchText,
                         onValueChange = { searchText = it },
                         placeholder = {
-                            Row (verticalAlignment = Alignment.CenterVertically) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(
-
-                                    painter = painterResource(R.drawable.search),
+                                    painterResource(R.drawable.search),
                                     contentDescription = null,
-
                                     modifier = Modifier.size(20.dp),
-                                    tint = Color. Gray
+                                    tint = Color.Gray
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
-                                Text("Search Anythings", color = Color.Gray)
+                                Text("Search Anything", color = Color.Gray)
                             }
                         },
                         singleLine = true,
-                        colors = TextFieldDefaults.colors(
-                            focusedContainerColor = White,
-                            unfocusedContainerColor = White,
-                            focusedIndicatorColor = Color.Transparent,
-                            unfocusedIndicatorColor = Color.Transparent
-                        ),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(48.dp)
-                            .clip(RoundedCornerShape(12.dp))
+                            .padding(horizontal = 12.dp, vertical = 8.dp)
+                            .border(
+                                width = 1.dp,
+                                color = Color.Black,
+                                shape = RoundedCornerShape(12.dp)
+                            )
+
+                            .clip(RoundedCornerShape(12.dp)),
+                        colors = TextFieldDefaults.colors(
+
+
+                            focusedContainerColor = White,
+                            unfocusedContainerColor = White,
+
+
+                            focusedIndicatorColor = Transparent,
+                            unfocusedIndicatorColor = Transparent,
+
+                            disabledIndicatorColor = Transparent,
+                            cursorColor = TealBlue
+
+                        )
+
                     )
                 },
 
-                    navigationIcon = {
-
-                    },
+                navigationIcon = {
 
 
-                        actions = {
+                },
+
+
+                actions = {
                     IconButton(onClick = {}) {
                         Icon(
                             painter = painterResource(R.drawable.baseline_menu_24),
@@ -145,15 +161,17 @@ fun DashboardPageBody() {
                 containerColor = TealBlue
             ) {
                 listItem.forEachIndexed { index, item ->
-                    val isSelected =selectedIndex==index
+                    val isSelected = selectedIndex == index
                     NavigationBarItem(
                         selected = isSelected,
                         onClick = { selectedIndex = index },
                         icon = {
-                            Icon(painter = painterResource( if (isSelected) item.iconFilled else item.iconOutlined),
-                                contentDescription = null,tint=White)
+                            Icon(
+                                painter = painterResource(if (isSelected) item.iconFilled else item.iconOutlined),
+                                contentDescription = null, tint = White
+                            )
                         },
-                        label = { Text(item.label,color=White) },
+                        label = { Text(item.label, color = White) },
                         colors = NavigationBarItemDefaults.colors(
                             selectedIconColor = White,
                             unselectedIconColor = White,
@@ -167,6 +185,9 @@ fun DashboardPageBody() {
                 }
             }
         }
+
+
+
     ) { padding ->
         Box(
             modifier = Modifier
@@ -177,7 +198,7 @@ fun DashboardPageBody() {
                 0 -> ExploreScreen()
                 1 -> InboxScreen()
                 2 -> AddItemScreen()
-                3-> NotificationScreen()
+                3 -> NotificationScreen()
                 4 -> ProfileScreen()
                 else -> ExploreScreen()
 
@@ -186,3 +207,4 @@ fun DashboardPageBody() {
         }
     }
 }
+

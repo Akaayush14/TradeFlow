@@ -40,6 +40,7 @@ val PeachSorbet = Color(0xFFFFCCB3)
 val ToffeeCaramel = Color(0xFFD8A46F)
 
 val HoneyYellow = Color(0xFFFFE599)
+val lightpurple= Color(0xFF6C63FF)
 
 val LemonDrop = Color(0xFFFFF2A1)        // #FFF2A1
 val MintCandy = Color(0xFFB8F2E6)        // #B8F2E6
