@@ -18,7 +18,7 @@ val Transparent = Color(0x00FFFFFF)
 val Purple40 = Color(0xFF6650a4)
 val PurpleGrey40 = Color(0xFF625b71)
 val Pink40 = Color(0xFF7D5260)
-val Green= Color(0xFF30944C)
+val Green= Color(0xFF007D70)
 val TealBlue = Color(0xFF044852)
 
 val LightGreen= Color(0xFF91E1A8)
@@ -41,7 +41,8 @@ val ToffeeCaramel = Color(0xFFD8A46F)
 
 val HoneyYellow = Color(0xFFFFE599)
 
-val LemonDrop = Color(0xFFFFF2A1)        // #FFF2A1
+val LemonDrop = Color(0xFFFFF2A1)
+// #FFF2A1
 val MintCandy = Color(0xFFB8F2E6)        // #B8F2E6
 val SoftMint = Color(0xFFCFFCF1)         // #CFFCF1
 val PistachioCream = Color(0xFFD7F4C5)   // #D7F4C5
@@ -58,5 +59,9 @@ val VanillaCream = Color(0xFFFFF5E1)     // #FFF5E1
 val MarshmallowWhite = Color(0xFFFFFCF7) // #FFFCF7
 val ButterCream = Color(0xFFFFF3CC)      // #FFF3CC
 val CookiesAndCream = Color(0xFFF5F2EA)  // #F5F2EA
+val DarkGreen = Color(0xFF0B545C)
+
+
+
 
 
