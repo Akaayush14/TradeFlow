@@ -180,7 +180,7 @@ fun ExploreContent() {
             .fillMaxSize()
             .padding(16.dp)
     ) {
-        Text("History Screen Content")
+        Text("Admin Screen Content")
 
     }
 }

@@ -40,7 +40,11 @@ class AdminProfile : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             AdminProfileScreen(
-                onBackClick = { finish() }
+                onBackClick = {
+                    val intent = Intent(this, AdminDashExp::class.java)
+                    startActivity(intent)
+                    finish()
+                }
             )
         }
     }
@@ -74,6 +78,7 @@ fun AdminProfileScreen(onBackClick: () -> Unit = {}) {
                         text = "Profile",
                         color = DarkGreen,
                         style = MaterialTheme.typography.titleLarge
+
                     )
                 }
             )
@@ -152,7 +157,7 @@ fun ProfileContent() {
             .fillMaxSize()
             .padding(16.dp)
     ) {
-        Text("History Screen Content")
+        Text("Profile Screen Content")
 
     }
 }
