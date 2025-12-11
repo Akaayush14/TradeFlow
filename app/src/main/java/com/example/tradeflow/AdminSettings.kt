@@ -1,7 +1,6 @@
 package com.example.tradeflow
 
 import android.content.Intent
-import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -124,8 +123,7 @@ fun AdminSettingsScreen(onBackClick: () -> Unit = {}) {
                 NavigationBarItem(
                     selected = selectedIndex == 1,
                     onClick = {
-                        val intent = Intent(context, AdminHistory::class.java)
-                        context.startActivity(intent)
+                        val intent = Intent(context, AdminDashHistory::class.java)
                         if (context is ComponentActivity) {
                             context.finish()
                         }
@@ -192,9 +190,8 @@ fun SettingsContent() {
             SettingsMenuItem(
                 title = "Notifications",
                 onClick = {
-                    // TODO: Navigate to Notifications screen
-                    // val intent = Intent(context, NotificationsActivity::class.java)
-                    // context.startActivity(intent)
+                    val intent = Intent(context, AdminNotification::class.java)
+                    context.startActivity(intent)
                 }
             )
 
@@ -214,9 +211,9 @@ fun SettingsContent() {
             SettingsMenuItem(
                 title = "About us",
                 onClick = {
-                    // Open About Us URL in browser
-                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://zingy-marigold-7ad7e8.netlify.app"))
-                    context.startActivity(intent)
+                    // TODO: Navigate to About Us screen
+                    // val intent = Intent(context, AboutUsActivity::class.java)
+                    // context.startActivity(intent)
                 }
             )
 
@@ -225,9 +222,9 @@ fun SettingsContent() {
             SettingsMenuItem(
                 title = "Privacy & Security",
                 onClick = {
-                    // Open Privacy Policy URL in browser
-                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://calm-biscuit-65b0fa.netlify.app/#"))
-                    context.startActivity(intent)
+                    // TODO: Navigate to Privacy & Security screen
+                    // val intent = Intent(context, PrivacySecurityActivity::class.java)
+                    // context.startActivity(intent)
                 }
             )
 

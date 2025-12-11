@@ -128,7 +128,7 @@ fun AdminExp() {
                 NavigationBarItem(
                     selected = selectedIndex == 1,
                     onClick = {
-                        val intent = Intent(context, AdminHistory::class.java)
+                        val intent = Intent(context, AdminDashHistory::class.java)
                         context.startActivity(intent)
                         if (context is ComponentActivity) {
                             context.finish()

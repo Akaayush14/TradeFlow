@@ -35,7 +35,7 @@ import androidx.compose.ui.unit.dp
 import com.example.tradeflow.ui.theme.DarkGreen
 import com.example.tradeflow.ui.theme.Green
 
-class AdminHistory : ComponentActivity() {
+class AdminDashHistory : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
