@@ -8,6 +8,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -74,12 +75,18 @@ fun AdminProfileScreen(onBackClick: () -> Unit = {}) {
                     }
                 },
                 title = {
-                    Text(
-                        text = "Profile",
-                        color = DarkGreen,
-                        style = MaterialTheme.typography.titleLarge
-
-                    )
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(end = 48.dp), // Compensate for back button width
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "Profile",
+                            color = DarkGreen,
+                            style = MaterialTheme.typography.titleLarge
+                        )
+                    }
                 }
             )
         },
