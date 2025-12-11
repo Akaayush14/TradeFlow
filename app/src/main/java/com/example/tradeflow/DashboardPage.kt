@@ -68,7 +68,7 @@ class DashboardPage : ComponentActivity() {
 fun DashboardPageBody() {
     val context = LocalContext.current
     val activity = context as Activity
-    var searchText by remember { mutableStateOf("") }
+
 
 
     data class NavItem(val label: String, val iconOutlined: Int, val iconFilled: Int)
@@ -85,79 +85,32 @@ fun DashboardPageBody() {
         )
 
     Scaffold(
-        topBar = {
-            CenterAlignedTopAppBar(
-                colors = TopAppBarDefaults.topAppBarColors(
-                    titleContentColor = White,
-                    actionIconContentColor = White,
-                    containerColor = TealBlue,
-                    navigationIconContentColor = White
-                ),
+//        topBar = {
+//            CenterAlignedTopAppBar(
+//                colors = TopAppBarDefaults.topAppBarColors(
+//                    titleContentColor = White,
+//                    actionIconContentColor = White,
+//                    containerColor = TealBlue,
+//                    navigationIconContentColor = White
+//                ),
 //
-
-                title = {
-
-                    OutlinedTextField(
-                        value = searchText,
-                        onValueChange = { searchText = it },
-                        placeholder = {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    painterResource(R.drawable.search),
-                                    contentDescription = null,
-                                    modifier = Modifier.size(20.dp),
-                                    tint = Color.Gray
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text("Search Anything", color = Color.Gray)
-                            }
-                        },
-                        singleLine = true,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 12.dp, vertical = 8.dp)
-                            .border(
-                                width = 1.dp,
-                                color = Color.Black,
-                                shape = RoundedCornerShape(12.dp)
-                            )
-
-                            .clip(RoundedCornerShape(12.dp)),
-                        colors = TextFieldDefaults.colors(
-
-
-                            focusedContainerColor = White,
-                            unfocusedContainerColor = White,
-
-
-                            focusedIndicatorColor = Transparent,
-                            unfocusedIndicatorColor = Transparent,
-
-                            disabledIndicatorColor = Transparent,
-                            cursorColor = TealBlue
-
-                        )
-
-                    )
-                },
-
-                navigationIcon = {
-
-
-                },
-
-
-                actions = {
-                    IconButton(onClick = {}) {
-                        Icon(
-                            painter = painterResource(R.drawable.baseline_menu_24),
-                            contentDescription = null
-                        )
-                    }
-
-                }
-            )
-        },
+//                title = {
+//
+//
+//                },
+//
+//                navigationIcon = {
+//
+//
+//                },
+//
+//
+//                actions = {
+//
+//
+//                }
+//            )
+//        },
         bottomBar = {
             NavigationBar(
                 containerColor = TealBlue
