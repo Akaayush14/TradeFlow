@@ -40,6 +40,8 @@ class AdminHistory : ComponentActivity() {
         setContent {
             AdminHistoryScreen(
                 onBackClick = {
+                    val intent = Intent(this, AdminDashExp::class.java)
+                    startActivity(intent)
                     finish()
                 }
             )
