@@ -1,5 +1,6 @@
 package com.example.tradeflow
 
+import InboxScreen
 import android.app.Activity
 import android.os.Bundle
 import androidx.activity.ComponentActivity

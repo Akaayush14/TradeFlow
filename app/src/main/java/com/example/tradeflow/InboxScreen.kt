@@ -1,5 +1,3 @@
-package com.example.tradeflow
-
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -15,6 +13,6 @@ fun InboxScreen() {
             .fillMaxSize()
             .background(color = White)
     ) {
-        Text("Inbox Screen")
+        Text("Notification Screen")
     }
 }
