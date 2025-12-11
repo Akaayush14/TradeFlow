@@ -96,7 +96,10 @@ fun AdminExp() {
                     )
                 },
                 actions = {
-                    IconButton(onClick = {}) {
+                    IconButton(onClick = {
+                        val intent = Intent(context, AdminSettings::class.java)
+                        context.startActivity(intent)
+                    }) {
                         Icon(
                             painter = painterResource(R.drawable.ic_settings),
                             contentDescription = "Settings",
