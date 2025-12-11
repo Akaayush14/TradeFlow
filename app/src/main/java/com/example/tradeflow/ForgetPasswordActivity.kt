@@ -50,7 +50,8 @@ import androidx.compose.ui.unit.sp
 import com.example.tradeflow.ui.theme.TradeFlowTheme
 import kotlinx.coroutines.launch
 import androidx.compose.ui.graphics.Color
-import com.example.TradeFlow.ui.theme.Green1
+import com.example.TradeFlow.ui.theme.Greenish
+
 
 class ForgetPasswordActivity: ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -88,7 +89,7 @@ fun ForgotBody() {
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(280.dp)
-                    .background(color = Green1),
+                    .background(color = Greenish),
                 contentAlignment = Alignment.Center
             ) {
                 Image(
@@ -110,7 +111,7 @@ fun ForgotBody() {
                     text = "Forgot Password?",
                     fontSize = 24.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Green1
+                    color = Greenish
                 )
 
                 Spacer(modifier = Modifier.height(20.dp))

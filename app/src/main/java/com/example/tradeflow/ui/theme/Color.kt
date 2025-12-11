@@ -16,10 +16,10 @@ val Pink40 = Color(0xFF7D5260)
 
 val White = Color(0xFFFFFFFF)
 
-val Greenish = Color(0xFF009688)
+val Green1 = Color(0xFF009688)
 
 val Blue = Color(0xFF152DA4)
 
-val Green1 = Color(0xFF007D70)
+val Greenish = Color(0xFF007D70)
 
 
