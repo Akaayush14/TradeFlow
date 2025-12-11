@@ -44,6 +44,8 @@ import androidx.compose.ui.unit.dp
 import com.example.tradeflow.ui.theme.TealBlue
 import com.example.tradeflow.ui.theme.Transparent
 import com.example.tradeflow.ui.theme.White
+import androidx.compose.ui.graphics.toArgb
+import androidx.core.view.WindowCompat
 
 // Add this annotation to use experimental Material 3 APIs
 @OptIn(ExperimentalMaterial3Api::class)
@@ -52,8 +54,19 @@ fun ExploreScreen() {
 
 
 
+
     var selectedTab by remember { mutableStateOf("All") }
     var searchText by remember { mutableStateOf("") }
+    val view = LocalView.current
+    val context = LocalContext.current
+
+    // Set status bar color
+    SideEffect {
+        val window = (context as Activity).window
+        window.statusBarColor = TealBlue.toArgb()
+        WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = false
+    }
+
 
 
 

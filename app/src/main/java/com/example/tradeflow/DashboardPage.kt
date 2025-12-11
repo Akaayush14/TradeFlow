@@ -43,9 +43,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import androidx.core.view.WindowCompat
 import com.example.tradeflow.ui.theme.Blue
 import com.example.tradeflow.ui.theme.PurpleGrey80
 import com.example.tradeflow.ui.theme.TealBlue
@@ -53,9 +55,18 @@ import com.example.tradeflow.ui.theme.Transparent
 import com.example.tradeflow.ui.theme.TransparentWhite
 import com.example.tradeflow.ui.theme.White
 
+import androidx.compose.ui.graphics.toArgb
+
+
 class DashboardPage : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        window.statusBarColor = TealBlue.toArgb()
+
+        // Make status bar icons white (better contrast on dark TealBlue background)
+        WindowCompat.getInsetsController(window, window.decorView).isAppearanceLightStatusBars = false
+
+
         enableEdgeToEdge()
         setContent {
             DashboardPageBody()
