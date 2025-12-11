@@ -57,16 +57,6 @@ fun ExploreScreen() {
 
     var selectedTab by remember { mutableStateOf("All") }
     var searchText by remember { mutableStateOf("") }
-    val view = LocalView.current
-    val context = LocalContext.current
-
-    // Set status bar color
-    SideEffect {
-        val window = (context as Activity).window
-        window.statusBarColor = TealBlue.toArgb()
-        WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = false
-    }
-
 
 
 

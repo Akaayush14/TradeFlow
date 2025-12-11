@@ -61,11 +61,6 @@ import androidx.compose.ui.graphics.toArgb
 class DashboardPage : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        window.statusBarColor = TealBlue.toArgb()
-
-        // Make status bar icons white (better contrast on dark TealBlue background)
-        WindowCompat.getInsetsController(window, window.decorView).isAppearanceLightStatusBars = false
-
 
         enableEdgeToEdge()
         setContent {
@@ -96,32 +91,7 @@ fun DashboardPageBody() {
         )
 
     Scaffold(
-//        topBar = {
-//            CenterAlignedTopAppBar(
-//                colors = TopAppBarDefaults.topAppBarColors(
-//                    titleContentColor = White,
-//                    actionIconContentColor = White,
-//                    containerColor = TealBlue,
-//                    navigationIconContentColor = White
-//                ),
-//
-//                title = {
-//
-//
-//                },
-//
-//                navigationIcon = {
-//
-//
-//                },
-//
-//
-//                actions = {
-//
-//
-//                }
-//            )
-//        },
+
         bottomBar = {
             NavigationBar(
                 containerColor = TealBlue
