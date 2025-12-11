@@ -211,9 +211,8 @@ fun SettingsContent() {
             SettingsMenuItem(
                 title = "About us",
                 onClick = {
-                    // TODO: Navigate to About Us screen
-                    // val intent = Intent(context, AboutUsActivity::class.java)
-                    // context.startActivity(intent)
+                    val intent = Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://zingy-marigold-7ad7e8.netlify.app"))
+                    context.startActivity(intent)
                 }
             )
 
@@ -222,9 +221,8 @@ fun SettingsContent() {
             SettingsMenuItem(
                 title = "Privacy & Security",
                 onClick = {
-                    // TODO: Navigate to Privacy & Security screen
-                    // val intent = Intent(context, PrivacySecurityActivity::class.java)
-                    // context.startActivity(intent)
+                    val intent = Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://calm-biscuit-65b0fa.netlify.app/#"))
+                    context.startActivity(intent)
                 }
             )
 
