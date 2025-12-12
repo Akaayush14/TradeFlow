@@ -200,9 +200,9 @@ fun SettingsContent() {
             SettingsMenuItem(
                 title = "Edit Profile",
                 onClick = {
-                    // TODO: Navigate to Appearance screen
-                    // val intent = Intent(context, AppearanceActivity::class.java)
-                    // context.startActivity(intent)
+
+                    val intent = Intent(context, EditAdminProfile::class.java)
+                    context.startActivity(intent)
                 }
             )
 
