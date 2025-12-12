@@ -198,7 +198,7 @@ fun SettingsContent() {
             HorizontalDivider(color = Color(0xFFE0E0E0))
 
             SettingsMenuItem(
-                title = "Appearance",
+                title = "Edit Profile",
                 onClick = {
                     // TODO: Navigate to Appearance screen
                     // val intent = Intent(context, AppearanceActivity::class.java)
