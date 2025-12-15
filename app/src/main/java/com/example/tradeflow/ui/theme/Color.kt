@@ -21,4 +21,3 @@ val Blue= Color(0xFF1E50E5)
 val Green1 = Color(0xFF009688)
 
 val Greenish = Color(0xFF007D70)
-
