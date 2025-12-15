@@ -1,5 +1,6 @@
 package com.example.tradeflow
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -38,6 +39,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalContext
 import com.example.tradeflow.ui.theme.Greenish
 
 class LoginActivity : ComponentActivity() {
@@ -59,6 +61,10 @@ fun LoginScreen() {
 
     val BlueButton = Color(0xFF006CFF)
     val Teal = Color(0xFF00897B)
+
+    //For navigating a var is declared
+    val context = LocalContext.current
+
 
     Column(
         modifier = Modifier
@@ -90,7 +96,7 @@ fun LoginScreen() {
         Column(
             modifier = Modifier
                 .padding(horizontal = 25.dp)
-        ) {
+        )  {
 
             Text(
                 text = "Welcome!",
@@ -142,7 +148,10 @@ fun LoginScreen() {
             Text(
                 text = "Forgot password?",
                 color = BlueButton,
-                modifier = Modifier.clickable() { /* Navigate to Forgot screen */ },
+                modifier = Modifier.clickable{
+                    context.startActivity(
+                        Intent(context, ForgetPasswordActivity::class.java)
+                    )},
                 fontSize = 14.sp,
                 fontWeight = FontWeight.SemiBold
             )
@@ -173,7 +182,10 @@ fun LoginScreen() {
                     text = "Register now",
                     color = BlueButton,
                     fontWeight = FontWeight.Bold,
-                    modifier = Modifier.clickable { /* Navigate register */ }
+                    modifier = Modifier.clickable{
+                        context.startActivity(
+                            Intent(context, RegisterActivity::class.java)
+                        )},
                 )
             }
 
