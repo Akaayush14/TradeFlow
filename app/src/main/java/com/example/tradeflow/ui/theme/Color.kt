@@ -1,4 +1,4 @@
-package com.example.TradeFlow.ui.theme
+package com.example.tradeflow.ui.theme
 
 import androidx.compose.ui.graphics.Color
 

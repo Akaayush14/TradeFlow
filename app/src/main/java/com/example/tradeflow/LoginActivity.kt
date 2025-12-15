@@ -38,13 +38,9 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.tradeflow.ui.theme.Green
-import com.example.tradeflow.ui.theme.Green1
 import com.example.tradeflow.ui.theme.Greenish
-import com.example.tradeflow.ui.theme.TealBlue
 
-
-class LoginUI : ComponentActivity() {
+class LoginActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -75,7 +71,7 @@ fun LoginScreen() {
             modifier = Modifier
                 .fillMaxWidth()
                 .height(280.dp)
-                .background(Green1),
+                .background(Greenish),
             contentAlignment = Alignment.Center
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {

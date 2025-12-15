@@ -50,7 +50,7 @@ import androidx.compose.ui.unit.sp
 import com.example.tradeflow.ui.theme.TradeFlowTheme
 import kotlinx.coroutines.launch
 import androidx.compose.ui.graphics.Color
-import com.example.TradeFlow.ui.theme.Greenish
+import com.example.tradeflow.ui.theme.Greenish
 
 
 class ForgetPasswordActivity: ComponentActivity() {
@@ -172,14 +172,14 @@ fun ForgotBody() {
                     Text("Reset Password", color = Color.White, fontSize = 16.sp)
                 }
 
-                Spacer(modifier = Modifier.height(15.dp))
+                Spacer(modifier = Modifier.height(9.dp))
 
                 Row(
                     horizontalArrangement = Arrangement.Center,
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
-                        text = "<- Back to Login",
+                        text = "Back to Login",
                         color = BlueButton,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.clickable { /* Navigate register */ }
