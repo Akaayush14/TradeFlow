@@ -1,6 +1,7 @@
 package com.example.tradeflow
 
 import android.app.Activity
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -17,6 +18,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.CenterAlignedTopAppBar
@@ -26,6 +28,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -45,69 +48,86 @@ import com.example.tradeflow.ui.theme.TealBlue
 import com.example.tradeflow.ui.theme.Transparent
 import com.example.tradeflow.ui.theme.White
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.unit.sp
 import androidx.core.view.WindowCompat
 
 // Add this annotation to use experimental Material 3 APIs
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ExploreScreen() {
+    val context = LocalContext.current
+    val activity = context as Activity
 
 
 
 
     var selectedTab by remember { mutableStateOf("All") }
-    var searchText by remember { mutableStateOf("") }
+    var searchQuery by remember { mutableStateOf("") }
 
 
 
-    // Wrap the entire screen content in a Scaffold
+
     Scaffold(
         topBar = {
-            // Define the specific Top Bar for the Explore screen here
             CenterAlignedTopAppBar(
                 colors = TopAppBarDefaults.topAppBarColors(
                     titleContentColor = White,
                     actionIconContentColor = White,
-                    containerColor = TealBlue,
+                    containerColor =TealBlue,
                     navigationIconContentColor = White
                 ),
                 title = {
-                    OutlinedTextField(
-                        value = searchText,
-                        onValueChange = { searchText = it },
+                    TextField(
+                        value = searchQuery,
+                        onValueChange = { searchQuery = it },
                         placeholder = {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                // Use Icons.Default.Search or your custom resource
-                                Icon(
-                                    imageVector = Icons.Default.Search,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(20.dp),
-                                    tint = Color.Gray
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text("Search Anything", color = Color.Gray)
+                            Text(
+                                "Search items...",
+                                color = Color.White.copy(alpha = 0.7f),
+                                fontSize = 16.sp
+                            )
+                        },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.Search,
+                                contentDescription = "Search Icon",
+                                tint = White
+                            )
+                        },
+                        trailingIcon = {
+                            if (searchQuery.isNotEmpty()) {
+                                IconButton(onClick = { searchQuery = "" }) {
+                                    Icon(
+                                        imageVector = Icons.Default.Close,
+                                        contentDescription = "Clear Search",
+                                        tint = White
+                                    )
+                                }
                             }
                         },
-                        singleLine = true,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 12.dp, vertical = 8.dp)
-                            .border(
-                                width = 1.dp,
-                                color = Color.Black,
-                                shape = RoundedCornerShape(12.dp)
-                            )
-                            .clip(RoundedCornerShape(12.dp)),
+                            .padding(end = 8.dp),
                         colors = TextFieldDefaults.colors(
-                            focusedContainerColor = White,
-                            unfocusedContainerColor = White,
-                            focusedIndicatorColor = Transparent,
-                            unfocusedIndicatorColor = Transparent,
-                            disabledIndicatorColor = Transparent,
-                            cursorColor = TealBlue
-                        )
-                    )
+                            focusedContainerColor = Color.White.copy(alpha = 0.2f),
+                            unfocusedContainerColor = Color.White.copy(alpha = 0.15f),
+                            disabledContainerColor = Color.White.copy(alpha = 0.15f),
+                            focusedIndicatorColor = Color.Transparent,
+                            unfocusedIndicatorColor = Color.Transparent,
+                            cursorColor = White,
+                            focusedTextColor = White,
+                            unfocusedTextColor = White
+                        ),
+                        textStyle = TextStyle(
+                            color = White,
+                            fontSize = 16.sp
+                        ),
+                        shape = RoundedCornerShape(24.dp),
+                        singleLine = true)
                 },
+
                 actions = {
                     IconButton(onClick = {}) {
                         // Use Icons.Default.Menu or your custom resource
@@ -119,6 +139,7 @@ fun ExploreScreen() {
                 }
             )
         }
+
     ) { paddingValues: PaddingValues ->
         // The main content uses the padding provided by the Scaffold (for the top bar)
         Column(
