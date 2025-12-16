@@ -1,6 +1,8 @@
 package com.example.tradeflow.view
 
+import android.app.Activity
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -31,6 +33,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -41,7 +44,10 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.classwork.viewmodel.UserViewModel
 import com.example.tradeflow.R
+import com.example.tradeflow.model.UserModel
+import com.example.tradeflow.repository.UserRepoImpl
 import com.example.tradeflow.ui.theme.Greenish
 
 
@@ -64,11 +70,12 @@ fun RegisterBody() {
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
     var terms by remember { mutableStateOf(false) }
-
     var showPassword by remember { mutableStateOf(false) }
     var showConfirmPassword by remember { mutableStateOf(false) }
-
     val BlueButton = Color(0xFF006CFF)
+    var userViewModel = remember { UserViewModel(UserRepoImpl()) }
+    var context = LocalContext.current
+    val activity = context as Activity
 
     Column(
         modifier = Modifier
@@ -213,14 +220,45 @@ fun RegisterBody() {
 
 
             Button(
-                onClick = { },
+                onClick = {
+                    if(!terms){
+                        Toast.makeText(
+                            context,
+                            "Please agree to terms and conditions",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }else{
+                        userViewModel.register(email, password) { success, message, userId ->
+                            if (success) {
+                                var model = UserModel(
+                                    userId = userId,
+                                    name = name,
+                                    email = email,
+
+                                )
+                                userViewModel.addUserToDatabase(userId, model) { success, message ->
+                                    if (success) {
+                                        activity.finish()
+                                        Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+                                    } else {
+
+                                        Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+                                    }
+                                }
+                            } else {
+                                Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+
+                            }
+                        }
+                    }
+                },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(55.dp),
                 shape = RoundedCornerShape(12.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = BlueButton)
             ) {
-                Text("Login", fontSize = 17.sp, color = Color.White)
+                Text("Register", fontSize = 17.sp, color = Color.White)
             }
         }
 
