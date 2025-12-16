@@ -14,7 +14,7 @@
 
         <!-- ONLY ONE LAUNCHER ACTIVITY -->
         <activity
-            android:name=".LoginActivity"
+            android:name=".view.LoginActivity"
             android:exported="true"
             android:theme="@style/Theme.TradeFlow">
             <intent-filter>
@@ -24,9 +24,9 @@
         </activity>
 
         <!-- NORMAL ACTIVITIES (NO INTENT FILTER) -->
-        <activity android:name=".MainActivity" />
-        <activity android:name=".RegisterActivity" />
-        <activity android:name=".ForgetPasswordActivity" />
+        <activity android:name=".view.MainActivity" />
+        <activity android:name=".view.RegisterActivity" />
+        <activity android:name=".view.ForgetPasswordActivity" />
 
     </application>
 
