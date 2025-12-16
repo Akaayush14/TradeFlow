@@ -1,5 +1,6 @@
 package com.example.tradeflow.view
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -44,6 +45,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import com.example.tradeflow.R
 import com.example.tradeflow.ui.theme.Greenish
 
@@ -64,10 +66,10 @@ fun ForgotBody() {
 
     var email by remember { mutableStateOf("") }
     var terms by remember { mutableStateOf(false) }
-
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
     val BlueButton = Color(0xFF006CFF)
+    var context = LocalContext.current
 
 
     Scaffold(
@@ -177,7 +179,11 @@ fun ForgotBody() {
                         text = "Back to Login",
                         color = BlueButton,
                         fontWeight = FontWeight.Bold,
-                        modifier = Modifier.clickable { /* Navigate register */ }
+                        modifier = Modifier.clickable {
+                            context.startActivity(
+                                Intent(context, LoginActivity::class.java)
+                            )
+                        }
                         )
                     }
             }
