@@ -49,6 +49,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
@@ -98,12 +99,11 @@ fun AddItemScreen() {
         },
         containerColor = White // Sets the background color for the rest of the screen
     ) { innerPadding ->
-        // Wrap your original Column content with the padding provided by Scaffold
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding) // Apply padding so content doesn't go under the top bar
-                .padding(horizontal = 16.dp) // Maintain your existing horizontal padding
+                .padding(innerPadding)
+                .padding(horizontal = 16.dp)
                 .verticalScroll(rememberScrollState())
         ) {
 
@@ -113,12 +113,18 @@ fun AddItemScreen() {
                     "Name",
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(bottom = 4.dp)
+
                 )
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
-                    placeholder = { Text("Name...") },
+                    label = { Text("Name") },
                     modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions.Default.copy(
+                        imeAction = ImeAction.Next
+                    ),
+
                     colors = TextFieldDefaults.colors(
                         focusedContainerColor = Color(0xFFF0F0F0),
                         unfocusedContainerColor = Color(0xFFF0F0F0),
@@ -139,8 +145,12 @@ fun AddItemScreen() {
                 OutlinedTextField(
                     value = price,
                     onValueChange = { price = it },
-                    placeholder = { Text("Price...") },
+                    label = { Text("Price") },
                     modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions.Default.copy(
+                        imeAction = ImeAction.Next
+                    ),
                     colors = TextFieldDefaults.colors(
                         focusedContainerColor = Color(0xFFF0F0F0),
                         unfocusedContainerColor = Color(0xFFF0F0F0),
@@ -168,6 +178,11 @@ fun AddItemScreen() {
                             onValueChange = { location = it },
                             placeholder = { Text("Location...") },
                             modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            keyboardOptions = androidx.compose.foundation.text.KeyboardOptions.Default.copy(
+                                imeAction = ImeAction.Next
+                            ),
+
                             colors = TextFieldDefaults.colors(
                                 focusedContainerColor = Color(0xFFF0F0F0),
                                 unfocusedContainerColor = Color(0xFFF0F0F0),
