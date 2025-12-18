@@ -66,7 +66,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.tradeflow.ui.theme.TradeFlowTheme
 import com.example.tradeflow.ui.theme.Blue
-import com.example.tradeflow.ui.theme.Greenish
+import com.example.tradeflow.ui.theme.Green
 import com.example.tradeflow.ui.theme.PurpleGrey80
 import kotlinx.coroutines.launch
 
@@ -105,7 +105,7 @@ fun RegisterBody() {
             modifier = Modifier
                 .fillMaxWidth()
                 .height(250.dp)
-                .background(color = Greenish),
+                .background(color = Green),
             contentAlignment = Alignment.Center
         ) {
             Image(
@@ -128,7 +128,7 @@ fun RegisterBody() {
                 text = "Sign Up!",
                 fontSize = 26.sp,
                 fontWeight = FontWeight.Bold,
-                color = Greenish
+                color = Green
             )
 
             Spacer(modifier = Modifier.height(20.dp))
@@ -255,7 +255,7 @@ fun RegisterBody() {
             modifier = Modifier
                 .fillMaxWidth()
                 .height(20.dp)
-                .background(Greenish)
+                .background(Green)
         )
     }
 }

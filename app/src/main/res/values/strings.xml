@@ -2,4 +2,7 @@
     <string name="app_name">TradeFlow</string>
     <string name="title_activity_dasboard_page">DasboardPage</string>
     <string name="title_activity_register">RegisterActivity</string>
+    <string name="title_activity_login_activity.kt">LoginActivity.kt</string>
+    <string name="title_activity_about_us">AboutUsActivity</string>
+    <string name="title_activity_edit_profile">EditProfileActivity</string>
 </resources>
