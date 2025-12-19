@@ -22,7 +22,7 @@ import androidx.compose.ui.unit.dp
 fun SettingsScreen() {
     Column(modifier = Modifier.fillMaxSize()) {
 
-        // 🔹 TOP BAR
+
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -45,7 +45,6 @@ fun SettingsScreen() {
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // 🔹 PROFILE SECTION
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier.fillMaxWidth()
@@ -79,7 +78,6 @@ fun SettingsScreen() {
 
         Spacer(modifier = Modifier.height(32.dp))
 
-        // 🔹 SETTINGS ITEMS
         SettingsItem("Notifications")
         SettingsItem("Edit Profile")
         SettingsItem("About us")
