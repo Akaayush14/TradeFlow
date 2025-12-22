@@ -1,5 +1,6 @@
 package com.example.tradeflow
 
+import android.content.Intent
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -18,7 +19,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Create
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Card
@@ -28,15 +28,21 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -44,46 +50,75 @@ import androidx.compose.ui.unit.sp
 import com.example.tradeflow.ui.theme.TealBlue
 import com.example.tradeflow.ui.theme.White
 
-// Data model for listings, now includes an image resource ID
+// Data model for listings, now includes an image resource ID and type
+enum class ListingType { BARTER, RENTAL }
+
 data class ListingItem(
     val id: Int,
     val name: String,
     val description: String,
     val price: String,
     // Use Int to store the drawable resource ID (e.g., R.drawable.tshirt_image)
-    val imageResId: Int
+    val imageResId: Int,
+    val type: ListingType
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen() {
     val listings = remember { getMockListings() }
+    var selectedTab by remember { mutableStateOf(ListingType.BARTER) }
+
+    val barterListings = remember(listings) { listings.filter { it.type == ListingType.BARTER } }
+    val rentalListings = remember(listings) { listings.filter { it.type == ListingType.RENTAL } }
 
     Scaffold(
         topBar = { ProfileTopAppBar() },
         containerColor = White
     ) { innerPadding ->
-        Column( // The Column provides the overall structure below the Top Bar
+        // Single scrollable column so header + listings scroll together
+        LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            ProfileHeaderSection()
+            item {
+                ProfileHeaderSection(
+                    barterCount = barterListings.size,
+                    rentalCount = rentalListings.size,
+                    completedCount = 12 // mock value for now
+                )
 
-            Text(
-                text = "Listings",
-                fontWeight = FontWeight.Bold,
-                fontSize = 18.sp,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-            )
+                // Tabs for Barter / Rental listings
+                TabRow(
+                    selectedTabIndex = if (selectedTab == ListingType.BARTER) 0 else 1,
+                    containerColor = White
+                ) {
+                    Tab(
+                        selected = selectedTab == ListingType.BARTER,
+                        onClick = { selectedTab = ListingType.BARTER },
+                        text = { Text("Barter", fontSize = 14.sp, fontWeight = FontWeight.SemiBold) }
+                    )
+                    Tab(
+                        selected = selectedTab == ListingType.RENTAL,
+                        onClick = { selectedTab = ListingType.RENTAL },
+                        text = { Text("Rental", fontSize = 14.sp, fontWeight = FontWeight.SemiBold) }
+                    )
+                }
+
+                // Listing section title
+                Text(
+                    text = if (selectedTab == ListingType.BARTER) "My Barter Listings" else "My Rental Listings",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 18.sp,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                )
+            }
 
             // LazyColumn handles efficient vertical scrolling of the list items
-            LazyColumn(
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                items(listings) { item ->
-                    ListingItemCard(item = item, onClick = { /* Handle item click */ })
-                }
+            val data = if (selectedTab == ListingType.BARTER) barterListings else rentalListings
+            items(data) { item ->
+                ListingItemCard(item = item, onClick = { /* Handle item click */ })
             }
         }
     }
@@ -116,22 +151,20 @@ fun ProfileTopAppBar() {
 }
 
 
-// ... (ProfileHeaderSection function code remains the same as before) ...
 @Composable
-fun ProfileHeaderSection() {
+fun ProfileHeaderSection(
+    barterCount: Int,
+    rentalCount: Int,
+    completedCount: Int
+) {
+    val context = LocalContext.current
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text(
-            text = "Warning",
-            color = Color(0xFFFF9800),
-            fontSize = 12.sp,
-            modifier = Modifier.padding(top = 8.dp)
-        )
-        Spacer(modifier = Modifier.height(16.dp))
         Box {
             Box(
                 modifier = Modifier
@@ -143,28 +176,64 @@ fun ProfileHeaderSection() {
                 Icon(
                     Icons.Default.Person,
                     contentDescription = "Profile Avatar",
-                    modifier = Modifier.size(80.dp).align(Alignment.Center),
+                    modifier = Modifier
+                        .size(80.dp)
+                        .align(Alignment.Center),
                     tint = Color(0xFF0288D1)
                 )
             }
+
+            // Pencil icon over avatar (bottom-right)
             Box(
                 modifier = Modifier
                     .size(30.dp)
                     .clip(CircleShape)
                     .background(TealBlue)
                     .align(Alignment.BottomEnd)
-                    .clickable { /* Handle edit avatar click */ },
+                    .clickable {
+                        // TODO: replace SettingsActivity with your actual settings activity class name if different
+                        // context.startActivity(Intent(context, SettingsActivity::class.java))
+                    },
                 contentAlignment = Alignment.Center
             ) {
-                Icon(Icons.Default.Create, contentDescription = "Edit Profile", tint = White, modifier = Modifier.size(16.dp))
+                Icon(
+                    imageVector = Icons.Default.Create,
+                    contentDescription = "Edit Profile / Settings",
+                    tint = White,
+                    modifier = Modifier.size(16.dp)
+                )
             }
         }
         Spacer(modifier = Modifier.height(12.dp))
         Text("Lucas Scott", fontWeight = FontWeight.Bold, fontSize = 20.sp, color = Color.Black)
         Text("@lucasscott3", fontSize = 14.sp, color = Color.Gray)
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Stats row
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            ProfileStat(label = "Barter items", value = barterCount.toString(), modifier = Modifier.weight(1f))
+            ProfileStat(label = "Rental items", value = rentalCount.toString(), modifier = Modifier.weight(1f))
+            ProfileStat(label = "Completed", value = completedCount.toString(), modifier = Modifier.weight(1f))
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
     }
 }
 
+@Composable
+fun ProfileStat(label: String, value: String, modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(text = value, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.Black)
+        Text(text = label, fontSize = 12.sp, color = Color.Gray)
+    }
+}
 
 @Composable
 fun ListingItemCard(item: ListingItem, onClick: () -> Unit) {
@@ -205,7 +274,26 @@ fun ListingItemCard(item: ListingItem, onClick: () -> Unit) {
 
             Column(modifier = Modifier.weight(1f)) {
                 Text(item.name, fontWeight = FontWeight.SemiBold, fontSize = 16.sp, color = Color.Black)
-                Text(item.description, fontSize = 14.sp, color = Color.Gray)
+                Spacer(modifier = Modifier.height(2.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(
+                                if (item.type == ListingType.BARTER) Color(0xFFE0F2F1) else Color(0xFFEDE7F6)
+                            )
+                            .padding(horizontal = 8.dp, vertical = 2.dp)
+                    ) {
+                        Text(
+                            text = if (item.type == ListingType.BARTER) "Barter" else "Rental",
+                            fontSize = 11.sp,
+                            color = if (item.type == ListingType.BARTER) TealBlue else Color(0xFF5E35B1),
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(item.description, fontSize = 12.sp, color = Color.Gray)
+                }
             }
 
             Text(
@@ -226,11 +314,11 @@ fun getMockListings(): List<ListingItem> {
     // Note: R.drawable.* references will only work if you add the corresponding files
     // to your project's res/drawable folder.
     return listOf(
-        ListingItem(1, "Amazing T-shirt", "Trade via Credits", "€ 12.00", R.drawable.tshirt),
-        ListingItem(2, "Fabulous Pants", "Trade via Credits", "€ 15.00", R.drawable.pant),
-        ListingItem(3, "Spectacular Dress", "Trade via Credits", "€ 20.00", R.drawable.dress),
-        ListingItem(4, "Cool Sneakers", "Trade via Credits", "€ 45.00", R.drawable.sneakers), // Re-using image
-        ListingItem(5, "Stylish Jacket", "Trade via Credits", "€ 60.00", R.drawable.jacket), // Re-using image
-        ListingItem(6, "Summer Hat", "Trade via Credits", "€ 8.00", R.drawable.hat), // Re-using image
+        ListingItem(1, "Amazing T-shirt", "Trade via credits", "€ 12.00", R.drawable.tshirt, ListingType.BARTER),
+        ListingItem(2, "Fabulous Pants", "Trade via credits", "€ 15.00", R.drawable.pant, ListingType.BARTER),
+        ListingItem(3, "Spectacular Dress", "Trade via credits", "€ 20.00", R.drawable.dress, ListingType.BARTER),
+        ListingItem(4, "Cool Sneakers", "Rent per day", "€ 8.00 / day", R.drawable.sneakers, ListingType.RENTAL),
+        ListingItem(5, "Stylish Jacket", "Rent per weekend", "€ 25.00 / weekend", R.drawable.jacket, ListingType.RENTAL),
+        ListingItem(6, "Summer Hat", "Rent per day", "€ 5.00 / day", R.drawable.hat, ListingType.RENTAL),
     )
 }
