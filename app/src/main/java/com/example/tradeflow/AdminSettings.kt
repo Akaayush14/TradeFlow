@@ -152,7 +152,7 @@ fun SettingsContent() {
             SettingsMenuItem(
                 title = "About us",
                 onClick = {
-                    val intent = Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://zingy-marigold-7ad7e8.netlify.app"))
+                    val intent = Intent(context, AdminAboutUs::class.java)
                     context.startActivity(intent)
                 }
             )
