@@ -1,7 +1,9 @@
 package com.example.tradeflow
 import android.content.Intent
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.Box
@@ -29,6 +31,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -63,6 +66,21 @@ fun AdminExp() {
     var selectedIndex by remember { mutableStateOf(0) }
     var searchText by remember { mutableStateOf("") }
     var selectedTab by remember { mutableStateOf(0) } // 0 for items, 1 for user
+    var backPressedTime by remember { mutableLongStateOf(0L) }
+
+    // Handle back button press
+    BackHandler {
+        val currentTime = System.currentTimeMillis()
+        if (currentTime - backPressedTime < 2000) {
+            // Exit app if pressed twice within 2 seconds
+            if (context is ComponentActivity) {
+                context.finishAffinity()
+            }
+        } else {
+            backPressedTime = currentTime
+            Toast.makeText(context, "Click again to quit", Toast.LENGTH_SHORT).show()
+        }
+    }
 
     Scaffold(
         topBar = {
