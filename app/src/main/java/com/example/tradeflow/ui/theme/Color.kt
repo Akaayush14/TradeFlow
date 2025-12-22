@@ -42,7 +42,7 @@ val ToffeeCaramel = Color(0xFFD8A46F)
 val HoneyYellow = Color(0xFFFFE599)
 
 val LemonDrop = Color(0xFFFFF2A1)
-// #FFF2A1
+
 val MintCandy = Color(0xFFB8F2E6)        // #B8F2E6
 val SoftMint = Color(0xFFCFFCF1)         // #CFFCF1
 val PistachioCream = Color(0xFFD7F4C5)   // #D7F4C5

@@ -114,7 +114,7 @@ fun AdminProfileScreen(onBackClick: () -> Unit = {}) {
                 NavigationBarItem(
                     selected = selectedIndex == 1,
                     onClick = {
-                        val intent = Intent(context, AdminDashHistory::class.java)
+                        val intent = Intent(context, AdminDashUser::class.java)
                         context.startActivity(intent)
                         if (context is ComponentActivity) {
                             context.finish()
@@ -122,12 +122,12 @@ fun AdminProfileScreen(onBackClick: () -> Unit = {}) {
                     },
                     icon = {
                         Icon(
-                            painter = painterResource(R.drawable.ic_history),
-                            contentDescription = "History",
+                            painter = painterResource(R.drawable.ic_user),
+                            contentDescription = "Users",
                             tint = Color.White
                         )
                     },
-                    label = { Text("History", color = Color.White) }
+                    label = { Text("Users", color = Color.White) }
                 )
 
                 NavigationBarItem(

@@ -99,65 +99,6 @@ fun AdminSettingsScreen(onBackClick: () -> Unit = {}) {
                 }
             )
         },
-        bottomBar = {
-            NavigationBar(containerColor = Green) {
-                NavigationBarItem(
-                    selected = selectedIndex == 0,
-                    onClick = {
-                        val intent = Intent(context, AdminDashExp::class.java)
-                        context.startActivity(intent)
-                        if (context is ComponentActivity) {
-                            context.finish()
-                        }
-                    },
-                    icon = {
-                        Icon(
-                            painter = painterResource(R.drawable.ic_explore),
-                            contentDescription = "Explore",
-                            tint = Color.White
-                        )
-                    },
-                    label = { Text("Explore", color = Color.White) }
-                )
-
-                NavigationBarItem(
-                    selected = selectedIndex == 1,
-                    onClick = {
-                        val intent = Intent(context, AdminDashHistory::class.java)
-                        if (context is ComponentActivity) {
-                            context.finish()
-                        }
-                    },
-                    icon = {
-                        Icon(
-                            painter = painterResource(R.drawable.ic_history),
-                            contentDescription = "History",
-                            tint = Color.White
-                        )
-                    },
-                    label = { Text("History", color = Color.White) }
-                )
-
-                NavigationBarItem(
-                    selected = selectedIndex == 2,
-                    onClick = {
-                        val intent = Intent(context, AdminProfile::class.java)
-                        context.startActivity(intent)
-                        if (context is ComponentActivity) {
-                            context.finish()
-                        }
-                    },
-                    icon = {
-                        Icon(
-                            painter = painterResource(R.drawable.profile),
-                            contentDescription = "Profile",
-                            tint = Color.White
-                        )
-                    },
-                    label = { Text("Profile", color = Color.White) }
-                )
-            }
-        }
     ) { padding ->
         Box(
             modifier = Modifier

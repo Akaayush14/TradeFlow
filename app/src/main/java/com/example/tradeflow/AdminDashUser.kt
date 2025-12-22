@@ -1,5 +1,4 @@
 package com.example.tradeflow
-
 import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -35,12 +34,12 @@ import androidx.compose.ui.unit.dp
 import com.example.tradeflow.ui.theme.DarkGreen
 import com.example.tradeflow.ui.theme.Green
 
-class AdminDashHistory : ComponentActivity() {
+class AdminDashUser : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            AdminHistoryScreen(
+            AdminUserScreen(
                 onBackClick = {
                     val intent = Intent(this, AdminDashExp::class.java)
                     startActivity(intent)
@@ -54,7 +53,7 @@ class AdminDashHistory : ComponentActivity() {
 @Preview
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
-fun AdminHistoryScreen(onBackClick: () -> Unit = {}) {
+fun AdminUserScreen(onBackClick: () -> Unit = {}) {
     val context = LocalContext.current
     var selectedIndex by remember { mutableStateOf(1) } // History tab selected
 
@@ -82,7 +81,7 @@ fun AdminHistoryScreen(onBackClick: () -> Unit = {}) {
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = "History",
+                            text = "User",
                             color = DarkGreen,
                             style = MaterialTheme.typography.titleLarge
                         )
@@ -119,8 +118,8 @@ fun AdminHistoryScreen(onBackClick: () -> Unit = {}) {
                     onClick = { selectedIndex = 1 }, // Already on History
                     icon = {
                         Icon(
-                            painter = painterResource(R.drawable.ic_history),
-                            contentDescription = "History",
+                            painter = painterResource(R.drawable.ic_user),
+                            contentDescription = "User",
                             tint = Color.White
                         )
                     },
@@ -157,13 +156,13 @@ fun AdminHistoryScreen(onBackClick: () -> Unit = {}) {
                 .fillMaxSize()
         ) {
             // Only show History content since this is AdminHistory activity
-            HistoryContent()
+            UserContent()
         }
     }
 }
 
 @Composable
-fun HistoryContent() {
+fun UserContent() {
     Column(
         modifier = Modifier
             .fillMaxSize()

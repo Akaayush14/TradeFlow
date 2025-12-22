@@ -1,7 +1,4 @@
 package com.example.tradeflow
-
-
-
 import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -21,6 +18,10 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
+import androidx.compose.material3.TabRowDefaults
+import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
@@ -37,8 +38,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.example.tradeflow.ui.theme.DarkGreen
 import com.example.tradeflow.ui.theme.Green
 
 class AdminDashExp : ComponentActivity() {
@@ -58,6 +62,7 @@ fun AdminExp() {
     val context = LocalContext.current
     var selectedIndex by remember { mutableStateOf(0) }
     var searchText by remember { mutableStateOf("") }
+    var selectedTab by remember { mutableStateOf(0) } // 0 for items, 1 for user
 
     Scaffold(
         topBar = {
@@ -128,7 +133,7 @@ fun AdminExp() {
                 NavigationBarItem(
                     selected = selectedIndex == 1,
                     onClick = {
-                        val intent = Intent(context, AdminDashHistory::class.java)
+                        val intent = Intent(context, AdminDashUser::class.java)
                         context.startActivity(intent)
                         if (context is ComponentActivity) {
                             context.finish()
@@ -136,12 +141,12 @@ fun AdminExp() {
                     },
                     icon = {
                         Icon(
-                            painter = painterResource(R.drawable.ic_history),
-                            contentDescription = "History",
+                            painter = painterResource(R.drawable.ic_user),
+                            contentDescription = "User",
                             tint = Color.White
                         )
                     },
-                    label = { Text("History", color = Color.White) }
+                    label = { Text("User", color = Color.White) }
                 )
 
                 NavigationBarItem(
@@ -165,25 +170,94 @@ fun AdminExp() {
             }
         }
     ) { padding ->
-        Box(
+        Column(
             modifier = Modifier
                 .padding(padding)
                 .fillMaxSize()
         ) {
-            ExploreContent()
+            // Tab Row for Items and User
+            TabRow(
+                selectedTabIndex = selectedTab,
+                containerColor = Color.White,
+                contentColor = Color.Gray,
+                indicator = { tabPositions ->
+                    TabRowDefaults.SecondaryIndicator(
+                        modifier = Modifier.tabIndicatorOffset(tabPositions[selectedTab]),
+                        color = DarkGreen
+                    )
+                }
+            ) {
+                Tab(
+                    selected = selectedTab == 0,
+                    onClick = { selectedTab = 0 },
+                    text = {
+                        Text(
+                            "items",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Normal,
+                            color = if (selectedTab == 0) Color.Black else Color.Gray
+                        )
+                    }
+                )
+                Tab(
+                    selected = selectedTab == 1,
+                    onClick = { selectedTab = 1 },
+                    text = {
+                        Text(
+                            "user",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Normal,
+                            color = if (selectedTab == 1) Color.Black else Color.Gray
+                        )
+                    }
+                )
+            }
 
+            // Content based on selected tab
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp)
+            ) {
+                when (selectedTab) {
+                    0 -> ItemsContent()
+                    1 -> UsersContent()
+                }
+            }
         }
     }
 }
 
 @Composable
-fun ExploreContent() {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
+fun ItemsContent() {
+    // TODO: Fetch items from database here
+    // Example: val items = viewModel.getItems()
+    // For now, showing empty state
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
     ) {
-        Text("Admin Screen Content")
+        Text(
+            text = "No items yet",
+            color = Color.Gray,
+            fontSize = 16.sp
+        )
+    }
+}
 
+@Composable
+fun UsersContent() {
+    // TODO: Fetch users from database here
+    // Example: val users = viewModel.getUsers()
+    // For now, showing empty state
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = "No users yet",
+            color = Color.Gray,
+            fontSize = 16.sp
+        )
     }
 }
