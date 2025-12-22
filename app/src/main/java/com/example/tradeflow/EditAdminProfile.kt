@@ -301,7 +301,7 @@ fun EditAdminProfileScreen(onBackClick: () -> Unit = {}) {
                             }.show()
                         },
                     readOnly = true,
-                    placeholder = { Text("24 December 199", color = Color.Gray) },
+                    placeholder = { Text("24 December 1999", color = Color.Gray) },
                     trailingIcon = {
                         Icon(
                             painter = painterResource(id = android.R.drawable.arrow_down_float),
@@ -498,8 +498,8 @@ fun EditAdminProfileScreen(onBackClick: () -> Unit = {}) {
                     onClick = { offset ->
                         annotatedText.getStringAnnotations(tag = "terms", start = offset, end = offset)
                             .firstOrNull()?.let {
-                                // Navigate to Terms and Conditions
-                                Toast.makeText(context, "Terms and Conditions clicked", Toast.LENGTH_SHORT).show()
+                                val intent = Intent(context, AdminTermsAndCondition::class.java)
+                                context.startActivity(intent)
                             }
 
                         annotatedText.getStringAnnotations(tag = "privacy", start = offset, end = offset)
