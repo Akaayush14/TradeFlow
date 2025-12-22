@@ -16,6 +16,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
+import androidx.compose.material3.TabRowDefaults
+import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -29,8 +33,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.tradeflow.ui.theme.DarkGreen
 import com.example.tradeflow.ui.theme.Green
 
@@ -56,6 +62,7 @@ class AdminDashUser : ComponentActivity() {
 fun AdminUserScreen(onBackClick: () -> Unit = {}) {
     val context = LocalContext.current
     var selectedIndex by remember { mutableStateOf(1) } // History tab selected
+    var selectedTab by remember { mutableStateOf(0) } // 0 for None, 1 for Restricted, 2 for Blocked
 
     Scaffold(
         topBar = {
@@ -96,7 +103,6 @@ fun AdminUserScreen(onBackClick: () -> Unit = {}) {
                     selected = selectedIndex == 0,
                     onClick = {
                         selectedIndex = 0
-                        // Navigate to Explore Activity and finish this one
                         val intent = Intent(context, AdminDashExp::class.java)
                         context.startActivity(intent)
                         if (context is ComponentActivity) {
@@ -115,7 +121,7 @@ fun AdminUserScreen(onBackClick: () -> Unit = {}) {
 
                 NavigationBarItem(
                     selected = selectedIndex == 1,
-                    onClick = { selectedIndex = 1 }, // Already on History
+                    onClick = { selectedIndex = 1 }, // Already on User
                     icon = {
                         Icon(
                             painter = painterResource(R.drawable.ic_user),
@@ -123,14 +129,13 @@ fun AdminUserScreen(onBackClick: () -> Unit = {}) {
                             tint = Color.White
                         )
                     },
-                    label = { Text("History", color = Color.White) }
+                    label = { Text("User", color = Color.White) }
                 )
 
                 NavigationBarItem(
                     selected = selectedIndex == 2,
                     onClick = {
                         selectedIndex = 2
-                        // Navigate to Profile Activity and finish this one
                         val intent = Intent(context, AdminProfile::class.java)
                         context.startActivity(intent)
                         if (context is ComponentActivity) {
@@ -150,25 +155,124 @@ fun AdminUserScreen(onBackClick: () -> Unit = {}) {
         }
 
     ) { padding ->
-        Box(
+        Column(
             modifier = Modifier
                 .padding(padding)
                 .fillMaxSize()
         ) {
-            // Only show History content since this is AdminHistory activity
-            UserContent()
+            // Tab Row for None, Restricted, and Blocked
+            TabRow(
+                selectedTabIndex = selectedTab,
+                containerColor = Color.White,
+                contentColor = Color.Gray,
+                indicator = { tabPositions ->
+                    TabRowDefaults.SecondaryIndicator(
+                        modifier = Modifier.tabIndicatorOffset(tabPositions[selectedTab]),
+                        color = DarkGreen
+                    )
+                }
+            ) {
+                Tab(
+                    selected = selectedTab == 0,
+                    onClick = { selectedTab = 0 },
+                    text = {
+                        Text(
+                            "None",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Normal,
+                            color = if (selectedTab == 0) Color.Black else Color.Gray
+                        )
+                    }
+                )
+                Tab(
+                    selected = selectedTab == 1,
+                    onClick = { selectedTab = 1 },
+                    text = {
+                        Text(
+                            "Restricted",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Normal,
+                            color = if (selectedTab == 1) Color.Black else Color.Gray
+                        )
+                    }
+                )
+                Tab(
+                    selected = selectedTab == 2,
+                    onClick = { selectedTab = 2 },
+                    text = {
+                        Text(
+                            "Blocked",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Normal,
+                            color = if (selectedTab == 2) Color.Black else Color.Gray
+                        )
+                    }
+                )
+            }
+
+            // Content based on selected tab
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp)
+            ) {
+                when (selectedTab) {
+                    0 -> NoneContent()
+                    1 -> RestrictedContent()
+                    2 -> BlockedContent()
+                }
+            }
         }
     }
 }
 
 @Composable
-fun UserContent() {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
+fun NoneContent() {
+    // TODO: Fetch users with no restrictions from database here
+    // Example: val users = viewModel.getNoneUsers()
+    // For now, showing empty state
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
     ) {
-        Text("History Screen Content")
+        Text(
+            text = "No users",
+            color = Color.Gray,
+            fontSize = 16.sp
+        )
+    }
+}
 
+@Composable
+fun RestrictedContent() {
+    // TODO: Fetch restricted users from database here
+    // Example: val users = viewModel.getRestrictedUsers()
+    // For now, showing empty state
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = "No restricted users",
+            color = Color.Gray,
+            fontSize = 16.sp
+        )
+    }
+}
+
+@Composable
+fun BlockedContent() {
+    // TODO: Fetch blocked users from database here
+    // Example: val users = viewModel.getBlockedUsers()
+    // For now, showing empty state
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = "No blocked users",
+            color = Color.Gray,
+            fontSize = 16.sp
+        )
     }
 }
