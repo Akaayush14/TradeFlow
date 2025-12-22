@@ -1,12 +1,9 @@
 package com.example.tradeflow
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -14,12 +11,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
@@ -56,9 +49,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.tradeflow.ui.theme.TealBlue
 import com.example.tradeflow.ui.theme.White
-import com.example.tradeflow.R
-
-
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -68,11 +58,13 @@ fun AddItemScreen() {
     var location by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
     var selectedPurpose by remember { mutableStateOf("Select purpose") }
+    var category by remember { mutableStateOf("") }
     var agreedToTerms by remember { mutableStateOf(false) }
     var isDropdownExpanded by remember { mutableStateOf(false) }
 
     val typeOptions = listOf("Barter", "Rent")
     val isPlaceholder = selectedPurpose == "Select purpose"
+
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
@@ -84,195 +76,214 @@ fun AddItemScreen() {
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = { /* Handle back button click, e.g., navController.popBackStack() */ }) {
+                    IconButton(onClick = { /* Handle back button click */ }) {
                         Icon(
                             painter = painterResource(R.drawable.outline_arrow_back_ios_new_24),
-                            "back",
+                            contentDescription = "back",
                             tint = Color.White
                         )
                     }
                 },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = TealBlue // Use your defined TealBlue color
+                    containerColor = TealBlue
                 )
             )
         },
-        containerColor = White // Sets the background color for the rest of the screen
+        containerColor = White
     ) { innerPadding ->
-        Column(
+        LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .padding(horizontal = 16.dp)
-                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-
-
-
-                Text(
-                    "Name",
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(bottom = 4.dp)
-
-                )
+            // NAME
+            item {
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
-                    label = { Text("Name") },
-                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text("Item Name", fontSize = 14.sp) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 16.dp),
                     singleLine = true,
+                    textStyle = androidx.compose.ui.text.TextStyle(fontSize = 14.sp),
                     keyboardOptions = androidx.compose.foundation.text.KeyboardOptions.Default.copy(
                         imeAction = ImeAction.Next
                     ),
-
                     colors = TextFieldDefaults.colors(
-                        focusedContainerColor = Color(0xFFF0F0F0),
-                        unfocusedContainerColor = Color(0xFFF0F0F0),
+                        focusedContainerColor = White,
+                        unfocusedContainerColor = White,
                         focusedIndicatorColor = TealBlue,
                         unfocusedIndicatorColor = Color.LightGray,
-                        cursorColor = TealBlue
+                        cursorColor = TealBlue,
+                        focusedLabelColor = TealBlue,
+                        unfocusedLabelColor = Color.Gray
                     ),
                     shape = RoundedCornerShape(12.dp)
                 )
+            }
 
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Text(
-                    "Price",
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(bottom = 4.dp)
-                )
+            // PRICE
+            item {
                 OutlinedTextField(
                     value = price,
                     onValueChange = { price = it },
-                    label = { Text("Price") },
+                    label = { Text("Price", fontSize = 14.sp) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
+                    textStyle = androidx.compose.ui.text.TextStyle(fontSize = 14.sp),
                     keyboardOptions = androidx.compose.foundation.text.KeyboardOptions.Default.copy(
                         imeAction = ImeAction.Next
                     ),
                     colors = TextFieldDefaults.colors(
-                        focusedContainerColor = Color(0xFFF0F0F0),
-                        unfocusedContainerColor = Color(0xFFF0F0F0),
+                        focusedContainerColor = White,
+                        unfocusedContainerColor = White,
                         focusedIndicatorColor = TealBlue,
                         unfocusedIndicatorColor = Color.LightGray,
-                        cursorColor = TealBlue
+                        cursorColor = TealBlue,
+                        focusedLabelColor = TealBlue,
+                        unfocusedLabelColor = Color.Gray
                     ),
                     shape = RoundedCornerShape(12.dp)
                 )
+            }
 
-                Spacer(modifier = Modifier.height(16.dp))
+            // CATEGORY
+            item {
+                OutlinedTextField(
+                    value = category,
+                    onValueChange = { category = it },
+                    label = { Text("Category", fontSize = 14.sp) },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    textStyle = androidx.compose.ui.text.TextStyle(fontSize = 14.sp),
+                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions.Default.copy(
+                        imeAction = ImeAction.Next
+                    ),
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = White,
+                        unfocusedContainerColor = White,
+                        focusedIndicatorColor = TealBlue,
+                        unfocusedIndicatorColor = Color.LightGray,
+                        cursorColor = TealBlue,
+                        focusedLabelColor = TealBlue,
+                        unfocusedLabelColor = Color.Gray
+                    ),
+                    shape = RoundedCornerShape(12.dp)
+                )
+            }
 
+            item {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            "location",
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(bottom = 4.dp)
-                        )
-                        OutlinedTextField(
-                            value = location,
-                            onValueChange = { location = it },
-                            placeholder = { Text("Location...") },
-                            modifier = Modifier.fillMaxWidth(),
-                            singleLine = true,
-                            keyboardOptions = androidx.compose.foundation.text.KeyboardOptions.Default.copy(
-                                imeAction = ImeAction.Next
-                            ),
-
-                            colors = TextFieldDefaults.colors(
-                                focusedContainerColor = Color(0xFFF0F0F0),
-                                unfocusedContainerColor = Color(0xFFF0F0F0),
-                                focusedIndicatorColor = TealBlue,
-                                unfocusedIndicatorColor = Color.LightGray,
-                                cursorColor = TealBlue
-                            ),
-                            shape = RoundedCornerShape(12.dp)
-                        )
-                    }
-
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            "Type",
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(bottom = 4.dp)
-                        )
-
-                        ExposedDropdownMenuBox(
-                            expanded = isDropdownExpanded,
-                            onExpandedChange = { isDropdownExpanded = !isDropdownExpanded },
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
+                    // Location Column
+                    Box(modifier = Modifier.weight(1f)) {
+                        androidx.compose.foundation.layout.Column {
                             OutlinedTextField(
-                                value = selectedPurpose,
-                                onValueChange = {},
-                                readOnly = true,
-                                trailingIcon = {
-                                    ExposedDropdownMenuDefaults.TrailingIcon(expanded = isDropdownExpanded)
-                                },
-                                modifier = Modifier.menuAnchor(),
+                                value = location,
+                                onValueChange = { location = it },
+                                label = { Text("Location", fontSize = 14.sp) },
+                                modifier = Modifier.fillMaxWidth(),
+                                singleLine = true,
+                                textStyle = androidx.compose.ui.text.TextStyle(fontSize = 14.sp),
+                                keyboardOptions = androidx.compose.foundation.text.KeyboardOptions.Default.copy(
+                                    imeAction = ImeAction.Next
+                                ),
                                 colors = TextFieldDefaults.colors(
-                                    focusedContainerColor = Color(0xFFF0F0F0),
-                                    unfocusedContainerColor = Color(0xFFF0F0F0),
-                                    disabledContainerColor = Color(0xFFF0F0F0),
+                                    focusedContainerColor = White,
+                                    unfocusedContainerColor = White,
                                     focusedIndicatorColor = TealBlue,
                                     unfocusedIndicatorColor = Color.LightGray,
-                                    disabledIndicatorColor = Color.LightGray,
-                                    focusedTextColor = if (isPlaceholder) Color.Gray else Color.Black,
-                                    unfocusedTextColor = if (isPlaceholder) Color.Gray else Color.Black,
+                                    cursorColor = TealBlue,
+                                    focusedLabelColor = TealBlue,
+                                    unfocusedLabelColor = Color.Gray
                                 ),
                                 shape = RoundedCornerShape(12.dp)
                             )
+                        }
+                    }
 
-                            ExposedDropdownMenu(
+                    // Type Column
+                    Box(modifier = Modifier.weight(1f)) {
+                        androidx.compose.foundation.layout.Column {
+                            ExposedDropdownMenuBox(
                                 expanded = isDropdownExpanded,
-                                onDismissRequest = { isDropdownExpanded = false }
+                                onExpandedChange = { isDropdownExpanded = !isDropdownExpanded },
+                                modifier = Modifier.fillMaxWidth()
                             ) {
-                                typeOptions.forEach { selectionOption ->
-                                    DropdownMenuItem(
-                                        text = { Text(selectionOption) },
-                                        onClick = {
-                                            selectedPurpose = selectionOption
-                                            isDropdownExpanded = false
-                                        },
-                                        contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding
-                                    )
+                                OutlinedTextField(
+                                    value = selectedPurpose,
+                                    onValueChange = {},
+                                    readOnly = true,
+                                    textStyle = androidx.compose.ui.text.TextStyle(fontSize = 14.sp),
+                                    trailingIcon = {
+                                        ExposedDropdownMenuDefaults.TrailingIcon(expanded = isDropdownExpanded)
+                                    },
+                                    modifier = Modifier.menuAnchor(),
+                                    colors = TextFieldDefaults.colors(
+                                        focusedContainerColor = White,
+                                        unfocusedContainerColor = White,
+                                        disabledContainerColor = White,
+                                        focusedIndicatorColor = TealBlue,
+                                        unfocusedIndicatorColor = Color.LightGray,
+                                        disabledIndicatorColor = Color.LightGray,
+                                        focusedTextColor = if (isPlaceholder) Color.Gray else Color.Black,
+                                        unfocusedTextColor = if (isPlaceholder) Color.Gray else Color.Black,
+                                        focusedLabelColor = TealBlue,
+                                        unfocusedLabelColor = Color.Gray
+                                    ),
+                                    shape = RoundedCornerShape(12.dp)
+                                )
+
+                                ExposedDropdownMenu(
+                                    expanded = isDropdownExpanded,
+                                    onDismissRequest = { isDropdownExpanded = false }
+                                ) {
+                                    typeOptions.forEach { selectionOption ->
+                                        DropdownMenuItem(
+                                            text = { Text(selectionOption) },
+                                            onClick = {
+                                                selectedPurpose = selectionOption
+                                                isDropdownExpanded = false
+                                            },
+                                            contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding
+                                        )
+                                    }
                                 }
                             }
                         }
                     }
                 }
+            }
 
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Text(
-                    "Description",
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(bottom = 4.dp)
-                )
+            item {
                 OutlinedTextField(
                     value = description,
                     onValueChange = { description = it },
-                    placeholder = { Text("Tell us everything.") },
+                    label = { Text("Description", fontSize = 14.sp) },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(120.dp),
+                    textStyle = androidx.compose.ui.text.TextStyle(fontSize = 14.sp),
                     colors = TextFieldDefaults.colors(
-                        focusedContainerColor = Color(0xFFF0F0F0),
-                        unfocusedContainerColor = Color(0xFFF0F0F0),
+                        focusedContainerColor = White,
+                        unfocusedContainerColor = White,
                         focusedIndicatorColor = TealBlue,
                         unfocusedIndicatorColor = Color.LightGray,
-                        cursorColor = TealBlue
+                        cursorColor = TealBlue,
+                        focusedLabelColor = TealBlue,
+                        unfocusedLabelColor = Color.Gray
                     ),
                     shape = RoundedCornerShape(12.dp),
                     singleLine = false
                 )
+            }
 
-                Spacer(modifier = Modifier.height(16.dp))
-
+            item {
                 Text(
                     "Add Image",
                     fontWeight = FontWeight.Bold,
@@ -294,9 +305,9 @@ fun AddItemScreen() {
                         tint = TealBlue
                     )
                 }
+            }
 
-                Spacer(modifier = Modifier.height(24.dp))
-
+            item {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Checkbox(
                         checked = agreedToTerms,
@@ -328,14 +339,15 @@ fun AddItemScreen() {
                         fontSize = 12.sp
                     )
                 }
+            }
 
-                Spacer(modifier = Modifier.height(24.dp))
-
+            item {
                 Button(
-                    onClick = { /* Handle confirmation logic */ },
+                    onClick = {  },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(50.dp),
+                        .height(50.dp)
+                        .padding(bottom = 16.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = TealBlue),
                     shape = RoundedCornerShape(12.dp)
                 ) {
@@ -344,4 +356,4 @@ fun AddItemScreen() {
             }
         }
     }
-
+}
