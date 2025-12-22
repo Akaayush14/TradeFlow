@@ -39,7 +39,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.tradeflow.ui.theme.DarkGreen
 import com.example.tradeflow.ui.theme.Green
-
+import androidx.activity.compose.BackHandler
 class AdminDashUser : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -63,6 +63,15 @@ fun AdminUserScreen(onBackClick: () -> Unit = {}) {
     val context = LocalContext.current
     var selectedIndex by remember { mutableStateOf(1) } // History tab selected
     var selectedTab by remember { mutableStateOf(0) } // 0 for None, 1 for Restricted, 2 for Blocked
+
+    BackHandler {
+        val intent = Intent(context, AdminDashExp::class.java)
+        context.startActivity(intent)
+        if (context is ComponentActivity) {
+            context.finish()
+        }
+    }
+
 
     Scaffold(
         topBar = {
