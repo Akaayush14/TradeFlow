@@ -59,7 +59,7 @@ fun EditAdminProfileScreen(onBackClick: () -> Unit = {}) {
     var name by remember { mutableStateOf("") }
     var dateOfBirth by remember { mutableStateOf("") }
     var location by remember { mutableStateOf("") }
-    var gender by remember { mutableStateOf("Barter") }
+    var gender by remember { mutableStateOf("Gender") }
     var age by remember { mutableStateOf(0) }
     var agreedToTerms by remember { mutableStateOf(false) }
     var showGenderMenu by remember { mutableStateOf(false) }
@@ -168,6 +168,7 @@ fun EditAdminProfileScreen(onBackClick: () -> Unit = {}) {
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(56.dp),
+                    placeholder = { Text("Name...", color = Color.Gray) },
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = DarkGreen,
                         unfocusedBorderColor = Color.Gray.copy(alpha = 0.5f),
@@ -217,7 +218,7 @@ fun EditAdminProfileScreen(onBackClick: () -> Unit = {}) {
                             }.show()
                         },
                     readOnly = true,
-                    placeholder = { Text("24 December 199", color = Color.Gray) },
+                    placeholder = { Text("Date of Birth...", color = Color.Gray) },
                     trailingIcon = {
                         Icon(
                             painter = painterResource(id = android.R.drawable.arrow_down_float),
@@ -244,7 +245,7 @@ fun EditAdminProfileScreen(onBackClick: () -> Unit = {}) {
                 // Location Field
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "location",
+                        text = "Location",
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
                         color = DarkGreen,
@@ -257,7 +258,7 @@ fun EditAdminProfileScreen(onBackClick: () -> Unit = {}) {
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(56.dp),
-                        placeholder = { Text("Name...", color = Color.Gray) },
+                        placeholder = { Text("Location...", color = Color.Gray) },
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = DarkGreen,
                             unfocusedBorderColor = Color.Gray.copy(alpha = 0.5f),
