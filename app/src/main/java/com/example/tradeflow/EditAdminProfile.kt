@@ -65,6 +65,7 @@ fun EditAdminProfileScreen(onBackClick: () -> Unit = {}) {
     var agreedToTerms by remember { mutableStateOf(false) }
     var showGenderMenu by remember { mutableStateOf(false) }
     var showDiscardDialog by remember { mutableStateOf(false) }
+    var pendingNavigation by remember { mutableStateOf<String?>(null) }
 
     // Check if any field has been modified
     val hasChanges = name.isNotEmpty() || dateOfBirth.isNotEmpty() ||
@@ -86,7 +87,10 @@ fun EditAdminProfileScreen(onBackClick: () -> Unit = {}) {
     // Discard Changes Dialog
     if (showDiscardDialog) {
         AlertDialog(
-            onDismissRequest = { showDiscardDialog = false },
+            onDismissRequest = {
+                showDiscardDialog = false
+                pendingNavigation = null
+            },
             containerColor = Color.White,
             title = {
                 Text(
@@ -107,11 +111,24 @@ fun EditAdminProfileScreen(onBackClick: () -> Unit = {}) {
                 Button(
                     onClick = {
                         showDiscardDialog = false
-                        val intent = Intent(context, AdminSettings::class.java)
-                        context.startActivity(intent)
-                        if (context is ComponentActivity) {
-                            context.finish()
+                        when (pendingNavigation) {
+                            "terms" -> {
+                                val intent = Intent(context, AdminTermsAndCondition::class.java)
+                                context.startActivity(intent)
+                            }
+                            "privacy" -> {
+                                val intent = Intent(context, AdminPrivacyPolicy::class.java)
+                                context.startActivity(intent)
+                            }
+                            else -> {
+                                val intent = Intent(context, AdminSettings::class.java)
+                                context.startActivity(intent)
+                                if (context is ComponentActivity) {
+                                    context.finish()
+                                }
+                            }
                         }
+                        pendingNavigation = null
                     },
                     colors = ButtonDefaults.buttonColors(
                         containerColor = Color.Red
@@ -127,7 +144,10 @@ fun EditAdminProfileScreen(onBackClick: () -> Unit = {}) {
             },
             dismissButton = {
                 Button(
-                    onClick = { showDiscardDialog = false },
+                    onClick = {
+                        showDiscardDialog = false
+                        pendingNavigation = null
+                    },
                     colors = ButtonDefaults.buttonColors(
                         containerColor = Color(0xFF007AFF)
                     ),
@@ -191,6 +211,7 @@ fun EditAdminProfileScreen(onBackClick: () -> Unit = {}) {
                 navigationIcon = {
                     IconButton(onClick = {
                         if (hasChanges) {
+                            pendingNavigation = "back"
                             showDiscardDialog = true
                         } else {
                             val intent = Intent(context, AdminSettings::class.java)
