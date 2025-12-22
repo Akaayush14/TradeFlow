@@ -3,6 +3,7 @@ package com.example.tradeflow
 import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
@@ -68,6 +69,15 @@ fun AdminSettingsScreen(onBackClick: () -> Unit = {}) {
     val context = LocalContext.current
     var selectedIndex by remember { mutableStateOf(-1) }
     var showLogoutDialog by remember { mutableStateOf(false) }
+
+    // Handle back button press - navigate to AdminDashExp
+    BackHandler {
+        val intent = Intent(context, AdminDashExp::class.java)
+        context.startActivity(intent)
+        if (context is ComponentActivity) {
+            context.finish()
+        }
+    }
 
     // Logout Confirmation Dialog
     if (showLogoutDialog) {
