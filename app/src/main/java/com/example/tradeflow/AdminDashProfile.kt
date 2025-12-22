@@ -34,6 +34,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.tradeflow.ui.theme.DarkGreen
 import com.example.tradeflow.ui.theme.Green
+import androidx.activity.compose.BackHandler
 
 class AdminProfile : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -57,6 +58,16 @@ class AdminProfile : ComponentActivity() {
 fun AdminProfileScreen(onBackClick: () -> Unit = {}) {
     val context = LocalContext.current
     var selectedIndex by remember { mutableStateOf(2) }
+
+    BackHandler {
+        val intent = Intent(context, AdminDashExp::class.java)
+        context.startActivity(intent)
+        if (context is ComponentActivity) {
+            context.finish()
+        }
+    }
+
+
 
     Scaffold(
         topBar = {
