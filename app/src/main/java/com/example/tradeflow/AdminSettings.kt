@@ -15,13 +15,14 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -66,6 +67,70 @@ class AdminSettings : ComponentActivity() {
 fun AdminSettingsScreen(onBackClick: () -> Unit = {}) {
     val context = LocalContext.current
     var selectedIndex by remember { mutableStateOf(-1) }
+    var showLogoutDialog by remember { mutableStateOf(false) }
+
+    // Logout Confirmation Dialog
+    if (showLogoutDialog) {
+        AlertDialog(
+            onDismissRequest = { showLogoutDialog = false },
+            containerColor = Color.White,
+            title = {
+                Text(
+                    text = "Logout",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Black
+                )
+            },
+            text = {
+                Text(
+                    text = "Do you really want to log out?",
+                    fontSize = 16.sp,
+                    color = Color.Gray
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        // TODO: Handle logout logic
+                        // - Clear user session/preferences
+                        // - Navigate to login screen
+                        // val intent = Intent(context, LoginActivity::class.java)
+                        // context.startActivity(intent)
+                        // if (context is ComponentActivity) {
+                        //     context.finishAffinity()
+                        // }
+                        showLogoutDialog = false
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color.Red
+                    ),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text(
+                        text = "Yes",
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            },
+            dismissButton = {
+                Button(
+                    onClick = { showLogoutDialog = false },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF007AFF)
+                    ),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text(
+                        text = "No",
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+        )
+    }
 
     Scaffold(
         topBar = {
@@ -106,13 +171,15 @@ fun AdminSettingsScreen(onBackClick: () -> Unit = {}) {
                 .fillMaxSize()
                 .background(Color(0xFFF5F5F5))
         ) {
-            SettingsContent()
+            SettingsContent(
+                onLogoutClick = { showLogoutDialog = true }
+            )
         }
     }
 }
 
 @Composable
-fun SettingsContent() {
+fun SettingsContent(onLogoutClick: () -> Unit = {}) {
     val context = LocalContext.current
 
     Column(
@@ -141,7 +208,6 @@ fun SettingsContent() {
             SettingsMenuItem(
                 title = "Edit Profile",
                 onClick = {
-
                     val intent = Intent(context, EditAdminProfile::class.java)
                     context.startActivity(intent)
                 }
@@ -171,16 +237,7 @@ fun SettingsContent() {
 
             SettingsMenuItem(
                 title = "Logout",
-                onClick = {
-                    // TODO: Handle logout logic
-                    // - Clear user session/preferences
-                    // - Navigate to login screen
-                    // val intent = Intent(context, LoginActivity::class.java)
-                    // context.startActivity(intent)
-                    // if (context is ComponentActivity) {
-                    //     context.finishAffinity()
-                    // }
-                },
+                onClick = onLogoutClick,
                 showArrow = true
             )
         }
