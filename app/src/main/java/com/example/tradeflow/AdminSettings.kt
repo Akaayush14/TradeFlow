@@ -246,6 +246,16 @@ fun SettingsContent(onLogoutClick: () -> Unit = {}) {
             HorizontalDivider(color = Color(0xFFE0E0E0))
 
             SettingsMenuItem(
+                title = "Terms and Conditions",
+                onClick = {
+                    val intent = Intent(context, AdminTermsAndCondition::class.java)
+                    context.startActivity(intent)
+                }
+            )
+
+            HorizontalDivider(color = Color(0xFFE0E0E0))
+
+            SettingsMenuItem(
                 title = "Logout",
                 onClick = onLogoutClick,
                 showArrow = true
