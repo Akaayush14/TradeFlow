@@ -5,6 +5,7 @@ import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
@@ -63,6 +64,84 @@ fun EditAdminProfileScreen(onBackClick: () -> Unit = {}) {
     var age by remember { mutableStateOf(0) }
     var agreedToTerms by remember { mutableStateOf(false) }
     var showGenderMenu by remember { mutableStateOf(false) }
+    var showDiscardDialog by remember { mutableStateOf(false) }
+
+    // Check if any field has been modified
+    val hasChanges = name.isNotEmpty() || dateOfBirth.isNotEmpty() ||
+            location.isNotEmpty() || gender != "Gender" || agreedToTerms
+
+    // Handle back button press
+    BackHandler {
+        if (hasChanges) {
+            showDiscardDialog = true
+        } else {
+            val intent = Intent(context, AdminSettings::class.java)
+            context.startActivity(intent)
+            if (context is ComponentActivity) {
+                context.finish()
+            }
+        }
+    }
+
+    // Discard Changes Dialog
+    if (showDiscardDialog) {
+        AlertDialog(
+            onDismissRequest = { showDiscardDialog = false },
+            containerColor = Color.White,
+            title = {
+                Text(
+                    text = "Discard Changes",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Black
+                )
+            },
+            text = {
+                Text(
+                    text = "Do you want to discard changes?",
+                    fontSize = 16.sp,
+                    color = Color.Gray
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showDiscardDialog = false
+                        val intent = Intent(context, AdminSettings::class.java)
+                        context.startActivity(intent)
+                        if (context is ComponentActivity) {
+                            context.finish()
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color.Red
+                    ),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text(
+                        text = "Yes",
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            },
+            dismissButton = {
+                Button(
+                    onClick = { showDiscardDialog = false },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF007AFF)
+                    ),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text(
+                        text = "No",
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+        )
+    }
 
     // Calculate age from date of birth
     fun calculateAge(dob: String): Int {
@@ -111,10 +190,14 @@ fun EditAdminProfileScreen(onBackClick: () -> Unit = {}) {
                 ),
                 navigationIcon = {
                     IconButton(onClick = {
-                        val intent = Intent(context, AdminSettings::class.java)
-                        context.startActivity(intent)
-                        if (context is ComponentActivity) {
-                            context.finish()
+                        if (hasChanges) {
+                            showDiscardDialog = true
+                        } else {
+                            val intent = Intent(context, AdminSettings::class.java)
+                            context.startActivity(intent)
+                            if (context is ComponentActivity) {
+                                context.finish()
+                            }
                         }
                     }) {
                         Icon(
@@ -218,7 +301,7 @@ fun EditAdminProfileScreen(onBackClick: () -> Unit = {}) {
                             }.show()
                         },
                     readOnly = true,
-                    placeholder = { Text("Date of Birth...", color = Color.Gray) },
+                    placeholder = { Text("24 December 199", color = Color.Gray) },
                     trailingIcon = {
                         Icon(
                             painter = painterResource(id = android.R.drawable.arrow_down_float),
