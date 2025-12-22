@@ -71,6 +71,10 @@
             android:exported="false"
             android:theme="@style/Theme.TradeFlow" />
 
+        <activity
+            android:name=".AdminPrivacyPolicy"
+            android:exported="false"
+            android:theme="@style/Theme.TradeFlow" />
 
 
 

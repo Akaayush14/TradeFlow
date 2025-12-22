@@ -162,7 +162,7 @@ fun SettingsContent() {
             SettingsMenuItem(
                 title = "Privacy & Security",
                 onClick = {
-                    val intent = Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://calm-biscuit-65b0fa.netlify.app/#"))
+                    val intent = Intent(context, AdminPrivacyPolicy::class.java)
                     context.startActivity(intent)
                 }
             )
