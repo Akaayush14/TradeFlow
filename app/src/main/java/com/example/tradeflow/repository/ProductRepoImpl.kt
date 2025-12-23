@@ -1,13 +1,28 @@
 package com.example.tradeflow.repository
 
 import com.example.tradeflow.model.ProductModel
+import com.google.firebase.database.DatabaseReference
+import com.google.firebase.database.FirebaseDatabase
+
 
 class ProductRepoImpl: ProductRepo {
+    val database : FirebaseDatabase = FirebaseDatabase.getInstance()
+    val ref : DatabaseReference = database.getReference("products")
+
     override fun addProduct(
         model: ProductModel,
         callback: (Boolean, String) -> Unit
     ) {
-        TODO("Not yet implemented")
+        var productId = ref.push().key.toString()
+        model.productId = productId
+
+        ref.child(productId).setValue(model).addOnCompleteListener {
+            if(it.isSuccessful){
+                callback(true,"Product added successfully")
+            }else{
+                callback(false,"${it.exception?.message}")
+            }
+        }
     }
 
     override fun updateProduct(
