@@ -5,4 +5,6 @@
     <string name="title_activity_login_activity.kt">LoginActivity.kt</string>
     <string name="title_activity_about_us">AboutUsActivity</string>
     <string name="title_activity_edit_profile">EditProfileActivity</string>
+    <string name="title_activity_logout">LogoutActivity</string>
+    <string name="title_activity_notifications">NotificationsActivity</string>
 </resources>

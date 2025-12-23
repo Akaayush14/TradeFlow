@@ -43,7 +43,7 @@ import com.example.tradeflow.ui.theme.Greenish
 import com.example.tradeflow.ui.theme.TealBlue
 
 
-class LoginUI : ComponentActivity() {
+class LoginActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()

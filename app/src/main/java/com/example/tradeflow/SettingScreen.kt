@@ -1,5 +1,7 @@
 package com.example.tradeflow
 
+import android.app.Dialog
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -9,12 +11,18 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -23,6 +31,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import androidx.navigation.NavController
 import androidx.navigation.compose.*
 
@@ -57,6 +66,7 @@ fun AppNav() {
 
         }
 
+
     }
 }
 
@@ -64,6 +74,8 @@ fun AppNav() {
 
 @Composable
 fun SettingsScreen(navController: NavController) {
+    var showLogoutDialog by remember { mutableStateOf(false) }
+
     Column(modifier = Modifier.fillMaxSize()) {
 
         Row(
@@ -75,7 +87,7 @@ fun SettingsScreen(navController: NavController) {
             horizontalArrangement = Arrangement.Center
         ) {
             Text(
-                text = "Setting",
+                text = "Settings",
                 color = Color.White,
                 style = MaterialTheme.typography.titleLarge
             )
@@ -118,7 +130,23 @@ fun SettingsScreen(navController: NavController) {
         SettingsItem("About us") {
             navController.navigate("aboutus")
         }
-        SettingsItem("Logout")
+        SettingsItem("Logout") {
+            showLogoutDialog = true
+        }
+    }
+    if (showLogoutDialog) {
+        IOSStyleLogoutDialog(
+            onCancel = { showLogoutDialog = false },
+            onConfirm = {
+                showLogoutDialog = false
+
+                val context = navController.context
+                context.startActivity(
+                    Intent(context, LoginActivity::class.java)
+                )
+                (context as ComponentActivity).finish()
+            }
+        )
     }
 }
 
@@ -155,6 +183,7 @@ fun PrivacySecurityScreen(navController: NavController) {
             item { Section("Data") }
             item { PrivacyItem("Download Data") }
             item { PrivacyItem("Delete Account") }
+
         }
     }
 }
@@ -210,6 +239,88 @@ fun Section(title: String) {
         )
     }
 }
+
+//Logout Ui//
+@Composable
+fun IOSStyleLogoutDialog(
+    onCancel: () -> Unit,
+    onConfirm: () -> Unit
+) {
+    Dialog(onDismissRequest = onCancel) {
+        Card(
+            shape = RoundedCornerShape(16.dp),
+            modifier = Modifier
+                .fillMaxWidth(0.85f),
+            colors = CardDefaults.cardColors(
+                containerColor = Color.White
+            )
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = "Logout",
+                    color = Color.Red,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "Are you sure you want to logout?",
+                    color = Color.Gray,
+                    fontSize = 14.sp
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+                HorizontalDivider(color = Color.LightGray)
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight()
+                            .clickable { onCancel() },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "Cancel",
+                            color = Color.Gray,
+                            fontSize = 16.sp
+                        )
+                    }
+                    Box(
+                        modifier = Modifier
+                            .width(1.dp)
+                            .fillMaxHeight()
+                            .background(Color.LightGray)
+                    )
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight()
+                            .clickable { onConfirm() },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "Confirm",
+                            color = Color(0xFF7E57C2),
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
 
 
 @Preview(showBackground = true)

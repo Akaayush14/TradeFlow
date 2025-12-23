@@ -85,6 +85,7 @@ fun EditProfileScreen(navController: NavController) {
                 )
             }
 
+
             Text(
                 text = "Edit Profile",
                 color = Color.White,
