@@ -3,6 +3,7 @@ package com.example.tradeflow.repository
 import com.example.tradeflow.model.ProductModel
 import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.FirebaseDatabase
+import kotlin.collections.toMap
 
 
 class ProductRepoImpl: ProductRepo {
@@ -29,7 +30,13 @@ class ProductRepoImpl: ProductRepo {
         model: ProductModel,
         callback: (Boolean, String) -> Unit
     ) {
-        TODO("Not yet implemented")
+        ref.child(model.productId).updateChildren(model.toMap()).addOnCompleteListener {
+            if(it.isSuccessful){
+                callback(true,"Product updated successfully")
+            }else{
+                callback(false,"${it.exception?.message}")
+            }
+        }
     }
 
     override fun deleteProduct(
