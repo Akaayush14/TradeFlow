@@ -5,7 +5,14 @@ data class ProductModel(
     var name: String = "",
     var price: Double = 0.0,
     var imageUrl: String = "",
-    var category: String = "",
+    var categoryId: String = "",
 ){
-
+    fun toMap(): Map<String, Any?>{
+        return mapOf(
+            "name" to name,
+            "price" to price,
+            "imageUrl" to imageUrl,
+            "categoryId" to categoryId,
+        )
+    }
 }
