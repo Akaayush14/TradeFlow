@@ -1,5 +1,6 @@
 package com.example.tradeflow
 
+import android.app.Activity
 import android.content.Intent
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -33,6 +34,7 @@ import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -41,12 +43,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.view.WindowCompat
 import com.example.tradeflow.ui.theme.TealBlue
 import com.example.tradeflow.ui.theme.White
 
@@ -65,15 +70,41 @@ data class ListingItem(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ProfileScreen() {
+fun ProfileScreen(onBackClick: () -> Unit = {}) {
     val listings = remember { getMockListings() }
     var selectedTab by remember { mutableStateOf(ListingType.BARTER) }
 
     val barterListings = remember(listings) { listings.filter { it.type == ListingType.BARTER } }
     val rentalListings = remember(listings) { listings.filter { it.type == ListingType.RENTAL } }
 
+
+
     Scaffold(
-        topBar = { ProfileTopAppBar() },
+        topBar = {
+            CenterAlignedTopAppBar(
+                title = {
+                    Text(
+                        "Profile",
+                        color = White,
+                        fontWeight = FontWeight.Bold
+                    )
+                },
+                navigationIcon = {
+                    IconButton(onClick = onBackClick) {
+                        Icon(
+                            painter = painterResource(R.drawable.outline_arrow_back_ios_new_24),
+                            contentDescription = "Back",
+                            tint = White
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                    containerColor = TealBlue,
+                    titleContentColor = White,
+                    navigationIconContentColor = White
+                )
+            )
+        },
         containerColor = White
     ) { innerPadding ->
         // Single scrollable column so header + listings scroll together
@@ -123,33 +154,6 @@ fun ProfileScreen() {
         }
     }
 }
-
-// ... (ProfileTopAppBar function code remains the same as before) ...
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun ProfileTopAppBar() {
-    CenterAlignedTopAppBar(
-        title = {
-            Text("Profile", color = White, fontWeight = FontWeight.Bold)
-        },
-        navigationIcon = {
-            IconButton(onClick = { /* Handle back press */ }) {
-                Icon(
-                    painter = painterResource(R.drawable.outline_arrow_back_ios_new_24),
-
-                    contentDescription = "Back",
-                    tint = White
-                )
-            }
-        },
-        colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-            containerColor = TealBlue,
-            titleContentColor = White,
-            navigationIconContentColor = White
-        )
-    )
-}
-
 
 @Composable
 fun ProfileHeaderSection(

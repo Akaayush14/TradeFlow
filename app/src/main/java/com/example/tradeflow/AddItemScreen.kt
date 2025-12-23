@@ -52,7 +52,7 @@ import com.example.tradeflow.ui.theme.White
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AddItemScreen() {
+fun AddItemScreen(onBackClick: () -> Unit = {}) {
     var name by remember { mutableStateOf("") }
     var price by remember { mutableStateOf("") }
     var location by remember { mutableStateOf("") }
@@ -76,7 +76,7 @@ fun AddItemScreen() {
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = { /* Handle back button click */ }) {
+                    IconButton(onClick = onBackClick) {
                         Icon(
                             painter = painterResource(R.drawable.outline_arrow_back_ios_new_24),
                             contentDescription = "back",

@@ -58,13 +58,13 @@ data class MessagePreview(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun InboxScreen() {
+fun InboxScreen(onBackClick: () -> Unit = {}) {
     var searchQuery by remember { mutableStateOf("") }
     val messages = remember { getMockMessages() }
 
     Scaffold(
         topBar = {
-            InboxTopAppBar()
+            InboxTopAppBar(onBackClick = onBackClick)
         },
         containerColor = White
     ) { innerPadding ->
@@ -125,8 +125,7 @@ fun InboxScreen() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-
-fun InboxTopAppBar() {
+fun InboxTopAppBar(onBackClick: () -> Unit = {}) {
     // Use CenterAlignedTopAppBar for a centered title
     CenterAlignedTopAppBar(
         title = {
@@ -137,7 +136,7 @@ fun InboxTopAppBar() {
             )
         },
         navigationIcon = {
-            IconButton(onClick = { /* Handle back press */ }) {
+            IconButton(onClick = onBackClick) {
                 Icon(
                     painter = painterResource(R.drawable.outline_arrow_back_ios_new_24),
                     contentDescription = "Back",

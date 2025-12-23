@@ -92,10 +92,10 @@ fun DashboardPageBody() {
         ) {
             when (selectedIndex) {
                 0 -> ExploreScreen()
-                1 -> InboxScreen()
-                2 -> AddItemScreen()
-                3 -> NotificationScreen()
-                4 -> ProfileScreen()
+                1 -> InboxScreen(onBackClick = { selectedIndex = 0 })
+                2 -> AddItemScreen(onBackClick = { selectedIndex = 0 })
+                3 -> NotificationScreen(onBackClick = { selectedIndex = 0 })
+                4 -> ProfileScreen(onBackClick = { selectedIndex = 0 })
                 else -> ExploreScreen()
             }
         }
