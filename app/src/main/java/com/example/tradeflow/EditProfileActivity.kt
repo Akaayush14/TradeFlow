@@ -40,10 +40,14 @@ class EditProfileActivity : ComponentActivity() {
         }
     }
 }
-
 @Composable
 fun EditProfileScreen(navController: NavController) {
+    var name by remember { mutableStateOf("") }
+    var phone by remember { mutableStateOf("") }
+    var gender by remember { mutableStateOf("") }
+    var location by remember { mutableStateOf("") }
     var dob by remember { mutableStateOf("") }
+
     val context = LocalContext.current
     val calendar = Calendar.getInstance()
 
@@ -52,8 +56,7 @@ fun EditProfileScreen(navController: NavController) {
         { _: DatePicker, year: Int, month: Int, dayOfMonth: Int ->
             val selectedDate = Calendar.getInstance()
             selectedDate.set(year, month, dayOfMonth)
-            val formatter = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
-            dob = formatter.format(selectedDate.time)
+            dob = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(selectedDate.time)
         },
         calendar.get(Calendar.YEAR),
         calendar.get(Calendar.MONTH),
@@ -67,10 +70,7 @@ fun EditProfileScreen(navController: NavController) {
                 .height(180.dp)
                 .background(
                     Brush.verticalGradient(
-                        colors = listOf(
-                            Color(0xFF007D70),
-                            Color(0xFF1E88E5)
-                        )
+                        colors = listOf(Color(0xFF007D70), Color(0xFF1E88E5))
                     )
                 )
         ) {
@@ -78,13 +78,8 @@ fun EditProfileScreen(navController: NavController) {
                 onClick = { navController.popBackStack() },
                 modifier = Modifier.padding(16.dp)
             ) {
-                Icon(
-                    imageVector = Icons.Default.ArrowBack,
-                    contentDescription = "Back",
-                    tint = Color.White
-                )
+                Icon(Icons.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
             }
-
 
             Text(
                 text = "Edit Profile",
@@ -94,7 +89,7 @@ fun EditProfileScreen(navController: NavController) {
             )
         }
 
-        // Profile picture
+
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -108,7 +103,6 @@ fun EditProfileScreen(navController: NavController) {
                         .clip(CircleShape)
                         .background(Color.LightGray)
                 )
-
                 Icon(
                     imageVector = Icons.Default.Edit,
                     contentDescription = "Edit Photo",
@@ -132,27 +126,26 @@ fun EditProfileScreen(navController: NavController) {
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             OutlinedTextField(
-                value = "",
-                onValueChange = {},
+                value = name,
+                onValueChange = { name = it },
                 label = { Text("Name") },
                 modifier = Modifier.fillMaxWidth()
             )
 
             OutlinedTextField(
-                value = "",
-                onValueChange = {},
+                value = phone,
+                onValueChange = { phone = it },
                 label = { Text("Phone Number") },
                 modifier = Modifier.fillMaxWidth()
             )
 
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 OutlinedTextField(
-                    value = "",
-                    onValueChange = {},
+                    value = gender,
+                    onValueChange = { gender = it },
                     label = { Text("Gender") },
                     modifier = Modifier.weight(1f)
                 )
-
                 OutlinedTextField(
                     value = dob,
                     onValueChange = { dob = it },
@@ -164,32 +157,33 @@ fun EditProfileScreen(navController: NavController) {
                 )
             }
 
-            OutlinedTextField(
-                value = "",
-                onValueChange = {},
-                label = { Text("Location") },
-                modifier = Modifier.fillMaxWidth()
-            )
 
             Spacer(modifier = Modifier.height(24.dp))
+
+            // Gradient Save Button
             val gradient = Brush.horizontalGradient(
-                colors = listOf(Color(0xFF1E50E5), Color(0xFF6650a4))
+                colors = listOf(Color(0xFF1E50E5), Color(0xFF6650A4))
             )
 
-            Button(
-                onClick = { /* Save profile */ },
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(52.dp)
                     .clip(RoundedCornerShape(14.dp))
-                    .background(gradient),
-                colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent)
+                    .background(gradient)
+                    .clickable { /* Save profile logic */ },
+                contentAlignment = Alignment.Center
             ) {
-                Text("Save Changes", fontSize = 16.sp, color = Color.White)
+                Text(
+                    text = "Save Changes",
+                    color = Color.White,
+                    fontSize = 16.sp
+                )
             }
         }
     }
 }
+
 
 @Preview(showBackground = true)
 @Composable

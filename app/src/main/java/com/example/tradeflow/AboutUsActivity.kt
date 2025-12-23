@@ -53,7 +53,7 @@ fun AboutUsScreen(navController: NavController) {
     val coroutineScope = rememberCoroutineScope()
     val gradientBackground = Brush.verticalGradient(
         colors = listOf(
-            Color(0xFF8D9393),
+            Color(0xFFF5F8F8),
             Color(0xFFFCFDFD)
         )
     )

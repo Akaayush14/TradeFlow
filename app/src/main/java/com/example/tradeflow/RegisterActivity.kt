@@ -67,6 +67,7 @@ import androidx.compose.ui.unit.sp
 import com.example.tradeflow.ui.theme.TradeFlowTheme
 import com.example.tradeflow.ui.theme.Blue
 import com.example.tradeflow.ui.theme.Green
+import com.example.tradeflow.ui.theme.Greenish
 import com.example.tradeflow.ui.theme.PurpleGrey80
 import kotlinx.coroutines.launch
 
@@ -105,7 +106,7 @@ fun RegisterBody() {
             modifier = Modifier
                 .fillMaxWidth()
                 .height(250.dp)
-                .background(color = Green),
+                .background(color = Greenish),
             contentAlignment = Alignment.Center
         ) {
             Image(

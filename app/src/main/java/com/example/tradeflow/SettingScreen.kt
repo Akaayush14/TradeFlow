@@ -1,6 +1,5 @@
 package com.example.tradeflow
 
-import android.app.Dialog
 import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -13,9 +12,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -54,6 +51,9 @@ fun AppNav() {
     NavHost(navController, startDestination = "settings") {
         composable("settings") {
             SettingsScreen(navController)
+        }
+        composable("notifications") {
+            NotificationsScreen(navController)
         }
         composable("edit_profile") {
             EditProfileScreen(navController)
@@ -117,11 +117,13 @@ fun SettingsScreen(navController: NavController) {
 
         Spacer(modifier = Modifier.height(32.dp))
 
-        SettingsItem("Notifications")
+
+        SettingsItem("Notifications") {
+            navController.navigate("notifications")
+        }
         SettingsItem("Edit Profile") {
             navController.navigate("edit_profile")
         }
-
         SettingsItem("Language")
 
         SettingsItem("Privacy & Security") {
@@ -320,9 +322,6 @@ fun IOSStyleLogoutDialog(
         }
     }
 }
-
-
-
 @Preview(showBackground = true)
 @Composable
 fun PreviewApp() {
