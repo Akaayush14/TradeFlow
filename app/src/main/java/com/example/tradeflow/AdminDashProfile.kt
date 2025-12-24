@@ -140,19 +140,6 @@ fun AdminProfileScreen(onBackClick: () -> Unit = {}) {
                     },
                     label = { Text("Users", color = Color.White) }
                 )
-
-                NavigationBarItem(
-                    selected = selectedIndex == 2,
-                    onClick = { selectedIndex = 2 },
-                    icon = {
-                        Icon(
-                            painter = painterResource(R.drawable.profile),
-                            contentDescription = "Profile",
-                            tint = Color.White
-                        )
-                    },
-                    label = { Text("Profile", color = Color.White) }
-                )
                 NavigationBarItem(
                     selected = selectedIndex == 3,
                     onClick = {
@@ -171,6 +158,20 @@ fun AdminProfileScreen(onBackClick: () -> Unit = {}) {
                     },
                     label = { Text("Items", color = Color.White) }
                 )
+
+                NavigationBarItem(
+                    selected = selectedIndex == 2,
+                    onClick = { selectedIndex = 2 },
+                    icon = {
+                        Icon(
+                            painter = painterResource(R.drawable.profile),
+                            contentDescription = "Profile",
+                            tint = Color.White
+                        )
+                    },
+                    label = { Text("Profile", color = Color.White) }
+                )
+
 
 
             }
