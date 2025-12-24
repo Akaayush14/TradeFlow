@@ -1,8 +1,11 @@
 package com.example.tradeflow.repository
 
 import com.example.tradeflow.model.ProductModel
+import com.google.firebase.database.DataSnapshot
+import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.FirebaseDatabase
+import com.google.firebase.database.ValueEventListener
 import kotlin.collections.toMap
 
 
@@ -43,24 +46,81 @@ class ProductRepoImpl: ProductRepo {
         productID: String,
         callback: (Boolean, String) -> Unit
     ) {
-        TODO("Not yet implemented")
+        ref.child(productID).removeValue().addOnCompleteListener {
+            if(it.isSuccessful){
+                callback(true,"Product deleted successfully")
+            }else{
+                callback(false,"${it.exception?.message}")
+            }
+        }
     }
 
     override fun getAllProduct(callback: (Boolean, String, List<ProductModel>?) -> Unit) {
-        TODO("Not yet implemented")
+        ref.addValueEventListener(object : ValueEventListener{
+            override fun onDataChange(snapshot: DataSnapshot) {
+                if(snapshot.exists()){
+                    val allProducts = mutableListOf<ProductModel>()
+                    for(data in snapshot.children){
+                        var product = data.getValue(ProductModel::class.java)
+                        if(product != null){
+                            allProducts.add(product)
+                        }
+                    }
+                    callback(true,"fetched",allProducts)
+                }
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                callback(false,error.message,emptyList())
+            }
+        })
     }
 
     override fun getProductById(
         productID: String,
         callback: (Boolean, String, ProductModel?) -> Unit
     ) {
-        TODO("Not yet implemented")
+        ref.child(productID).addValueEventListener(object : ValueEventListener{
+            override fun onDataChange(snapshot: DataSnapshot) {
+                if(snapshot.exists()){
+                    var data = snapshot.getValue(ProductModel::class.java)
+                    if(data != null){
+                        callback(true,"product fetched",data)
+                    }
+
+                    data.let {
+                        callback(true,"product fetched",it)
+                    }
+                }
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                callback(false,error.message,null)
+            }
+        })
     }
 
     override fun getProductByCategory(
         categoryID: String,
         callback: (Boolean, String, List<ProductModel>?) -> Unit
     ) {
-        TODO("Not yet implemented")
+        ref.orderByChild("categoryId").equalTo(categoryID).addValueEventListener(object : ValueEventListener{
+            override fun onDataChange(snapshot: DataSnapshot) {
+                if(snapshot.exists()){
+                    val allProducts = mutableListOf<ProductModel>()
+                    for(data in snapshot.children){
+                        var product = data.getValue(ProductModel::class.java)
+                        if(product != null){
+                            allProducts.add(product)
+                        }
+                    }
+                    callback(true,"fetched",allProducts)
+                }
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                callback(false,error.message,emptyList())
+            }
+        })
     }
 }
