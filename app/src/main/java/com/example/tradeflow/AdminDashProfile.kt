@@ -89,7 +89,7 @@ fun AdminProfileScreen(onBackClick: () -> Unit = {}) {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(end = 48.dp), // Compensate for back button width
+                            .padding(end = 48.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
@@ -153,6 +153,8 @@ fun AdminProfileScreen(onBackClick: () -> Unit = {}) {
                     },
                     label = { Text("Profile", color = Color.White) }
                 )
+
+
             }
         }
     ) { padding ->
