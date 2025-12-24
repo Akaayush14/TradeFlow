@@ -50,6 +50,7 @@ import androidx.compose.ui.unit.sp
 import com.example.tradeflow.ui.theme.TradeFlowTheme
 import kotlinx.coroutines.launch
 import androidx.compose.ui.graphics.Color
+import com.example.tradeflow.ui.theme.Green1
 import com.example.tradeflow.ui.theme.Greenish
 
 
@@ -89,7 +90,7 @@ fun ForgotBody() {
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(280.dp)
-                    .background(color = Greenish),
+                    .background(color = Green1),
                 contentAlignment = Alignment.Center
             ) {
                 Image(

@@ -40,6 +40,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.platform.LocalContext
+import com.example.tradeflow.ui.theme.Green1
 import com.example.tradeflow.ui.theme.Greenish
 
 class LoginActivity : ComponentActivity() {
@@ -77,7 +78,7 @@ fun LoginScreen() {
             modifier = Modifier
                 .fillMaxWidth()
                 .height(280.dp)
-                .background(Greenish),
+                .background(Green1),
             contentAlignment = Alignment.Center
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {

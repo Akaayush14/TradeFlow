@@ -93,6 +93,8 @@ fun RegisterBody() {
 
     var showPassword by remember { mutableStateOf(false) }
     var showConfirmPassword by remember { mutableStateOf(false) }
+    var phoneNumber by remember { mutableStateOf("") }
+    var countryCode by remember { mutableStateOf("+977")}
 
     val BlueButton = Color(0xFF006CFF)
 
@@ -104,14 +106,14 @@ fun RegisterBody() {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(250.dp)
+                .height(200.dp)
                 .background(color = Greenish),
             contentAlignment = Alignment.Center
         ) {
             Image(
                 painter = painterResource(id = R.drawable.house_rent_logo),
                 contentDescription = null,
-                modifier = Modifier.size(300.dp)
+                modifier = Modifier.size(200.dp)
             )
         }
 
@@ -147,6 +149,49 @@ fun RegisterBody() {
 
             Spacer(modifier = Modifier.height(14.dp))
 
+            // Phone Number Field
+            Text("Phone Number", fontSize = 14.sp, fontWeight = FontWeight.Medium)
+            Spacer(modifier = Modifier.height(6.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Country Code Picker Button
+                Box(
+                    modifier = Modifier
+                        .width(100.dp)
+                        .height(56.dp)
+                        .background(
+                            color = Color(0xFFF5F5F5),
+                            shape = RoundedCornerShape(10.dp)
+                        )
+                        .clickable {
+                            // Country picker dialog will go here
+                        },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = countryCode,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+
+                Spacer(modifier = Modifier.width(8.dp))
+
+                // Phone Number Input
+                OutlinedTextField(
+                    value = phoneNumber,
+                    onValueChange = { phoneNumber = it },
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(10.dp),
+                    placeholder = { Text(text = "Enter phone number") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
 
             Text("Email Address", fontSize = 14.sp, fontWeight = FontWeight.Medium)
             Spacer(modifier = Modifier.height(6.dp))
