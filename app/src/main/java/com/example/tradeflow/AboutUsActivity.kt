@@ -109,7 +109,7 @@ fun AboutUsScreen(navController: NavController) {
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(120.dp)
+                            .size(200.dp)
                             .clip(CircleShape)
                             .background(Color(0xFF007D70)),
                         contentAlignment = Alignment.Center
@@ -117,21 +117,12 @@ fun AboutUsScreen(navController: NavController) {
                         Image(
                             painter = painterResource(id = R.drawable.house_rent_logo),
                             contentDescription = "Logo",
-                            modifier = Modifier.size(80.dp)
+                            modifier = Modifier.size(200.dp)
                         )
                     }
                 }
             }
-            item {
-                Text(
-                    text = "TradeFlow",
-                    fontSize = 30.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF007D70),
-                    modifier = Modifier.fillMaxWidth(),
-                    textAlign = TextAlign.Center
-                )
-            }
+
 
             item {
                 Text(
@@ -213,12 +204,9 @@ fun SectionTitle(title: String) {
         fontSize = 24.sp,
         fontWeight = FontWeight.Bold,
         color = Color(0xFF6C63FF)
+
     )
-    Divider(
-        thickness = 2.dp,
-        color = Color(0xFF6C63FF),
-        modifier = Modifier.padding(vertical = 8.dp)
-    )
+
 }
 
 @Composable

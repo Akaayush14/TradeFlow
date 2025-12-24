@@ -176,6 +176,7 @@ fun PrivacySecurityScreen(navController: NavController) {
         ) {
             item { Section("Account") }
             item { PrivacyItem("Change Password") }
+            item { PrivacyItem("Change Email") }
             item { PrivacyItem("Two-Factor Authentication") }
 
             item { Section("Privacy") }

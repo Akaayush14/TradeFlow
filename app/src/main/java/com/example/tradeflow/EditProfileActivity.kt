@@ -7,12 +7,14 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -30,13 +32,27 @@ import androidx.navigation.compose.rememberNavController
 import java.text.SimpleDateFormat
 import java.util.*
 
+data class Country(
+    val name: String,
+    val code: String,
+    val flag: String
+)
+val countries = listOf(
+    Country("United States", "+1", "🇺🇸"),
+    Country("Nigeria", "+234", "🇳🇬"),
+    Country("United Kingdom", "+44", "🇬🇧"),
+    Country("India", "+91", "🇮🇳"),
+    Country("Nepal", "+977", "🇳🇵"),
+    Country("China", "+86", "🇨🇳"),
+    Country("Bangladesh", "+880", "🇧🇩"),
+    Country("New Zealand", "+64", "🇳🇿")
+)
 class EditProfileActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            val navController = rememberNavController()
-            EditProfileScreen(navController)
+            EditProfileScreen(rememberNavController())
         }
     }
 }
@@ -53,10 +69,11 @@ fun EditProfileScreen(navController: NavController) {
 
     val datePickerDialog = DatePickerDialog(
         context,
-        { _: DatePicker, year: Int, month: Int, dayOfMonth: Int ->
+        { _: DatePicker, year: Int, month: Int, day: Int ->
             val selectedDate = Calendar.getInstance()
-            selectedDate.set(year, month, dayOfMonth)
-            dob = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(selectedDate.time)
+            selectedDate.set(year, month, day)
+            dob = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+                .format(selectedDate.time)
         },
         calendar.get(Calendar.YEAR),
         calendar.get(Calendar.MONTH),
@@ -70,7 +87,7 @@ fun EditProfileScreen(navController: NavController) {
                 .height(180.dp)
                 .background(
                     Brush.verticalGradient(
-                        colors = listOf(Color(0xFF007D70), Color(0xFF1E88E5))
+                        listOf(Color(0xFF007D70), Color(0xFF1E88E5))
                     )
                 )
         ) {
@@ -78,7 +95,7 @@ fun EditProfileScreen(navController: NavController) {
                 onClick = { navController.popBackStack() },
                 modifier = Modifier.padding(16.dp)
             ) {
-                Icon(Icons.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
+                Icon(Icons.Filled.ArrowBack, null, tint = Color.White)
             }
 
             Text(
@@ -88,8 +105,6 @@ fun EditProfileScreen(navController: NavController) {
                 modifier = Modifier.align(Alignment.Center)
             )
         }
-
-
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -104,8 +119,8 @@ fun EditProfileScreen(navController: NavController) {
                         .background(Color.LightGray)
                 )
                 Icon(
-                    imageVector = Icons.Default.Edit,
-                    contentDescription = "Edit Photo",
+                    Icons.Default.Edit,
+                    null,
                     tint = Color.White,
                     modifier = Modifier
                         .size(32.dp)
@@ -116,15 +131,14 @@ fun EditProfileScreen(navController: NavController) {
                 )
             }
         }
-
         Spacer(modifier = Modifier.height(16.dp))
-
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 20.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
+
             OutlinedTextField(
                 value = name,
                 onValueChange = { name = it },
@@ -132,12 +146,9 @@ fun EditProfileScreen(navController: NavController) {
                 modifier = Modifier.fillMaxWidth()
             )
 
-            OutlinedTextField(
-                value = phone,
-                onValueChange = { phone = it },
-                label = { Text("Phone Number") },
-                modifier = Modifier.fillMaxWidth()
-            )
+            PhoneNumberField(phone) { phone = it }
+
+            LocationField { location = it }
 
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 OutlinedTextField(
@@ -146,38 +157,130 @@ fun EditProfileScreen(navController: NavController) {
                     label = { Text("Gender") },
                     modifier = Modifier.weight(1f)
                 )
+
                 OutlinedTextField(
                     value = dob,
-                    onValueChange = { dob = it },
+                    onValueChange = {},
                     label = { Text("DOB") },
+                    readOnly = true,
                     modifier = Modifier
                         .weight(1f)
-                        .clickable { datePickerDialog.show() },
-                    readOnly = true
+                        .clickable { datePickerDialog.show() }
                 )
             }
 
-
             Spacer(modifier = Modifier.height(24.dp))
-
-            // Gradient Save Button
-            val gradient = Brush.horizontalGradient(
-                colors = listOf(Color(0xFF1E50E5), Color(0xFF6650A4))
-            )
 
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(52.dp)
                     .clip(RoundedCornerShape(14.dp))
-                    .background(gradient)
-                    .clickable { /* Save profile logic */ },
+                    .background(
+                        Brush.horizontalGradient(
+                            listOf(Color(0xFF1E50E5), Color(0xFF6650A4))
+                        )
+                    )
+                    .clickable { },
                 contentAlignment = Alignment.Center
             ) {
-                Text(
-                    text = "Save Changes",
-                    color = Color.White,
-                    fontSize = 16.sp
+                Text("Save Changes", color = Color.White, fontSize = 16.sp)
+            }
+        }
+    }
+}
+
+
+@Composable
+fun PhoneNumberField(phone: String, onPhoneChange: (String) -> Unit) {
+    var expanded by remember { mutableStateOf(false) }
+    var selectedCountry by remember { mutableStateOf(countries[0]) }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(56.dp)
+            .border(1.dp, Color.LightGray, RoundedCornerShape(12.dp)),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+
+        Box(
+            modifier = Modifier
+                .padding(start = 12.dp)
+                .clickable { expanded = true }
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(selectedCountry.flag, fontSize = 20.sp)
+                Spacer(Modifier.width(6.dp))
+                Text(selectedCountry.code)
+                Icon(Icons.Default.ArrowDropDown, null)
+            }
+
+            DropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false }
+            ) {
+                countries.forEach {
+                    DropdownMenuItem(
+                        text = { Text("${it.flag}  ${it.name}") },
+                        onClick = {
+                            selectedCountry = it
+                            expanded = false
+                        }
+                    )
+                }
+            }
+        }
+
+        Spacer(Modifier.width(12.dp))
+
+        TextField(
+            value = phone,
+            onValueChange = onPhoneChange,
+            placeholder = { Text("Phone number") },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            colors = TextFieldDefaults.colors(
+                focusedContainerColor = Color.Transparent,
+                unfocusedContainerColor = Color.Transparent,
+                disabledContainerColor = Color.Transparent,
+                focusedIndicatorColor = Color.Transparent,
+                unfocusedIndicatorColor = Color.Transparent
+            )
+        )
+    }
+}
+@Composable
+fun LocationField(onLocationSelected: (String) -> Unit) {
+    var expanded by remember { mutableStateOf(false) }
+    var selectedCountry by remember { mutableStateOf(countries[0]) }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(56.dp)
+            .border(1.dp, Color.LightGray, RoundedCornerShape(12.dp))
+            .clickable { expanded = true },
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Spacer(Modifier.width(12.dp))
+        Text("${selectedCountry.flag}  ${selectedCountry.name}")
+        Spacer(Modifier.weight(1f))
+        Icon(Icons.Default.ArrowDropDown, null)
+        Spacer(Modifier.width(12.dp))
+
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
+            countries.forEach {
+                DropdownMenuItem(
+                    text = { Text("${it.flag}  ${it.name}") },
+                    onClick = {
+                        selectedCountry = it
+                        onLocationSelected(it.name)
+                        expanded = false
+                    }
                 )
             }
         }
@@ -191,3 +294,5 @@ fun EditProfilePreview() {
     val navController = rememberNavController()
     EditProfileScreen(navController)
 }
+
+
