@@ -43,7 +43,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.tradeflow.ui.theme.DarkGreen
-import com.example.tradeflow.ui.theme.Green
+import com.example.tradeflow.ui.theme.Greenish
+
 
 class AdminAboutUs : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -71,7 +72,7 @@ fun AboutUsScreen(onBackClick: () -> Unit = {}) {
         topBar = {
             TopAppBar(
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Green,
+                    containerColor = Greenish,
                     titleContentColor = Color.White,
                     navigationIconContentColor = Color.White
                 ),
@@ -115,7 +116,7 @@ fun AboutUsScreen(onBackClick: () -> Unit = {}) {
                 text = "TradeFlow",
                 fontSize = 32.sp,
                 fontWeight = FontWeight.Bold,
-                color = Green
+                color = Greenish
             )
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -200,7 +201,7 @@ fun SectionTitle(text: String) {
         text = text,
         fontSize = 24.sp,
         fontWeight = FontWeight.Bold,
-        color = Green,
+        color = Greenish,
         modifier = Modifier
             .fillMaxWidth()
             .padding(bottom = 16.dp)
@@ -260,7 +261,7 @@ fun FeatureCard(
                     text = title,
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Green,
+                    color = Greenish,
                     modifier = Modifier.padding(bottom = 4.dp)
                 )
 

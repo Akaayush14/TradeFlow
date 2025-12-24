@@ -46,7 +46,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.tradeflow.ui.theme.DarkGreen
-import com.example.tradeflow.ui.theme.Green
+import com.example.tradeflow.ui.theme.Greenish
 
 class AdminDashExp : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -86,7 +86,7 @@ fun AdminExp() {
         topBar = {
             TopAppBar(
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Green,
+                    containerColor = Greenish,
                     navigationIconContentColor = Color.White,
                     actionIconContentColor = Color.White
                 ),
@@ -134,7 +134,7 @@ fun AdminExp() {
             )
         },
         bottomBar = {
-            NavigationBar(containerColor = Green) {
+            NavigationBar(containerColor = Greenish) {
                 NavigationBarItem(
                     selected = selectedIndex == 0,
                     onClick = { selectedIndex = 0 },

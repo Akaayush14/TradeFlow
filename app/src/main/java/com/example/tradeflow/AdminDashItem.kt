@@ -39,8 +39,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.tradeflow.ui.theme.DarkGreen
-import com.example.tradeflow.ui.theme.Green
 import androidx.activity.compose.BackHandler
+import com.example.tradeflow.ui.theme.Greenish
 
 class AdminDashItem : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -78,7 +78,7 @@ fun AdminItemScreen(onBackClick: () -> Unit = {}) {
         topBar = {
             TopAppBar(
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Green,
+                    containerColor = Greenish,
                     titleContentColor = DarkGreen,
                     navigationIconContentColor = DarkGreen
                 ),
@@ -107,7 +107,7 @@ fun AdminItemScreen(onBackClick: () -> Unit = {}) {
             )
         },
         bottomBar = {
-            NavigationBar(containerColor = Green) {
+            NavigationBar(containerColor = Greenish) {
                 NavigationBarItem(
                     selected = selectedIndex == 0,
                     onClick = {

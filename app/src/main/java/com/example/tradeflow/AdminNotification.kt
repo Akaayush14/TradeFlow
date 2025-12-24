@@ -35,7 +35,8 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.tradeflow.ui.theme.DarkGreen
-import com.example.tradeflow.ui.theme.Green
+import com.example.tradeflow.ui.theme.Greenish
+
 
 class AdminNotification : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -64,7 +65,7 @@ fun AdminNotification(onBackClick: () -> Unit = {}) {
         topBar = {
             TopAppBar(
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Green,
+                    containerColor = Greenish,
                     titleContentColor = DarkGreen,
                     navigationIconContentColor = DarkGreen
                 ),

@@ -44,7 +44,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.tradeflow.ui.theme.DarkGreen
-import com.example.tradeflow.ui.theme.Green
+import com.example.tradeflow.ui.theme.Greenish
+
 
 class AdminSettings : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -146,7 +147,7 @@ fun AdminSettingsScreen(onBackClick: () -> Unit = {}) {
         topBar = {
             TopAppBar(
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Green,
+                    containerColor = Greenish,
                     titleContentColor = DarkGreen,
                     navigationIconContentColor = DarkGreen
                 ),

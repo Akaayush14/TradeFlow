@@ -37,7 +37,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.tradeflow.ui.theme.DarkGreen
-import com.example.tradeflow.ui.theme.Green
+import com.example.tradeflow.ui.theme.Greenish
 
 class AdminPrivacyPolicy : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -65,7 +65,7 @@ fun AdminPrivacyPolicyScreen(onBackClick: () -> Unit = {}) {
         topBar = {
             TopAppBar(
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Green,
+                    containerColor = Greenish,
                     titleContentColor = Color.White,
                     navigationIconContentColor = Color.White
                 ),
@@ -108,7 +108,7 @@ fun AdminPrivacyPolicyScreen(onBackClick: () -> Unit = {}) {
                 text = "Admin Guidelines & Policies",
                 fontSize = 28.sp,
                 fontWeight = FontWeight.Bold,
-                color = Green,
+                color = Greenish,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth()
             )
@@ -269,7 +269,7 @@ fun AdminPrivacyPolicyScreen(onBackClick: () -> Unit = {}) {
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(containerColor = Green.copy(alpha = 0.1f)),
+                colors = CardDefaults.cardColors(containerColor = Greenish.copy(alpha = 0.1f)),
                 elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
             ) {
                 Column(

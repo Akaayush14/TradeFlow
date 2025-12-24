@@ -33,8 +33,8 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.tradeflow.ui.theme.DarkGreen
-import com.example.tradeflow.ui.theme.Green
 import androidx.activity.compose.BackHandler
+import com.example.tradeflow.ui.theme.Greenish
 
 class AdminProfile : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -73,7 +73,7 @@ fun AdminProfileScreen(onBackClick: () -> Unit = {}) {
         topBar = {
             TopAppBar(
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Green,
+                    containerColor = Greenish,
                     titleContentColor = DarkGreen,
                     navigationIconContentColor = DarkGreen
                 ),
@@ -102,7 +102,7 @@ fun AdminProfileScreen(onBackClick: () -> Unit = {}) {
             )
         },
         bottomBar = {
-            NavigationBar(containerColor = Green) {
+            NavigationBar(containerColor = Greenish) {
                 NavigationBarItem(
                     selected = selectedIndex == 0,
                     onClick = {
