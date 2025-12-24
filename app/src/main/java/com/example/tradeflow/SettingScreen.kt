@@ -1,3 +1,4 @@
+
 package com.example.tradeflow
 
 import android.content.Intent
@@ -5,6 +6,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -20,6 +22,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -92,20 +95,15 @@ fun SettingsScreen(navController: NavController) {
 
         Spacer(modifier = Modifier.height(32.dp))
 
-        SettingsItem("Notifications") { navController.navigate("notifications") }
-        SettingsItem("Edit Profile") { navController.navigate("edit_profile") }
+        SettingsItem("Notifications", R.drawable.notification_filled) { navController.navigate("notifications") }
+        SettingsItem("Edit Profile", R.drawable.profile_filled) { navController.navigate("edit_profile") }
+        SettingsItemWithValue("Language", selectedLanguage, R.drawable.language) { showLanguageDialog = true }
+        SettingsItem("Privacy & Security", R.drawable.privacy) { navController.navigate("privacy") }
+        SettingsItem("About us", R.drawable.aboutus) { navController.navigate("aboutus") }
+        SettingsItem("Logout", R.drawable.signout) { showLogoutDialog = true }
 
-        SettingsItemWithValue(
-            title = "Language",
-            value = selectedLanguage
-        ) {
-            showLanguageDialog = true
-        }
 
-        SettingsItem("Privacy & Security") { navController.navigate("privacy") }
-        SettingsItem("About us") { navController.navigate("aboutus") }
 
-        SettingsItem("Logout") { showLogoutDialog = true }
     }
 
     if (showLogoutDialog) {
@@ -164,7 +162,7 @@ fun PrivacySecurityScreen(navController: NavController) {
 // Setting Items //
 
 @Composable
-fun SettingsItem(title: String, onClick: () -> Unit = {}) {
+fun SettingsItem(title: String, iconRes: Int? = null, onClick: () -> Unit = {}) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -172,14 +170,24 @@ fun SettingsItem(title: String, onClick: () -> Unit = {}) {
             .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
+        if (iconRes != null) {
+            Image(
+                painter = painterResource(iconRes),
+                contentDescription = null,
+                modifier = Modifier
+                    .size(24.dp)
+            )
+            Spacer(modifier = Modifier.width(16.dp))
+        }
         Text(title, modifier = Modifier.weight(1f))
-        Icon(Icons.Default.KeyboardArrowRight, null, tint = Color.Gray)
+        Icon(Icons.Default.KeyboardArrowRight, contentDescription = null, tint = Color.Gray)
     }
-    HorizontalDivider()
+    Divider()
 }
 
+
 @Composable
-fun SettingsItemWithValue(title: String, value: String, onClick: () -> Unit) {
+fun SettingsItemWithValue(title: String, value: String, iconRes: Int? = null, onClick: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -187,13 +195,22 @@ fun SettingsItemWithValue(title: String, value: String, onClick: () -> Unit) {
             .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
+        if (iconRes != null) {
+            Image(
+                painter = painterResource(iconRes),
+                contentDescription = null,
+                modifier = Modifier.size(24.dp)
+            )
+            Spacer(modifier = Modifier.width(16.dp))
+        }
         Text(title, modifier = Modifier.weight(1f))
         Text(value, color = Color.Gray)
         Spacer(modifier = Modifier.width(6.dp))
-        Icon(Icons.Default.KeyboardArrowRight, null, tint = Color.Gray)
+        Icon(Icons.Default.KeyboardArrowRight, contentDescription = null, tint = Color.Gray)
     }
-    HorizontalDivider()
+    Divider()
 }
+
 
 // Language Dialog  //
 

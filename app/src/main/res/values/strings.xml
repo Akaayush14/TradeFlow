@@ -7,4 +7,5 @@
     <string name="title_activity_edit_profile">EditProfileActivity</string>
     <string name="title_activity_logout">LogoutActivity</string>
     <string name="title_activity_notifications">NotificationsActivity</string>
+    <string name="title_activity_chat_system">ChatSystemActivity</string>
 </resources>

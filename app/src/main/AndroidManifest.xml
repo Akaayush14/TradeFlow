@@ -11,7 +11,17 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.TradeFlow">
+        <activity
+            android:name=".ChatSystemActivity"
+            android:exported="true"
+            android:label="@string/title_activity_chat_system"
+            android:theme="@style/Theme.TradeFlow">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
 
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
         <activity
             android:name=".LoginActivity"
             android:exported="true"
@@ -23,6 +33,12 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <activity
+            android:name=".RegisterActivity"
+            android:exported="true"
+            android:label="@string/app_name"
+            android:theme="@style/Theme.TradeFlow" />
+
         <activity
             android:name=".NotificationsActivity"
             android:exported="true"
