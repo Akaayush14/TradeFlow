@@ -23,7 +23,7 @@
             </intent-filter>
         </activity>
         <activity
-            android:name=".LoginActivity.kt"
+            android:name=".LoginActivity"
             android:exported="true"
             android:label="@string/title_activity_login_activity.kt"
             android:theme="@style/Theme.TradeFlow">
