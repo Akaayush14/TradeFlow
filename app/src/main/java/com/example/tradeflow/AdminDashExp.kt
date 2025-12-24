@@ -185,6 +185,25 @@ fun AdminExp() {
                     },
                     label = { Text("Profile", color = Color.White) }
                 )
+
+                NavigationBarItem(
+                    selected = selectedIndex == 3,
+                    onClick = {
+                        val intent = Intent(context, AdminDashItem::class.java)
+                        context.startActivity(intent)
+                        if (context is ComponentActivity) {
+                            context.finish()
+                        }
+                    },
+                    icon = {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_items),
+                            contentDescription = "Admin Items",
+                            tint = Color.White
+                        )
+                    },
+                    label = { Text("Admin Items", color = Color.White) }
+                )
             }
         }
     ) { padding ->
