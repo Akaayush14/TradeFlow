@@ -63,10 +63,8 @@ fun EditProfileScreen(navController: NavController) {
     var gender by remember { mutableStateOf("") }
     var location by remember { mutableStateOf("") }
     var dob by remember { mutableStateOf("") }
-
     val context = LocalContext.current
     val calendar = Calendar.getInstance()
-
     val datePickerDialog = DatePickerDialog(
         context,
         { _: DatePicker, year: Int, month: Int, day: Int ->
