@@ -17,6 +17,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
+import androidx.compose.material3.TabRowDefaults
+import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -30,6 +34,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -59,6 +64,7 @@ class AdminDashItem : ComponentActivity() {
 fun AdminItemScreen(onBackClick: () -> Unit = {}) {
     val context = LocalContext.current
     var selectedIndex by remember { mutableStateOf(3) } // Admin Items tab selected
+    var selectedTab by remember { mutableStateOf(0) } // 0 for Listed Items, 1 for Unlisted Items
 
     BackHandler {
         val intent = Intent(context, AdminDashExp::class.java)
@@ -174,34 +180,94 @@ fun AdminItemScreen(onBackClick: () -> Unit = {}) {
             }
         }
     ) { padding ->
-        Box(
+        Column(
             modifier = Modifier
                 .padding(padding)
                 .fillMaxSize()
         ) {
-            // Add your admin items content here
-            AdminItemsContent()
+            // Tab Row for Listed Items and Unlisted Items
+            TabRow(
+                selectedTabIndex = selectedTab,
+                containerColor = Color.White,
+                contentColor = Color.Gray,
+                indicator = { tabPositions ->
+                    TabRowDefaults.SecondaryIndicator(
+                        modifier = Modifier.tabIndicatorOffset(tabPositions[selectedTab]),
+                        color = DarkGreen
+                    )
+                }
+            ) {
+                Tab(
+                    selected = selectedTab == 0,
+                    onClick = { selectedTab = 0 },
+                    text = {
+                        Text(
+                            "Listed Items",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Normal,
+                            color = if (selectedTab == 0) Color.Black else Color.Gray
+                        )
+                    }
+                )
+                Tab(
+                    selected = selectedTab == 1,
+                    onClick = { selectedTab = 1 },
+                    text = {
+                        Text(
+                            "Unlisted Items",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Normal,
+                            color = if (selectedTab == 1) Color.Black else Color.Gray
+                        )
+                    }
+                )
+            }
+
+            // Content based on selected tab
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp)
+            ) {
+                when (selectedTab) {
+                    0 -> ListedItemsContent()
+                    1 -> UnlistedItemsContent()
+                }
+            }
         }
     }
 }
 
 @Composable
-fun AdminItemsContent() {
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
+fun ListedItemsContent() {
+    // TODO: Fetch listed items from database here
+    // Example: val items = viewModel.getListedItems()
+    // For now, showing empty state
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
     ) {
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = "No admin items yet",
-                color = Color.Gray,
-                fontSize = 16.sp
-            )
-        }
+        Text(
+            text = "No listed items yet",
+            color = Color.Gray,
+            fontSize = 16.sp
+        )
+    }
+}
+
+@Composable
+fun UnlistedItemsContent() {
+    // TODO: Fetch unlisted items from database here
+    // Example: val items = viewModel.getUnlistedItems()
+    // For now, showing empty state
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = "No unlisted items yet",
+            color = Color.Gray,
+            fontSize = 16.sp
+        )
     }
 }
