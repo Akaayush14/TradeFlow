@@ -172,7 +172,7 @@ fun AdminUserScreen(onBackClick: () -> Unit = {}) {
                     },
                     icon = {
                         Icon(
-                            painter = painterResource(R.drawable.profile),
+                            painter = painterResource(R.drawable.ic_profile),
                             contentDescription = "Profile",
                             tint = Color.White
                         )
