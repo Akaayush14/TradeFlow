@@ -198,11 +198,11 @@ fun AdminExp() {
                     icon = {
                         Icon(
                             painter = painterResource(R.drawable.ic_items),
-                            contentDescription = "Admin Items",
+                            contentDescription = "Items",
                             tint = Color.White
                         )
                     },
-                    label = { Text("Admin Items", color = Color.White) }
+                    label = { Text("Items", color = Color.White) }
                 )
             }
         }
