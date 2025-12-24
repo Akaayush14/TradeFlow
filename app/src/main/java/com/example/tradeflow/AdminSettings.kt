@@ -103,14 +103,20 @@ fun AdminSettingsScreen(onBackClick: () -> Unit = {}) {
             confirmButton = {
                 Button(
                     onClick = {
-                        // TODO: Handle logout logic
-                        // - Clear user session/preferences
-                        // - Navigate to login screen
-                        // val intent = Intent(context, LoginActivity::class.java)
-                        // context.startActivity(intent)
-                        // if (context is ComponentActivity) {
-                        //     context.finishAffinity()
-                        // }
+                        // Clear user session/preferences
+                        val sharedPreferences = context.getSharedPreferences("TradeFlowPrefs", android.content.Context.MODE_PRIVATE)
+                        sharedPreferences.edit().clear().apply()
+
+                        // Navigate to login screen
+                        val intent = Intent(context, LoginActivity::class.java)
+                        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                        context.startActivity(intent)
+
+                        // Finish all activities
+                        if (context is ComponentActivity) {
+                            context.finishAffinity()
+                        }
+
                         showLogoutDialog = false
                     },
                     colors = ButtonDefaults.buttonColors(
@@ -260,6 +266,7 @@ fun SettingsContent(onLogoutClick: () -> Unit = {}) {
                 title = "Logout",
                 onClick = onLogoutClick,
                 showArrow = true
+
             )
         }
     }
