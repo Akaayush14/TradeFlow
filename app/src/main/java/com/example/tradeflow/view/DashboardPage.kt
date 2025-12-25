@@ -1,4 +1,4 @@
-package com.example.tradeflow
+package com.example.tradeflow.view
 
 import android.app.Activity
 import android.os.Bundle
@@ -23,6 +23,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import com.example.tradeflow.R
 import com.example.tradeflow.ui.theme.Greenish
 import com.example.tradeflow.ui.theme.Transparent
 import com.example.tradeflow.ui.theme.White

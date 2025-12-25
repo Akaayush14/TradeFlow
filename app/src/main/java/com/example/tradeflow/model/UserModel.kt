@@ -1,9 +1,9 @@
 package com.example.tradeflow.model
 
 data class UserModel(
-    val userId: String = "",
-    val name: String = "",
-    val email: String = "",
+    var userId: String = "",
+    var name: String = "",
+    var email: String = "",
 ) {
     fun toMap(): Map<String, Any?> {
         return mapOf(

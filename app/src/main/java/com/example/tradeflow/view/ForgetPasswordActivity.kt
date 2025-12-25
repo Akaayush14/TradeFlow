@@ -1,5 +1,6 @@
-package com.example.tradeflow
+package com.example.tradeflow.view
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -17,19 +18,15 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
-import androidx.compose.material3.CheckboxDefaults
-import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -42,14 +39,14 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.tradeflow.ui.theme.TradeFlowTheme
 import kotlinx.coroutines.launch
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import com.example.tradeflow.R
 import com.example.tradeflow.ui.theme.Greenish
 
 
@@ -69,10 +66,10 @@ fun ForgotBody() {
 
     var email by remember { mutableStateOf("") }
     var terms by remember { mutableStateOf(false) }
-
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
     val BlueButton = Color(0xFF006CFF)
+    var context = LocalContext.current
 
 
     Scaffold(
@@ -182,7 +179,11 @@ fun ForgotBody() {
                         text = "Back to Login",
                         color = BlueButton,
                         fontWeight = FontWeight.Bold,
-                        modifier = Modifier.clickable { /* Navigate register */ }
+                        modifier = Modifier.clickable {
+                            context.startActivity(
+                                Intent(context, LoginActivity::class.java)
+                            )
+                        }
                         )
                     }
             }

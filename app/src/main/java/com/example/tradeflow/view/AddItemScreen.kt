@@ -1,11 +1,11 @@
-package com.example.tradeflow
+package com.example.tradeflow.view
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
@@ -40,6 +41,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -47,6 +49,7 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.tradeflow.R
 import com.example.tradeflow.ui.theme.Greenish
 import com.example.tradeflow.ui.theme.White
 
@@ -108,8 +111,8 @@ fun AddItemScreen(onBackClick: () -> Unit = {}) {
                         .fillMaxWidth()
                         .padding(top = 16.dp),
                     singleLine = true,
-                    textStyle = androidx.compose.ui.text.TextStyle(fontSize = 14.sp),
-                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions.Default.copy(
+                    textStyle = TextStyle(fontSize = 14.sp),
+                    keyboardOptions = KeyboardOptions.Default.copy(
                         imeAction = ImeAction.Next
                     ),
                     colors = TextFieldDefaults.colors(
@@ -133,8 +136,8 @@ fun AddItemScreen(onBackClick: () -> Unit = {}) {
                     label = { Text("Price", fontSize = 14.sp) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
-                    textStyle = androidx.compose.ui.text.TextStyle(fontSize = 14.sp),
-                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions.Default.copy(
+                    textStyle = TextStyle(fontSize = 14.sp),
+                    keyboardOptions = KeyboardOptions.Default.copy(
                         imeAction = ImeAction.Next
                     ),
                     colors = TextFieldDefaults.colors(
@@ -158,8 +161,8 @@ fun AddItemScreen(onBackClick: () -> Unit = {}) {
                     label = { Text("Category", fontSize = 14.sp) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
-                    textStyle = androidx.compose.ui.text.TextStyle(fontSize = 14.sp),
-                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions.Default.copy(
+                    textStyle = TextStyle(fontSize = 14.sp),
+                    keyboardOptions = KeyboardOptions.Default.copy(
                         imeAction = ImeAction.Next
                     ),
                     colors = TextFieldDefaults.colors(
@@ -182,15 +185,15 @@ fun AddItemScreen(onBackClick: () -> Unit = {}) {
                 ) {
                     // Location Column
                     Box(modifier = Modifier.weight(1f)) {
-                        androidx.compose.foundation.layout.Column {
+                        Column {
                             OutlinedTextField(
                                 value = location,
                                 onValueChange = { location = it },
                                 label = { Text("Location", fontSize = 14.sp) },
                                 modifier = Modifier.fillMaxWidth(),
                                 singleLine = true,
-                                textStyle = androidx.compose.ui.text.TextStyle(fontSize = 14.sp),
-                                keyboardOptions = androidx.compose.foundation.text.KeyboardOptions.Default.copy(
+                                textStyle = TextStyle(fontSize = 14.sp),
+                                keyboardOptions = KeyboardOptions.Default.copy(
                                     imeAction = ImeAction.Next
                                 ),
                                 colors = TextFieldDefaults.colors(
@@ -209,7 +212,7 @@ fun AddItemScreen(onBackClick: () -> Unit = {}) {
 
                     // Type Column
                     Box(modifier = Modifier.weight(1f)) {
-                        androidx.compose.foundation.layout.Column {
+                        Column {
                             ExposedDropdownMenuBox(
                                 expanded = isDropdownExpanded,
                                 onExpandedChange = { isDropdownExpanded = !isDropdownExpanded },
@@ -219,7 +222,7 @@ fun AddItemScreen(onBackClick: () -> Unit = {}) {
                                     value = selectedPurpose,
                                     onValueChange = {},
                                     readOnly = true,
-                                    textStyle = androidx.compose.ui.text.TextStyle(fontSize = 14.sp),
+                                    textStyle = TextStyle(fontSize = 14.sp),
                                     trailingIcon = {
                                         ExposedDropdownMenuDefaults.TrailingIcon(expanded = isDropdownExpanded)
                                     },
@@ -268,7 +271,7 @@ fun AddItemScreen(onBackClick: () -> Unit = {}) {
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(120.dp),
-                    textStyle = androidx.compose.ui.text.TextStyle(fontSize = 14.sp),
+                    textStyle = TextStyle(fontSize = 14.sp),
                     colors = TextFieldDefaults.colors(
                         focusedContainerColor = White,
                         unfocusedContainerColor = White,
