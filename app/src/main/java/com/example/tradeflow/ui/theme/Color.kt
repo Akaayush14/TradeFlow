@@ -18,7 +18,7 @@ val White= Color(0xFFFCFCFC)
 
 val Blue= Color(0xFF1E50E5)
 
-<<<<<<< HEAD
+
 val StrawberryMilk = Color(0xFFFFB7C5)
 
 val BubblegumPink = Color(0xFFFF91AF)
@@ -52,8 +52,7 @@ val MarshmallowWhite = Color(0xFFFFFCF7) // #FFFCF7
 val ButterCream = Color(0xFFFFF3CC)      // #FFF3CC
 val CookiesAndCream = Color(0xFFF5F2EA)  // #F5F2EA
 
-=======
 val Green1 = Color(0xFF009688)
->>>>>>> development
+
 
 val Greenish = Color(0xFF007D70)

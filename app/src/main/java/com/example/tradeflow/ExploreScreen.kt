@@ -44,7 +44,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
-import com.example.tradeflow.ui.theme.TealBlue
+import com.example.tradeflow.ui.theme.Greenish
 import com.example.tradeflow.ui.theme.Transparent
 import com.example.tradeflow.ui.theme.White
 import androidx.compose.ui.graphics.toArgb

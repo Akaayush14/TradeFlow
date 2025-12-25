@@ -47,6 +47,7 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.tradeflow.ui.theme.Greenish
 import com.example.tradeflow.ui.theme.TealBlue
 import com.example.tradeflow.ui.theme.White
 
@@ -302,7 +303,7 @@ fun AddItemScreen(onBackClick: () -> Unit = {}) {
                         painter = painterResource(R.drawable.additem),
                         contentDescription = "Add Image",
                         modifier = Modifier.size(48.dp),
-                        tint = TealBlue
+                        tint = Greenish
                     )
                 }
             }
