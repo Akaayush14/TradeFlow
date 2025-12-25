@@ -4,29 +4,21 @@ import androidx.compose.ui.graphics.Color
 
 val Purple80 = Color(0xFFD0BCFF)
 
-
-
-
-
 val PurpleGrey80 = Color(0xFFCCC2DC)
+
 val Pink80 = Color(0xFFEFB8C8)
-val TransparentWhite = Color(0x33FFFFFF)
-val Transparent = Color(0x00FFFFFF)
-
-
 
 val Purple40 = Color(0xFF6650a4)
-val PurpleGrey40 = Color(0xFF625b71)
-val Pink40 = Color(0xFF7D5260)
-val Green= Color(0xFF30944C)
-val TealBlue = Color(0xFF044852)
 
-val LightGreen= Color(0xFF91E1A8)
+val PurpleGrey40 = Color(0xFF625b71)
+
+val Pink40 = Color(0xFF7D5260)
 
 val White= Color(0xFFFCFCFC)
 
 val Blue= Color(0xFF1E50E5)
 
+<<<<<<< HEAD
 val StrawberryMilk = Color(0xFFFFB7C5)
 
 val BubblegumPink = Color(0xFFFF91AF)
@@ -60,4 +52,8 @@ val MarshmallowWhite = Color(0xFFFFFCF7) // #FFFCF7
 val ButterCream = Color(0xFFFFF3CC)      // #FFF3CC
 val CookiesAndCream = Color(0xFFF5F2EA)  // #F5F2EA
 
+=======
+val Green1 = Color(0xFF009688)
+>>>>>>> development
 
+val Greenish = Color(0xFF007D70)
