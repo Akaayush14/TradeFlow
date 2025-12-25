@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
@@ -31,6 +32,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -49,13 +51,22 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.tradeflow.R
+import com.example.tradeflow.model.ProductModel
+import com.example.tradeflow.repository.ProductRepoImpl
 import com.example.tradeflow.ui.theme.Greenish
 import com.example.tradeflow.ui.theme.White
+import com.example.tradeflow.viewmodel.ProductViewModel
+import com.google.firebase.auth.FirebaseAuth
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddItemScreen(onBackClick: () -> Unit = {}) {
+    val viewModel: ProductViewModel = viewModel { 
+        ProductViewModel(ProductRepoImpl())
+    }
+    
     var name by remember { mutableStateOf("") }
     var price by remember { mutableStateOf("") }
     var location by remember { mutableStateOf("") }
@@ -64,9 +75,84 @@ fun AddItemScreen(onBackClick: () -> Unit = {}) {
     var category by remember { mutableStateOf("") }
     var agreedToTerms by remember { mutableStateOf(false) }
     var isDropdownExpanded by remember { mutableStateOf(false) }
+    
+    var showSuccessDialog by remember { mutableStateOf(false) }
+    var showErrorDialog by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf("") }
+    var isLoading by remember { mutableStateOf(false) }
+    
+    val currentUser = FirebaseAuth.getInstance().currentUser
+    val ownerId = currentUser?.uid ?: ""
 
     val typeOptions = listOf("Barter", "Rent")
     val isPlaceholder = selectedPurpose == "Select purpose"
+    
+    fun validateForm(): Boolean {
+        return name.isNotBlank() && 
+               price.isNotBlank() && 
+               category.isNotBlank() && 
+               location.isNotBlank() && 
+               description.isNotBlank() && 
+               selectedPurpose != "Select purpose" && 
+               agreedToTerms
+    }
+    
+    fun resetForm() {
+        name = ""
+        price = ""
+        location = ""
+        description = ""
+        selectedPurpose = "Select purpose"
+        category = ""
+        agreedToTerms = false
+    }
+    
+    fun saveProduct() {
+        if (!validateForm()) {
+            errorMessage = "Please fill all fields and agree to terms"
+            showErrorDialog = true
+            return
+        }
+        
+        if (ownerId.isEmpty()) {
+            errorMessage = "Please login to add products"
+            showErrorDialog = true
+            return
+        }
+        
+        isLoading = true
+        
+        val priceValue = try {
+            price.toDouble()
+        } catch (e: NumberFormatException) {
+            errorMessage = "Please enter a valid price"
+            showErrorDialog = true
+            isLoading = false
+            return
+        }
+        
+        val product = ProductModel(
+            name = name.trim(),
+            price = priceValue,
+            category = category.trim(),
+            location = location.trim(),
+            description = description.trim(),
+            type = selectedPurpose,
+            ownerId = ownerId,
+            imageUrl = "" // TODO: Add image upload functionality later
+        )
+        
+        viewModel.addProduct(product) { success, message ->
+            isLoading = false
+            if (success) {
+                showSuccessDialog = true
+                resetForm()
+            } else {
+                errorMessage = message
+                showErrorDialog = true
+            }
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -346,7 +432,8 @@ fun AddItemScreen(onBackClick: () -> Unit = {}) {
 
             item {
                 Button(
-                    onClick = {  },
+                    onClick = { saveProduct() },
+                    enabled = !isLoading,
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(50.dp)
@@ -354,9 +441,50 @@ fun AddItemScreen(onBackClick: () -> Unit = {}) {
                     colors = ButtonDefaults.buttonColors(containerColor = Greenish),
                     shape = RoundedCornerShape(12.dp)
                 ) {
-                    Text("Confirm", color = White, fontSize = 18.sp)
+                    if (isLoading) {
+                        Text("Saving...", color = White, fontSize = 18.sp)
+                    } else {
+                        Text("Confirm", color = White, fontSize = 18.sp)
+                    }
                 }
             }
         }
+    }
+    
+    // Success Dialog
+    if (showSuccessDialog) {
+        AlertDialog(
+            onDismissRequest = { showSuccessDialog = false },
+            title = { Text("Success", fontWeight = FontWeight.Bold) },
+            text = { Text("Product added successfully!") },
+            confirmButton = {
+                Button(
+                    onClick = { 
+                        showSuccessDialog = false
+                        onBackClick() // Navigate back after success
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Greenish)
+                ) {
+                    Text("OK")
+                }
+            }
+        )
+    }
+    
+    // Error Dialog
+    if (showErrorDialog) {
+        AlertDialog(
+            onDismissRequest = { showErrorDialog = false },
+            title = { Text("Error", fontWeight = FontWeight.Bold, color = Color.Red) },
+            text = { Text(errorMessage) },
+            confirmButton = {
+                Button(
+                    onClick = { showErrorDialog = false },
+                    colors = ButtonDefaults.buttonColors(containerColor = Greenish)
+                ) {
+                    Text("OK")
+                }
+            }
+        )
     }
 }

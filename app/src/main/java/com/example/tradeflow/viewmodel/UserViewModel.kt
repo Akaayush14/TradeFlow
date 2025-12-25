@@ -1,4 +1,4 @@
-package com.example.classwork.viewmodel
+package com.example.tradeflow.viewmodel
 
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
