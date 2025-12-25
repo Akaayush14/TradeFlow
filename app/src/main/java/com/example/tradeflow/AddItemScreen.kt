@@ -48,7 +48,6 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.tradeflow.ui.theme.Greenish
-import com.example.tradeflow.ui.theme.TealBlue
 import com.example.tradeflow.ui.theme.White
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -86,7 +85,7 @@ fun AddItemScreen(onBackClick: () -> Unit = {}) {
                     }
                 },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = TealBlue
+                    containerColor = Greenish
                 )
             )
         },
@@ -116,10 +115,10 @@ fun AddItemScreen(onBackClick: () -> Unit = {}) {
                     colors = TextFieldDefaults.colors(
                         focusedContainerColor = White,
                         unfocusedContainerColor = White,
-                        focusedIndicatorColor = TealBlue,
+                        focusedIndicatorColor = Greenish,
                         unfocusedIndicatorColor = Color.LightGray,
-                        cursorColor = TealBlue,
-                        focusedLabelColor = TealBlue,
+                        cursorColor = Greenish,
+                        focusedLabelColor = Greenish,
                         unfocusedLabelColor = Color.Gray
                     ),
                     shape = RoundedCornerShape(12.dp)
@@ -141,10 +140,10 @@ fun AddItemScreen(onBackClick: () -> Unit = {}) {
                     colors = TextFieldDefaults.colors(
                         focusedContainerColor = White,
                         unfocusedContainerColor = White,
-                        focusedIndicatorColor = TealBlue,
+                        focusedIndicatorColor = Greenish,
                         unfocusedIndicatorColor = Color.LightGray,
-                        cursorColor = TealBlue,
-                        focusedLabelColor = TealBlue,
+                        cursorColor = Greenish,
+                        focusedLabelColor = Greenish,
                         unfocusedLabelColor = Color.Gray
                     ),
                     shape = RoundedCornerShape(12.dp)
@@ -166,10 +165,10 @@ fun AddItemScreen(onBackClick: () -> Unit = {}) {
                     colors = TextFieldDefaults.colors(
                         focusedContainerColor = White,
                         unfocusedContainerColor = White,
-                        focusedIndicatorColor = TealBlue,
+                        focusedIndicatorColor = Greenish,
                         unfocusedIndicatorColor = Color.LightGray,
-                        cursorColor = TealBlue,
-                        focusedLabelColor = TealBlue,
+                        cursorColor = Greenish,
+                        focusedLabelColor = Greenish,
                         unfocusedLabelColor = Color.Gray
                     ),
                     shape = RoundedCornerShape(12.dp)
@@ -197,10 +196,10 @@ fun AddItemScreen(onBackClick: () -> Unit = {}) {
                                 colors = TextFieldDefaults.colors(
                                     focusedContainerColor = White,
                                     unfocusedContainerColor = White,
-                                    focusedIndicatorColor = TealBlue,
+                                    focusedIndicatorColor = Greenish,
                                     unfocusedIndicatorColor = Color.LightGray,
-                                    cursorColor = TealBlue,
-                                    focusedLabelColor = TealBlue,
+                                    cursorColor = Greenish,
+                                    focusedLabelColor = Greenish,
                                     unfocusedLabelColor = Color.Gray
                                 ),
                                 shape = RoundedCornerShape(12.dp)
@@ -229,12 +228,12 @@ fun AddItemScreen(onBackClick: () -> Unit = {}) {
                                         focusedContainerColor = White,
                                         unfocusedContainerColor = White,
                                         disabledContainerColor = White,
-                                        focusedIndicatorColor = TealBlue,
+                                        focusedIndicatorColor = Greenish,
                                         unfocusedIndicatorColor = Color.LightGray,
                                         disabledIndicatorColor = Color.LightGray,
                                         focusedTextColor = if (isPlaceholder) Color.Gray else Color.Black,
                                         unfocusedTextColor = if (isPlaceholder) Color.Gray else Color.Black,
-                                        focusedLabelColor = TealBlue,
+                                        focusedLabelColor = Greenish,
                                         unfocusedLabelColor = Color.Gray
                                     ),
                                     shape = RoundedCornerShape(12.dp)
@@ -273,10 +272,10 @@ fun AddItemScreen(onBackClick: () -> Unit = {}) {
                     colors = TextFieldDefaults.colors(
                         focusedContainerColor = White,
                         unfocusedContainerColor = White,
-                        focusedIndicatorColor = TealBlue,
+                        focusedIndicatorColor = Greenish,
                         unfocusedIndicatorColor = Color.LightGray,
-                        cursorColor = TealBlue,
-                        focusedLabelColor = TealBlue,
+                        cursorColor = Greenish,
+                        focusedLabelColor = Greenish,
                         unfocusedLabelColor = Color.Gray
                     ),
                     shape = RoundedCornerShape(12.dp),
@@ -296,7 +295,7 @@ fun AddItemScreen(onBackClick: () -> Unit = {}) {
                         .height(150.dp)
                         .clip(RoundedCornerShape(12.dp))
                         .background(Color(0xFFE3F2FD))
-                        .border(1.dp, TealBlue, RoundedCornerShape(12.dp)),
+                        .border(1.dp, Greenish, RoundedCornerShape(12.dp)),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
@@ -313,14 +312,14 @@ fun AddItemScreen(onBackClick: () -> Unit = {}) {
                     Checkbox(
                         checked = agreedToTerms,
                         onCheckedChange = { agreedToTerms = it },
-                        colors = CheckboxDefaults.colors(checkedColor = TealBlue)
+                        colors = CheckboxDefaults.colors(checkedColor = Greenish)
                     )
                     Text(
                         buildAnnotatedString {
                             append("I've read and agree with the ")
                             withStyle(
                                 style = SpanStyle(
-                                    color = TealBlue,
+                                    color = Greenish,
                                     textDecoration = TextDecoration.Underline
                                 )
                             ) {
@@ -329,7 +328,7 @@ fun AddItemScreen(onBackClick: () -> Unit = {}) {
                             append(" and the ")
                             withStyle(
                                 style = SpanStyle(
-                                    color = TealBlue,
+                                    color = Greenish,
                                     textDecoration = TextDecoration.Underline
                                 )
                             ) {
@@ -349,7 +348,7 @@ fun AddItemScreen(onBackClick: () -> Unit = {}) {
                         .fillMaxWidth()
                         .height(50.dp)
                         .padding(bottom = 16.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = TealBlue),
+                    colors = ButtonDefaults.buttonColors(containerColor = Greenish),
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Text("Confirm", color = White, fontSize = 18.sp)

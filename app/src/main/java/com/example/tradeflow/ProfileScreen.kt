@@ -52,7 +52,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.view.WindowCompat
-import com.example.tradeflow.ui.theme.TealBlue
+import com.example.tradeflow.ui.theme.Greenish
 import com.example.tradeflow.ui.theme.White
 
 // Data model for listings, now includes an image resource ID and type
@@ -99,7 +99,7 @@ fun ProfileScreen(onBackClick: () -> Unit = {}) {
                     }
                 },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = TealBlue,
+                    containerColor = Greenish,
                     titleContentColor = White,
                     navigationIconContentColor = White
                 )
@@ -192,7 +192,7 @@ fun ProfileHeaderSection(
                 modifier = Modifier
                     .size(30.dp)
                     .clip(CircleShape)
-                    .background(TealBlue)
+                    .background(Greenish)
                     .align(Alignment.BottomEnd)
                     .clickable {
                         // TODO: replace SettingsActivity with your actual settings activity class name if different
@@ -291,7 +291,7 @@ fun ListingItemCard(item: ListingItem, onClick: () -> Unit) {
                         Text(
                             text = if (item.type == ListingType.BARTER) "Barter" else "Rental",
                             fontSize = 11.sp,
-                            color = if (item.type == ListingType.BARTER) TealBlue else Color(0xFF5E35B1),
+                            color = if (item.type == ListingType.BARTER) Greenish else Color(0xFF5E35B1),
                             fontWeight = FontWeight.Medium
                         )
                     }

@@ -21,7 +21,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import androidx.core.view.WindowCompat
-import com.example.tradeflow.ui.theme.TealBlue
+import com.example.tradeflow.ui.theme.Greenish
 import com.example.tradeflow.ui.theme.White
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -49,7 +49,7 @@ fun NotificationScreen(onBackClick: () -> Unit = {}) {
                     }
                 },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = TealBlue,
+                    containerColor = Greenish,
                     titleContentColor = White,
                     navigationIconContentColor = White
                 )

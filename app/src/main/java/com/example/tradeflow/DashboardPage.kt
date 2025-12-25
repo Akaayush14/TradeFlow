@@ -23,7 +23,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
-import com.example.tradeflow.ui.theme.TealBlue
+import com.example.tradeflow.ui.theme.Greenish
 import com.example.tradeflow.ui.theme.Transparent
 import com.example.tradeflow.ui.theme.White
 
@@ -58,7 +58,7 @@ fun DashboardPageBody() {
     Scaffold(
         bottomBar = {
             NavigationBar(
-                containerColor = TealBlue
+                containerColor = Greenish
             ) {
                 listItem.forEachIndexed { index, item ->
                     val isSelected = selectedIndex == index

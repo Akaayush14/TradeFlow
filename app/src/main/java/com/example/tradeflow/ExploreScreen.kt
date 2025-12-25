@@ -75,7 +75,7 @@ fun ExploreScreen() {
                 colors = TopAppBarDefaults.topAppBarColors(
                     titleContentColor = White,
                     actionIconContentColor = White,
-                    containerColor =TealBlue,
+                    containerColor =Greenish,
                     navigationIconContentColor = White
                 ),
                 title = {

@@ -45,7 +45,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.tradeflow.ui.theme.TealBlue
+import com.example.tradeflow.ui.theme.Greenish
 import com.example.tradeflow.ui.theme.White
 
 // Data model for messages
@@ -106,7 +106,7 @@ fun InboxScreen(onBackClick: () -> Unit = {}) {
                     disabledContainerColor = Color(0xFFF0F0F0),
                     focusedIndicatorColor = Color.Transparent,
                     unfocusedIndicatorColor = Color.Transparent,
-                    cursorColor = TealBlue
+                    cursorColor = Greenish
                 ),
                 shape = RoundedCornerShape(50.dp)
             )
@@ -146,7 +146,7 @@ fun InboxTopAppBar(onBackClick: () -> Unit = {}) {
         },
         // Use the appropriate TopAppBarDefaults colors function
         colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-            containerColor = TealBlue,
+            containerColor = Greenish,
             titleContentColor = White,
             navigationIconContentColor = White
         )
