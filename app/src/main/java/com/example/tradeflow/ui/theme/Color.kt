@@ -56,3 +56,5 @@ val Green1 = Color(0xFF009688)
 
 
 val Greenish = Color(0xFF007D70)
+val Transparent = Color.Transparent
+
