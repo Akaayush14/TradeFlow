@@ -8,16 +8,16 @@
       <SelectionState runConfigName="SettingScreenActivity">
         <option name="selectionMode" value="DROPDOWN" />
       </SelectionState>
-      <SelectionState runConfigName="RegisterActivity (1)">
-        <option name="selectionMode" value="DROPDOWN" />
-      </SelectionState>
-      <SelectionState runConfigName="RegisterActivity (2)">
-        <option name="selectionMode" value="DROPDOWN" />
-      </SelectionState>
       <SelectionState runConfigName="SettingScreenActivity (1)">
         <option name="selectionMode" value="DROPDOWN" />
       </SelectionState>
-      <SelectionState runConfigName="SettingScreenActivity (2)">
+      <SelectionState runConfigName="ChatSystemActivity">
+        <option name="selectionMode" value="DROPDOWN" />
+      </SelectionState>
+      <SelectionState runConfigName="ChatSystemActivity (1)">
+        <option name="selectionMode" value="DROPDOWN" />
+      </SelectionState>
+      <SelectionState runConfigName="ChatSystemActivity (2)">
         <option name="selectionMode" value="DROPDOWN" />
       </SelectionState>
     </selectionStates>

@@ -29,6 +29,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.Outline
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
 
@@ -42,7 +43,6 @@ class SettingScreenActivity : ComponentActivity() {
     }
 }
 
-/* ---------------- NAVIGATION ---------------- */
 @Composable
 fun AppNav() {
     val navController = rememberNavController()
@@ -55,7 +55,7 @@ fun AppNav() {
     }
 }
 
-/* ---------------- CURVED BACKGROUND SHAPE ---------------- */
+
 class CurvedBottomShape: Shape {
     override fun createOutline(
         size: Size,
@@ -300,21 +300,73 @@ fun Section(title: String) {
 @Composable
 fun IOSStyleLogoutDialog(onCancel: () -> Unit, onConfirm: () -> Unit) {
     Dialog(onDismissRequest = onCancel) {
-        Card(shape = RoundedCornerShape(16.dp)) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Spacer(Modifier.height(16.dp))
-                Text("Logout", color = Color.Red, fontWeight = FontWeight.Bold)
-                Spacer(Modifier.height(8.dp))
-                Text("Are you sure you want to logout?", color = Color.Gray)
-                Spacer(Modifier.height(16.dp))
-                Divider()
-                Row(Modifier.height(48.dp)) {
-                    Box(Modifier.weight(1f).clickable { onCancel() }, Alignment.Center) {
-                        Text("Cancel")
+        Card(
+            modifier = Modifier
+                .padding(16.dp)
+                .fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = Color.White)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp, vertical = 16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+
+                Image(
+                    painter = painterResource(R.drawable.house_rent_logo),
+                    contentDescription = null,
+                    modifier = Modifier
+                        .size(120.dp)
+                        .padding(top = 8.dp)
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Text(
+                    text = "Comeback Soon!",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 20.sp
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Text(
+                    text = "Are You Sure You Want to Logout?",
+                    color = Color.Gray,
+                    fontSize = 14.sp,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(modifier = Modifier.height(24.dp))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clickable { onCancel() },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("Cancel", color = Color.Gray, fontWeight = FontWeight.Medium)
                     }
-                    Box(Modifier.width(1.dp).background(Color.LightGray))
-                    Box(Modifier.weight(1f).clickable { onConfirm() }, Alignment.Center) {
-                        Text("Confirm", color = Color(0xFF7E57C2))
+
+                    Spacer(
+                        modifier = Modifier
+                            .width(1.dp)
+                            .background(Color.LightGray)
+                    )
+
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clickable { onConfirm() },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("Yes, Logout", color = Color.Red, fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -354,7 +406,6 @@ fun LanguageDialog(
     }
 }
 
-/* ---------------- PREVIEW ---------------- */
 @Preview(showBackground = true)
 @Composable
 fun PreviewApp() {

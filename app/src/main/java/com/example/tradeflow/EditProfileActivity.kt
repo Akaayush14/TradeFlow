@@ -1,6 +1,7 @@
 package com.example.tradeflow
 
 import android.app.DatePickerDialog
+import android.content.Intent
 import android.os.Bundle
 import android.widget.DatePicker
 import androidx.activity.ComponentActivity
@@ -108,8 +109,10 @@ fun EditProfileScreen(navController: NavController) {
                 onClick = { navController.popBackStack() },
                 modifier = Modifier.padding(16.dp)
             ) {
-                Icon(Icons.Filled.ArrowBack, null, tint = Color.White)
+                Icon(Icons.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
             }
+
+
 
             Text(
                 text = "Edit Profile",
