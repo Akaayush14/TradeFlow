@@ -32,7 +32,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -51,7 +50,6 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.tradeflow.R
 import com.example.tradeflow.model.ProductModel
 import com.example.tradeflow.repository.ProductRepoImpl
@@ -63,7 +61,7 @@ import com.google.firebase.auth.FirebaseAuth
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddItemScreen(onBackClick: () -> Unit = {}) {
-    val viewModel: ProductViewModel = viewModel { 
+    val viewModel = remember { 
         ProductViewModel(ProductRepoImpl())
     }
     

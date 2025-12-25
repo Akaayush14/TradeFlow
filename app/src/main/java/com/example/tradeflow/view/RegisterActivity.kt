@@ -44,7 +44,7 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.classwork.viewmodel.UserViewModel
+import com.example.tradeflow.viewmodel.UserViewModel
 import com.example.tradeflow.R
 import com.example.tradeflow.model.UserModel
 import com.example.tradeflow.repository.UserRepoImpl

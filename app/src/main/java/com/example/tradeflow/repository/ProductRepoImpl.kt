@@ -128,7 +128,7 @@ class ProductRepoImpl: ProductRepo {
         })
     }
     
-    fun getProductsByOwner(ownerId: String, callback: (Boolean, String, List<ProductModel>?) -> Unit) {
+    override fun getProductsByOwner(ownerId: String, callback: (Boolean, String, List<ProductModel>?) -> Unit) {
         ref.orderByChild("ownerId").equalTo(ownerId).addValueEventListener(object : ValueEventListener{
             override fun onDataChange(snapshot: DataSnapshot) {
                 if(snapshot.exists()){
@@ -151,7 +151,7 @@ class ProductRepoImpl: ProductRepo {
         })
     }
     
-    fun getProductsByType(type: String, callback: (Boolean, String, List<ProductModel>?) -> Unit) {
+    override fun getProductsByType(type: String, callback: (Boolean, String, List<ProductModel>?) -> Unit) {
         ref.orderByChild("type").equalTo(type).addValueEventListener(object : ValueEventListener{
             override fun onDataChange(snapshot: DataSnapshot) {
                 if(snapshot.exists()){
