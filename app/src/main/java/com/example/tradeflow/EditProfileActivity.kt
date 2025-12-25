@@ -21,16 +21,23 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Outline
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import java.text.SimpleDateFormat
 import java.util.*
+
 
 data class Country(
     val name: String,
@@ -56,6 +63,8 @@ class EditProfileActivity : ComponentActivity() {
         }
     }
 }
+
+
 @Composable
 fun EditProfileScreen(navController: NavController) {
     var name by remember { mutableStateOf("") }
@@ -85,10 +94,16 @@ fun EditProfileScreen(navController: NavController) {
                 .height(180.dp)
                 .background(
                     Brush.verticalGradient(
-                        listOf(Color(0xFF007D70), Color(0xFF1E88E5))
+                        colors = listOf(
+                            Color(0xFF005F56),
+                            Color(0xFF007D70),
+                            Color(0xFF4DB6AC)
+                        )
                     )
+
                 )
         ) {
+
             IconButton(
                 onClick = { navController.popBackStack() },
                 modifier = Modifier.padding(16.dp)
@@ -176,7 +191,11 @@ fun EditProfileScreen(navController: NavController) {
                     .clip(RoundedCornerShape(14.dp))
                     .background(
                         Brush.horizontalGradient(
-                            listOf(Color(0xFF1E50E5), Color(0xFF6650A4))
+                            colors = listOf(
+                                Color(0xFF005F56),
+                                Color(0xFF007D70),
+                                Color(0xFF4DB6AC)
+                            )
                         )
                     )
                     .clickable { },
