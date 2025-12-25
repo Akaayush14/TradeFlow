@@ -32,7 +32,9 @@ import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -47,8 +49,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.tradeflow.R
+import com.example.tradeflow.model.ProductModel
+import com.example.tradeflow.model.UserModel
+import com.example.tradeflow.repository.ProductRepoImpl
+import com.example.tradeflow.repository.UserRepoImpl
 import com.example.tradeflow.ui.theme.Greenish
 import com.example.tradeflow.ui.theme.White
+import com.example.tradeflow.viewmodel.ProductViewModel
+import com.example.tradeflow.viewmodel.UserViewModel
+import com.google.firebase.auth.FirebaseAuth
 
 // Data model for listings, now includes an image resource ID and type
 enum class ListingType { BARTER, RENTAL }
@@ -66,11 +75,44 @@ data class ListingItem(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(onBackClick: () -> Unit = {}) {
-    val listings = remember { getMockListings() }
+    val userViewModel: UserViewModel = remember { UserViewModel(UserRepoImpl()) }
+    val productViewModel: ProductViewModel = remember { ProductViewModel(ProductRepoImpl()) }
+    
+    val currentUser = FirebaseAuth.getInstance().currentUser
+    val userId = currentUser?.uid ?: ""
+    
+    // Observe user data from ViewModel
+    val userData by userViewModel.users.observeAsState<UserModel?>()
+    
+    // Observe products from ViewModel
+    val allProducts by productViewModel.allProducts.observeAsState()
+    
     var selectedTab by remember { mutableStateOf(ListingType.BARTER) }
-
-    val barterListings = remember(listings) { listings.filter { it.type == ListingType.BARTER } }
-    val rentalListings = remember(listings) { listings.filter { it.type == ListingType.RENTAL } }
+    
+    // Fetch user data when screen loads
+    LaunchedEffect(userId) {
+        if (userId.isNotEmpty()) {
+            userViewModel.getUserById(userId)
+            productViewModel.getProductsByOwner(userId)
+        }
+    }
+    
+    // Filter products by type
+    val barterListings = remember(allProducts) { 
+        allProducts.orEmpty().filter { it.type == "Barter" } 
+    }
+    val rentalListings = remember(allProducts) { 
+        allProducts.orEmpty().filter { it.type == "Rent" } 
+    }
+    
+    // Get user display info
+    val userName = userData?.name ?: currentUser?.displayName ?: "User"
+    val userEmail = userData?.email ?: currentUser?.email ?: ""
+    val username = if (userEmail.isNotEmpty()) {
+        "@${userEmail.split("@")[0]}"
+    } else {
+        "@user"
+    }
 
 
 
@@ -110,9 +152,11 @@ fun ProfileScreen(onBackClick: () -> Unit = {}) {
         ) {
             item {
                 ProfileHeaderSection(
+                    userName = userName,
+                    username = username,
                     barterCount = barterListings.size,
                     rentalCount = rentalListings.size,
-                    completedCount = 12 // mock value for now
+                    completedCount = 0 // TODO: Calculate completed trades/rentals
                 )
 
                 // Tabs for Barter / Rental listings
@@ -141,10 +185,23 @@ fun ProfileScreen(onBackClick: () -> Unit = {}) {
                 )
             }
 
-            // LazyColumn handles efficient vertical scrolling of the list items
+            // Display products from database
             val data = if (selectedTab == ListingType.BARTER) barterListings else rentalListings
-            items(data) { item ->
-                ListingItemCard(item = item, onClick = { /* Handle item click */ })
+            if (data.isEmpty()) {
+                item {
+                    Text(
+                        text = "No ${if (selectedTab == ListingType.BARTER) "Barter" else "Rental"} items yet",
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        color = Color.Gray,
+                        fontSize = 14.sp
+                    )
+                }
+            } else {
+                items(data) { product ->
+                    ProductItemCard(product = product, onClick = { /* Handle item click */ })
+                }
             }
         }
     }
@@ -152,6 +209,8 @@ fun ProfileScreen(onBackClick: () -> Unit = {}) {
 
 @Composable
 fun ProfileHeaderSection(
+    userName: String,
+    username: String,
     barterCount: Int,
     rentalCount: Int,
     completedCount: Int
@@ -204,8 +263,8 @@ fun ProfileHeaderSection(
             }
         }
         Spacer(modifier = Modifier.height(12.dp))
-        Text("Lucas Scott", fontWeight = FontWeight.Bold, fontSize = 20.sp, color = Color.Black)
-        Text("@lucasscott3", fontSize = 14.sp, color = Color.Gray)
+        Text(userName, fontWeight = FontWeight.Bold, fontSize = 20.sp, color = Color.Black)
+        Text(username, fontSize = 14.sp, color = Color.Gray)
 
         Spacer(modifier = Modifier.height(16.dp))
 
@@ -308,6 +367,88 @@ fun ListingItemCard(item: ListingItem, onClick: () -> Unit) {
     }
 }
 
+
+@Composable
+fun ProductItemCard(product: ProductModel, onClick: () -> Unit) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 4.dp)
+            .clickable(onClick = onClick),
+        colors = CardDefaults.cardColors(containerColor = White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        shape = RoundedCornerShape(0.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Image Display Area
+            Box(
+                modifier = Modifier
+                    .size(80.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(Color(0xFFE3F2FD)),
+                contentAlignment = Alignment.Center
+            ) {
+                if (product.imageUrl.isNotEmpty()) {
+                    // TODO: Load image from URL using Coil or Glide
+                    Icon(
+                        Icons.Default.Person,
+                        contentDescription = "Product Image",
+                        modifier = Modifier.size(40.dp),
+                        tint = Color(0xFF0288D1)
+                    )
+                } else {
+                    Icon(
+                        Icons.Default.Person,
+                        contentDescription = "Product Image",
+                        modifier = Modifier.size(40.dp),
+                        tint = Color(0xFF0288D1)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.width(16.dp))
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(product.name, fontWeight = FontWeight.SemiBold, fontSize = 16.sp, color = Color.Black)
+                Spacer(modifier = Modifier.height(2.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(
+                                if (product.type == "Barter") Color(0xFF00897B) else Color(0xFF7B1FA2)
+                            )
+                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                    ) {
+                        Text(
+                            product.type,
+                            fontSize = 10.sp,
+                            color = White,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(product.description, fontSize = 12.sp, color = Color.Gray, maxLines = 1)
+                }
+            }
+
+            Text(
+                text = "$${String.format("%.2f", product.price)}",
+                fontWeight = FontWeight.Bold,
+                fontSize = 16.sp,
+                color = Color.Black,
+                modifier = Modifier.align(Alignment.Bottom)
+            )
+        }
+        // Divider line
+        Spacer(modifier = Modifier.height(1.dp).fillMaxWidth().background(Color.LightGray))
+    }
+}
 
 fun getMockListings(): List<ListingItem> {
     // Note: R.drawable.* references will only work if you add the corresponding files
