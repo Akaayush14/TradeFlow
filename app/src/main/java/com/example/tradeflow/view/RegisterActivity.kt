@@ -235,7 +235,7 @@ fun RegisterBody() {
                                     name = name,
                                     email = email,
 
-                                )
+                                    )
                                 userViewModel.addUserToDatabase(userId, model) { success, message ->
                                     if (success) {
                                         activity.finish()
