@@ -67,11 +67,13 @@ class ProductRepoImpl: ProductRepo {
                         }
                     }
                     callback(true,"fetched",allProducts)
+                } else {
+                    callback(true,"No products found",emptyList())
                 }
             }
 
             override fun onCancelled(error: DatabaseError) {
-                callback(false,error.message,emptyList())
+                callback(false,error.message,null)
             }
         })
     }
@@ -80,17 +82,17 @@ class ProductRepoImpl: ProductRepo {
         productID: String,
         callback: (Boolean, String, ProductModel?) -> Unit
     ) {
-        ref.child(productID).addValueEventListener(object : ValueEventListener{
+        ref.child(productID).addListenerForSingleValueEvent(object : ValueEventListener{
             override fun onDataChange(snapshot: DataSnapshot) {
                 if(snapshot.exists()){
                     var data = snapshot.getValue(ProductModel::class.java)
                     if(data != null){
                         callback(true,"product fetched",data)
+                    } else {
+                        callback(false,"Product data is null",null)
                     }
-
-                    data.let {
-                        callback(true,"product fetched",it)
-                    }
+                } else {
+                    callback(false,"Product not found",null)
                 }
             }
 
@@ -104,7 +106,7 @@ class ProductRepoImpl: ProductRepo {
         categoryID: String,
         callback: (Boolean, String, List<ProductModel>?) -> Unit
     ) {
-        ref.orderByChild("categoryId").equalTo(categoryID).addValueEventListener(object : ValueEventListener{
+        ref.orderByChild("category").equalTo(categoryID).addValueEventListener(object : ValueEventListener{
             override fun onDataChange(snapshot: DataSnapshot) {
                 if(snapshot.exists()){
                     val allProducts = mutableListOf<ProductModel>()
@@ -115,11 +117,59 @@ class ProductRepoImpl: ProductRepo {
                         }
                     }
                     callback(true,"fetched",allProducts)
+                } else {
+                    callback(true,"No products found in this category",emptyList())
                 }
             }
 
             override fun onCancelled(error: DatabaseError) {
-                callback(false,error.message,emptyList())
+                callback(false,error.message,null)
+            }
+        })
+    }
+    
+    override fun getProductsByOwner(ownerId: String, callback: (Boolean, String, List<ProductModel>?) -> Unit) {
+        ref.orderByChild("ownerId").equalTo(ownerId).addValueEventListener(object : ValueEventListener{
+            override fun onDataChange(snapshot: DataSnapshot) {
+                if(snapshot.exists()){
+                    val allProducts = mutableListOf<ProductModel>()
+                    for(data in snapshot.children){
+                        var product = data.getValue(ProductModel::class.java)
+                        if(product != null){
+                            allProducts.add(product)
+                        }
+                    }
+                    callback(true,"fetched",allProducts)
+                } else {
+                    callback(true,"No products found",emptyList())
+                }
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                callback(false,error.message,null)
+            }
+        })
+    }
+    
+    override fun getProductsByType(type: String, callback: (Boolean, String, List<ProductModel>?) -> Unit) {
+        ref.orderByChild("type").equalTo(type).addValueEventListener(object : ValueEventListener{
+            override fun onDataChange(snapshot: DataSnapshot) {
+                if(snapshot.exists()){
+                    val allProducts = mutableListOf<ProductModel>()
+                    for(data in snapshot.children){
+                        var product = data.getValue(ProductModel::class.java)
+                        if(product != null){
+                            allProducts.add(product)
+                        }
+                    }
+                    callback(true,"fetched",allProducts)
+                } else {
+                    callback(true,"No products found",emptyList())
+                }
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                callback(false,error.message,null)
             }
         })
     }
