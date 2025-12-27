@@ -14,6 +14,16 @@
 
         <!-- ONLY ONE LAUNCHER ACTIVITY -->
         <activity
+            android:name=".view.ForgetPasswordActivity"
+            android:exported="true"
+            android:theme="@style/Theme.TradeFlow">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <activity
             android:name=".view.LoginActivity"
             android:exported="true"
             android:theme="@style/Theme.TradeFlow">
@@ -33,25 +43,9 @@
             </intent-filter>
         </activity>
 
-        <activity
-            android:name=".view.ForgetPasswordActivity"
-            android:exported="true"
-            android:theme="@style/Theme.TradeFlow">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity>
+        <!-- NORMAL ACTIVITIES (NO INTENT FILTER) -->
+        <activity android:name=".view.MainActivity" />
 
-        <activity
-            android:name=".view.MainActivity"
-            android:exported="true"
-            android:theme="@style/Theme.TradeFlow">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity>
     </application>
 
 </manifest>

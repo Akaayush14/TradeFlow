@@ -2,6 +2,7 @@ package com.example.tradeflow.view
 
 import android.content.Intent
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -47,6 +48,7 @@ import kotlinx.coroutines.launch
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import com.example.tradeflow.R
+import com.example.tradeflow.repository.UserRepoImpl
 import com.example.tradeflow.ui.theme.Greenish
 
 
@@ -63,13 +65,14 @@ class ForgetPasswordActivity: ComponentActivity() {
 
 @Composable
 fun ForgotBody() {
-
+    val userRepo = UserRepoImpl()
+    var emailError by remember { mutableStateOf(false) }
+    val context = LocalContext.current
     var email by remember { mutableStateOf("") }
     var terms by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
     val BlueButton = Color(0xFF006CFF)
-    var context = LocalContext.current
 
 
     Scaffold(
@@ -153,11 +156,20 @@ fun ForgotBody() {
 
                 Button(
                     onClick = {
-                        coroutineScope.launch {
-                            if (!terms)
-                                snackbarHostState.showSnackbar("Please agree to terms & conditions")
-                            else
-                                snackbarHostState.showSnackbar("Reset password button clicked")
+                        if (email.isEmpty() || !email.endsWith("@gmail.com")) {
+                            emailError = true
+                        } else {
+                            emailError = false
+                            val userRepo = UserRepoImpl()
+                            userRepo.forgetPassword(email) { success, message ->
+                                (context as? ComponentActivity)?.runOnUiThread {
+                                    Toast.makeText(context, "Password reset link sent successfully", Toast.LENGTH_LONG).show()
+                                    if (success) {
+                                        // Navigate back to login screen
+                                        context.startActivity(Intent(context, LoginActivity::class.java))
+                                    }
+                                }
+                            }
                         }
                     },
                     modifier = Modifier
