@@ -5,25 +5,14 @@ data class ProductModel(
     var name: String = "",
     var price: Double = 0.0,
     var imageUrl: String = "",
-    var category: String = "",
-    var location: String = "",
-    var description: String = "",
-    var type: String = "", // "Barter" or "Rent"
-    var ownerId: String = "", // User ID who created this product
-    var createdAt: Long = System.currentTimeMillis()
+    var categoryId: String = "",
 ){
     fun toMap(): Map<String, Any?>{
         return mapOf(
-            "productId" to productId,
             "name" to name,
             "price" to price,
             "imageUrl" to imageUrl,
-            "category" to category,
-            "location" to location,
-            "description" to description,
-            "type" to type,
-            "ownerId" to ownerId,
-            "createdAt" to createdAt
+            "categoryId" to categoryId,
         )
     }
 }

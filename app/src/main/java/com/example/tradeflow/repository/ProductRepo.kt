@@ -26,12 +26,4 @@ interface ProductRepo {
         categoryID: String,
         callback:(Boolean,String,List<ProductModel>?)->Unit
     )
-    fun getProductsByOwner(
-        ownerId: String,
-        callback:(Boolean,String,List<ProductModel>?)->Unit
-    )
-    fun getProductsByType(
-        type: String,
-        callback:(Boolean,String,List<ProductModel>?)->Unit
-    )
 }

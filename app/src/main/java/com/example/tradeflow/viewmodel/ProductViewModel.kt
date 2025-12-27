@@ -41,51 +41,14 @@ class ProductViewModel(val repo: ProductRepo) : ViewModel() {
 
     fun getProductById(productID: String){
         repo.getProductById(productID) {
-                success,message,data->
-            if(success){
+                succees,message,data->
+            if(succees){
                 _products.postValue(data)
-            } else {
-                _products.postValue(null)
             }
         }
     }
 
-    fun getProductByCategory(categoryId: String){
-        _loading.postValue(true)
-        repo.getProductByCategory(categoryId) {
-                success,message,data->
-            _loading.postValue(false)
-            if(success){
-                _allProducts.postValue(data)
-            } else {
-                _allProducts.postValue(emptyList())
-            }
-        }
-    }
-    
-    fun getProductsByOwner(ownerId: String){
-        _loading.postValue(true)
-        repo.getProductsByOwner(ownerId) {
-                success,message,data->
-            _loading.postValue(false)
-            if(success){
-                _allProducts.postValue(data)
-            } else {
-                _allProducts.postValue(emptyList())
-            }
-        }
-    }
-    
-    fun getProductsByType(type: String){
-        _loading.postValue(true)
-        repo.getProductsByType(type) {
-                success,message,data->
-            _loading.postValue(false)
-            if(success){
-                _allProducts.postValue(data)
-            } else {
-                _allProducts.postValue(emptyList())
-            }
-        }
-    }
+//    fun getProductByCategory(categoryId:String,callback: (Boolean, String, List<ProductModel>?) -> Unit){
+//
+//    }
 }
