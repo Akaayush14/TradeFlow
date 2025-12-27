@@ -70,6 +70,23 @@ import com.example.tradeflow.ui.theme.Greenish
 import com.example.tradeflow.ui.theme.PurpleGrey80
 import kotlinx.coroutines.launch
 
+data class Country(
+    val name: String,
+    val code: String,
+    val flag: String
+)
+val countries = listOf(
+    Country("United States", "+1", "🇺🇸"),
+    Country("Nigeria", "+234", "🇳🇬"),
+    Country("United Kingdom", "+44", "🇬🇧"),
+    Country("India", "+91", "🇮🇳"),
+    Country("Nepal", "+977", "🇳🇵"),
+    Country("China", "+86", "🇨🇳"),
+    Country("Bangladesh", "+880", "🇧🇩"),
+    Country("New Zealand", "+64", "🇳🇿")
+)
+
+
 
 class RegisterActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -94,7 +111,14 @@ fun RegisterBody() {
     var showPassword by remember { mutableStateOf(false) }
     var showConfirmPassword by remember { mutableStateOf(false) }
     var phoneNumber by remember { mutableStateOf("") }
-    var countryCode by remember { mutableStateOf("+977")}
+    var selectedCountry by remember {
+        mutableStateOf(
+            countries.first { it.name == "Nepal" }
+        )
+    }
+    var showCountryDialog by remember { mutableStateOf(false) }
+
+
 
     val BlueButton = Color(0xFF006CFF)
 
@@ -167,15 +191,17 @@ fun RegisterBody() {
                             shape = RoundedCornerShape(10.dp)
                         )
                         .clickable {
-                            // Country picker dialog will go here
+                            showCountryDialog = true
                         },
-                    contentAlignment = Alignment.Center
+
+                            contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = countryCode,
+                        text = "${selectedCountry.flag} ${selectedCountry.code}",
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Medium
                     )
+
                 }
 
                 Spacer(modifier = Modifier.width(8.dp))
@@ -302,6 +328,35 @@ fun RegisterBody() {
                 .height(20.dp)
                 .background(Greenish)
         )
+        if (showCountryDialog) {
+            androidx.compose.material3.AlertDialog(
+                onDismissRequest = { showCountryDialog = false },
+                title = { Text("Select Country") },
+                text = {
+                    Column(modifier = Modifier.height(300.dp)) {
+                        countries.forEach { country ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        selectedCountry = country
+                                        showCountryDialog = false
+                                    }
+                                    .padding(10.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(country.flag, fontSize = 18.sp)
+                                Spacer(modifier = Modifier.width(10.dp))
+                                Text(country.name, modifier = Modifier.weight(1f))
+                                Text(country.code)
+                            }
+                        }
+                    }
+                },
+                confirmButton = {}
+            )
+        }
+
     }
 }
 @Preview
