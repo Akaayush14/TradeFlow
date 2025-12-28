@@ -43,7 +43,7 @@
         </activity>
 
         <activity
-            android:name=".ChatSystemActivity"
+            android:name=".view.ChatSystemActivity"
             android:exported="true"
             android:theme="@style/Theme.TradeFlow">
             <intent-filter>
@@ -54,7 +54,7 @@
         </activity>
 
         <activity
-            android:name=".NotificationsActivity"
+            android:name=".view.NotificationsActivity"
             android:exported="true"
             android:theme="@style/Theme.TradeFlow">
             <intent-filter>
@@ -65,7 +65,7 @@
         </activity>
 
         <activity
-            android:name=".AboutUsActivity"
+            android:name=".view.AboutUsActivity"
             android:exported="true"
             android:theme="@style/Theme.TradeFlow">
             <intent-filter>
@@ -76,7 +76,7 @@
         </activity>
 
         <activity
-            android:name=".DashboardPage"
+            android:name=".view.DashboardPage"
             android:exported="true"
             android:theme="@style/Theme.TradeFlow">
             <intent-filter>
@@ -87,7 +87,7 @@
         </activity>
 
         <activity
-            android:name=".SettingScreenActivity"
+            android:name=".view.SettingScreenActivity"
             android:exported="true"
             android:theme="@style/Theme.TradeFlow">
             <intent-filter>
@@ -98,7 +98,7 @@
         </activity>
 
         <activity
-            android:name=".EditProfileActivity"
+            android:name=".view.EditProfileActivity"
             android:exported="true"
             android:theme="@style/Theme.TradeFlow">
             <intent-filter>
