@@ -1,5 +1,6 @@
-package com.example.tradeflow
+package com.example.tradeflow.view
 
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -43,6 +44,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.tradeflow.R
 import com.example.tradeflow.ui.theme.DarkGreen
 import com.example.tradeflow.ui.theme.Greenish
 
@@ -104,7 +106,7 @@ fun AdminSettingsScreen(onBackClick: () -> Unit = {}) {
                 Button(
                     onClick = {
                         // Clear user session/preferences
-                        val sharedPreferences = context.getSharedPreferences("TradeFlowPrefs", android.content.Context.MODE_PRIVATE)
+                        val sharedPreferences = context.getSharedPreferences("TradeFlowPrefs", Context.MODE_PRIVATE)
                         sharedPreferences.edit().clear().apply()
 
                         // Navigate to login screen

@@ -1,4 +1,4 @@
-package com.example.tradeflow
+package com.example.tradeflow.view
 
 import android.app.DatePickerDialog
 import android.content.Intent
@@ -29,6 +29,7 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.tradeflow.R
 import com.example.tradeflow.ui.theme.DarkGreen
 import com.example.tradeflow.ui.theme.Greenish
 import java.util.*

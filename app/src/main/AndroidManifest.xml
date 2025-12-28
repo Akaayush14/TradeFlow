@@ -13,11 +13,47 @@
         android:theme="@style/Theme.TradeFlow">
 
         <activity
+            android:name=".SplashActivity"
+            android:exported="true"
+            android:label="@string/title_activity_splash"
+            android:theme="@style/Theme.TradeFlow">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <activity
             android:name=".view.ForgetPasswordActivity"
+            android:exported="true"
+            android:label="@string/title_activity_splash"
+            android:theme="@style/Theme.TradeFlow">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <activity
+            android:name=".view.ProfileScreen"
             android:exported="true"
             android:theme="@style/Theme.TradeFlow">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <activity
+            android:name=".view.DashboardPage"
+            android:exported="true"
+            android:theme="@style/Theme.TradeFlow">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
@@ -28,16 +64,18 @@
             android:theme="@style/Theme.TradeFlow">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
+
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
 
         <activity
-            android:name=".view.RegisterActivity"
+            android:name=".RegisterActivity"
             android:exported="true"
             android:theme="@style/Theme.TradeFlow">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
+
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
@@ -52,20 +90,8 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-
         <activity
             android:name=".view.NotificationsActivity"
-            android:exported="true"
-            android:theme="@style/Theme.TradeFlow">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity>
-
-        <activity
-            android:name=".view.AboutUsActivity"
             android:exported="true"
             android:theme="@style/Theme.TradeFlow">
             <intent-filter>
@@ -85,7 +111,6 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-
         <activity
             android:name=".view.EditProfileActivity"
             android:exported="true"
@@ -96,7 +121,6 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-
         <activity
             android:name=".view.MainActivity"
             android:exported="true"
@@ -107,77 +131,71 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-
         <activity
-            android:name=".AdminDashExp"
+            android:name=".view.AdminDashExp"
             android:exported="true"
             android:theme="@style/Theme.TradeFlow">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
+
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-
         <activity
-            android:name=".AdminDashUser"
+            android:name=".view.AdminDashUser"
             android:exported="true"
             android:theme="@style/Theme.TradeFlow">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
+
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-
         <activity
-            android:name=".AdminProfile"
+            android:name=".view.AdminProfile"
             android:exported="true"
             android:label="Admin Profile"
             android:theme="@style/Theme.TradeFlow">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
+
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-
         <activity
-            android:name=".AdminNotification"
+            android:name=".view.AdminNotification"
             android:exported="true"
             android:theme="@style/Theme.TradeFlow">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
+
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-
         <activity
-            android:name=".AdminSettings"
+            android:name=".view.AdminSettings"
             android:exported="true"
             android:theme="@style/Theme.TradeFlow" />
-
         <activity
-            android:name=".EditAdminProfile"
+            android:name=".view.EditAdminProfile"
             android:exported="false"
             android:theme="@style/Theme.TradeFlow" />
-
         <activity
-            android:name=".AdminAboutUs"
+            android:name=".view.AdminAboutUs"
             android:exported="false"
             android:theme="@style/Theme.TradeFlow" />
-
         <activity
-            android:name=".AdminPrivacyPolicy"
+            android:name=".view.AdminPrivacyPolicy"
             android:exported="false"
             android:theme="@style/Theme.TradeFlow" />
-
         <activity
-            android:name=".AdminTermsAndCondition"
+            android:name=".view.AdminTermsAndCondition"
             android:exported="false"
             android:theme="@style/Theme.TradeFlow" />
-
         <activity
-            android:name=".AdminDashItem"
+            android:name=".view.AdminDashItem"
             android:exported="false"
-            android:theme="@style/Theme.TradeFlow"/>
+            android:theme="@style/Theme.TradeFlow" />
     </application>
 
 </manifest>

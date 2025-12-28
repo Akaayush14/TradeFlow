@@ -13,6 +13,7 @@ interface UserRepo {
     fun register(
         email:String,
         password:String,
+        phone:String,
         callback:(Boolean, String, String) -> Unit
     )
 

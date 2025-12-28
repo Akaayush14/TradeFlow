@@ -18,4 +18,11 @@
     <string name="title_activity_AdminSettings">LoginActivity.kt</string>
     <string name="title_activity_AdminTermsAndCondition">LoginActivity.kt</string>
     <string name="title_activity_EditAdminProfile">LoginActivity.kt</string>
+    <string name="title_activity_add_item_screen">AddItemScreen</string>
+    <string name="title_activity_dashboard_page">DashboardPage</string>
+    <string name="title_activity_explore_screen">ExploreScreen</string>
+    <string name="title_activity_inbox_screen">InboxScreen</string>
+    <string name="title_activity_notification_screen">NotificationScreen</string>
+    <string name="title_activity_profile_screen">ProfileScreen</string>
+    <string name="title_activity_splash">SplashActivity</string>
 </resources>

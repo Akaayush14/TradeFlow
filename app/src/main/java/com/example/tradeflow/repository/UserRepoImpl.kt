@@ -34,6 +34,7 @@ class UserRepoImpl: UserRepo{
     override fun register(
         email: String,
         password: String,
+        phone: String,
         callback: (Boolean, String, String) -> Unit
     ) {
         auth.createUserWithEmailAndPassword(email, password)
@@ -114,7 +115,7 @@ class UserRepoImpl: UserRepo{
             }
 
             override fun onCancelled(error: DatabaseError) {
-                TODO("Not yet implemented")
+                callback(false, error.message, null)
             }
         })
     }

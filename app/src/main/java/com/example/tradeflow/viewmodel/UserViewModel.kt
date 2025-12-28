@@ -15,10 +15,10 @@ class UserViewModel(val repo: UserRepo): ViewModel(){
     }
 
     fun register(
-        email:String, password: String,
+        email:String, password: String, phone:String,
         callback: (Boolean, String, String) -> Unit
     ){
-        repo.register(email, password, callback)
+        repo.register(email, password, phone, callback)
     }
 
     fun addUserToDatabase(

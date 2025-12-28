@@ -1,5 +1,4 @@
-package com.example.tradeflow
-
+package com.example.tradeflow.view
 import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -17,6 +16,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
+import androidx.compose.material3.TabRowDefaults
+import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -30,18 +33,21 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.tradeflow.ui.theme.DarkGreen
 import androidx.activity.compose.BackHandler
+import com.example.tradeflow.R
 import com.example.tradeflow.ui.theme.Greenish
 
-class AdminProfile : ComponentActivity() {
+class AdminDashUser : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            AdminProfileScreen(
+            AdminUserScreen(
                 onBackClick = {
                     val intent = Intent(this, AdminDashExp::class.java)
                     startActivity(intent)
@@ -55,9 +61,10 @@ class AdminProfile : ComponentActivity() {
 @Preview
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
-fun AdminProfileScreen(onBackClick: () -> Unit = {}) {
+fun AdminUserScreen(onBackClick: () -> Unit = {}) {
     val context = LocalContext.current
-    var selectedIndex by remember { mutableStateOf(2) }
+    var selectedIndex by remember { mutableStateOf(1) } // History tab selected
+    var selectedTab by remember { mutableStateOf(0) } // 0 for None, 1 for Restricted, 2 for Blocked
 
     BackHandler {
         val intent = Intent(context, AdminDashExp::class.java)
@@ -66,7 +73,6 @@ fun AdminProfileScreen(onBackClick: () -> Unit = {}) {
             context.finish()
         }
     }
-
 
 
     Scaffold(
@@ -89,11 +95,11 @@ fun AdminProfileScreen(onBackClick: () -> Unit = {}) {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(end = 48.dp),
+                            .padding(end = 48.dp), // Compensate for back button width
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = "Profile",
+                            text = "User",
                             color = DarkGreen,
                             style = MaterialTheme.typography.titleLarge
                         )
@@ -101,11 +107,13 @@ fun AdminProfileScreen(onBackClick: () -> Unit = {}) {
                 }
             )
         },
+
         bottomBar = {
             NavigationBar(containerColor = Greenish) {
                 NavigationBarItem(
                     selected = selectedIndex == 0,
                     onClick = {
+                        selectedIndex = 0
                         val intent = Intent(context, AdminDashExp::class.java)
                         context.startActivity(intent)
                         if (context is ComponentActivity) {
@@ -124,21 +132,15 @@ fun AdminProfileScreen(onBackClick: () -> Unit = {}) {
 
                 NavigationBarItem(
                     selected = selectedIndex == 1,
-                    onClick = {
-                        val intent = Intent(context, AdminDashUser::class.java)
-                        context.startActivity(intent)
-                        if (context is ComponentActivity) {
-                            context.finish()
-                        }
-                    },
+                    onClick = { selectedIndex = 1 }, // Already on User
                     icon = {
                         Icon(
                             painter = painterResource(R.drawable.ic_user),
-                            contentDescription = "Users",
+                            contentDescription = "User",
                             tint = Color.White
                         )
                     },
-                    label = { Text("Users", color = Color.White) }
+                    label = { Text("User", color = Color.White) }
                 )
                 NavigationBarItem(
                     selected = selectedIndex == 3,
@@ -161,7 +163,14 @@ fun AdminProfileScreen(onBackClick: () -> Unit = {}) {
 
                 NavigationBarItem(
                     selected = selectedIndex == 2,
-                    onClick = { selectedIndex = 2 },
+                    onClick = {
+                        selectedIndex = 2
+                        val intent = Intent(context, AdminProfile::class.java)
+                        context.startActivity(intent)
+                        if (context is ComponentActivity) {
+                            context.finish()
+                        }
+                    },
                     icon = {
                         Icon(
                             painter = painterResource(R.drawable.ic_profile),
@@ -175,28 +184,129 @@ fun AdminProfileScreen(onBackClick: () -> Unit = {}) {
 
 
             }
+
         }
+
+
     ) { padding ->
-        Box(
+        Column(
             modifier = Modifier
                 .padding(padding)
                 .fillMaxSize()
         ) {
+            // Tab Row for None, Restricted, and Blocked
+            TabRow(
+                selectedTabIndex = selectedTab,
+                containerColor = Color.White,
+                contentColor = Color.Gray,
+                indicator = { tabPositions ->
+                    TabRowDefaults.SecondaryIndicator(
+                        modifier = Modifier.tabIndicatorOffset(tabPositions[selectedTab]),
+                        color = DarkGreen
+                    )
+                }
+            ) {
+                Tab(
+                    selected = selectedTab == 0,
+                    onClick = { selectedTab = 0 },
+                    text = {
+                        Text(
+                            "None",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Normal,
+                            color = if (selectedTab == 0) Color.Black else Color.Gray
+                        )
+                    }
+                )
+                Tab(
+                    selected = selectedTab == 1,
+                    onClick = { selectedTab = 1 },
+                    text = {
+                        Text(
+                            "Restricted",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Normal,
+                            color = if (selectedTab == 1) Color.Black else Color.Gray
+                        )
+                    }
+                )
+                Tab(
+                    selected = selectedTab == 2,
+                    onClick = { selectedTab = 2 },
+                    text = {
+                        Text(
+                            "Blocked",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Normal,
+                            color = if (selectedTab == 2) Color.Black else Color.Gray
+                        )
+                    }
+                )
+            }
 
-            // Add your profile content here
-            ProfileContent()
+            // Content based on selected tab
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp)
+            ) {
+                when (selectedTab) {
+                    0 -> NoneContent()
+                    1 -> RestrictedContent()
+                    2 -> BlockedContent()
+                }
+            }
         }
     }
 }
 
 @Composable
-fun ProfileContent() {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
+fun NoneContent() {
+    // TODO: Fetch users with no restrictions from database here
+    // Example: val users = viewModel.getNoneUsers()
+    // For now, showing empty state
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
     ) {
-        Text("Profile Screen Content")
+        Text(
+            text = "No users",
+            color = Color.Gray,
+            fontSize = 16.sp
+        )
+    }
+}
 
+@Composable
+fun RestrictedContent() {
+    // TODO: Fetch restricted users from database here
+    // Example: val users = viewModel.getRestrictedUsers()
+    // For now, showing empty state
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = "No restricted users",
+            color = Color.Gray,
+            fontSize = 16.sp
+        )
+    }
+}
+
+@Composable
+fun BlockedContent() {
+    // TODO: Fetch blocked users from database here
+    // Example: val users = viewModel.getBlockedUsers()
+    // For now, showing empty state
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = "No blocked users",
+            color = Color.Gray,
+            fontSize = 16.sp
+        )
     }
 }

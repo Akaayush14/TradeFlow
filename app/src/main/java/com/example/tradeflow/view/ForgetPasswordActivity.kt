@@ -196,8 +196,8 @@ fun ForgotBody() {
                                 Intent(context, LoginActivity::class.java)
                             )
                         }
-                        )
-                    }
+                    )
+                }
             }
         }
     }

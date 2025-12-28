@@ -1,4 +1,4 @@
-package com.example.tradeflow
+package com.example.tradeflow.view
 
 import android.content.Intent
 import android.os.Bundle
@@ -36,6 +36,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.tradeflow.R
 import com.example.tradeflow.ui.theme.DarkGreen
 import com.example.tradeflow.ui.theme.Greenish
 
