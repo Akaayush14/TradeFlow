@@ -1,6 +1,5 @@
 <resources>
     <string name="app_name">TradeFlow</string>
-    <string name="title_activity_dasboard_page">DasboardPage</string>
     <string name="title_activity_register">RegisterActivity</string>
     <string name="title_activity_forget_password">ForgetPasswordActivity</string>
     <string name="title_activity_login_activity.kt">LoginActivity.kt</string>
@@ -9,4 +8,14 @@
     <string name="title_activity_logout">LogoutActivity</string>
     <string name="title_activity_notifications">NotificationsActivity</string>
     <string name="title_activity_chat_system">ChatSystemActivity</string>
+    <string name="title_activity_AdminAboutUs.kt">LoginActivity.kt</string>
+    <string name="title_activity_AdminDashExp">LoginActivity.kt</string>
+    <string name="title_activity_AdminDashItem.kt">LoginActivity.kt</string>
+    <string name="title_activity_AdminProfile">LoginActivity.kt</string>
+    <string name="title_activity_AdminDashUser">LoginActivity.kt</string>
+    <string name="title_activity_AdminNotification">LoginActivity.kt</string>
+    <string name="title_activity_AdminPrivacyPolicy">LoginActivity.kt</string>
+    <string name="title_activity_AdminSettings">LoginActivity.kt</string>
+    <string name="title_activity_AdminTermsAndCondition">LoginActivity.kt</string>
+    <string name="title_activity_EditAdminProfile">LoginActivity.kt</string>
 </resources>
