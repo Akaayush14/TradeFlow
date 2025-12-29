@@ -49,6 +49,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import android.util.Log
 import com.example.tradeflow.R
 import com.example.tradeflow.model.ProductModel
 import com.example.tradeflow.model.UserModel
@@ -94,9 +95,16 @@ fun ProfileScreen(onBackClick: () -> Unit = {}) {
     // Fetch user data when screen loads
     LaunchedEffect(userId) {
         if (userId.isNotEmpty()) {
+            Log.d("ProfileScreen", "Fetching user data for userId: $userId")
             userViewModel.getUserById(userId)
             productViewModel.getProductsByOwner(userId)
         }
+    }
+
+    // Log user data changes for debugging
+    LaunchedEffect(userData) {
+        Log.d("ProfileScreen", "User data updated: $userData")
+        Log.d("ProfileScreen", "User name: ${userData?.name}")
     }
 
     // Filter products by type
@@ -107,7 +115,7 @@ fun ProfileScreen(onBackClick: () -> Unit = {}) {
         allProducts.orEmpty().filter { it.type == "Rent" }
     }
 
-    // Get user display info
+    // Get user display info - prioritize database data over Firebase Auth display name
     val userName = userData?.name ?: currentUser?.displayName ?: "User"
     val userEmail = userData?.email ?: currentUser?.email ?: ""
     val username = if (userEmail.isNotEmpty()) {
@@ -115,6 +123,9 @@ fun ProfileScreen(onBackClick: () -> Unit = {}) {
     } else {
         "@user"
     }
+
+    // Show loading state while user data is being fetched
+    val isLoading = userData == null && userId.isNotEmpty()
 
 
 
@@ -158,7 +169,8 @@ fun ProfileScreen(onBackClick: () -> Unit = {}) {
                     username = username,
                     barterCount = barterListings.size,
                     rentalCount = rentalListings.size,
-                    completedCount = 0 // TODO: Calculate completed trades/rentals
+                    completedCount = 0, // TODO: Calculate completed trades/rentals
+                    isLoading = isLoading
                 )
 
                 // Tabs for Barter / Rental listings
@@ -215,7 +227,8 @@ fun ProfileHeaderSection(
     username: String,
     barterCount: Int,
     rentalCount: Int,
-    completedCount: Int
+    completedCount: Int,
+    isLoading: Boolean = false
 ) {
     val context = LocalContext.current
 
@@ -265,7 +278,12 @@ fun ProfileHeaderSection(
             }
         }
         Spacer(modifier = Modifier.height(12.dp))
-        Text(userName, fontWeight = FontWeight.Bold, fontSize = 20.sp, color = Color.Black)
+        Text(
+            text = if (isLoading) "Loading..." else userName,
+            fontWeight = FontWeight.Bold, 
+            fontSize = 20.sp, 
+            color = Color.Black
+        )
         Text(username, fontSize = 14.sp, color = Color.Gray)
 
         Spacer(modifier = Modifier.height(16.dp))
