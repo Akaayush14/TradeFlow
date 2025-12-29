@@ -50,6 +50,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import android.util.Log
+import androidx.compose.foundation.layout.Arrangement
 import com.example.tradeflow.R
 import com.example.tradeflow.model.ProductModel
 import com.example.tradeflow.model.UserModel
@@ -118,11 +119,7 @@ fun ProfileScreen(onBackClick: () -> Unit = {}) {
     // Get user display info - prioritize database data over Firebase Auth display name
     val userName = userData?.name ?: currentUser?.displayName ?: "User"
     val userEmail = userData?.email ?: currentUser?.email ?: ""
-    val username = if (userEmail.isNotEmpty()) {
-        "@${userEmail.split("@")[0]}"
-    } else {
-        "@user"
-    }
+    val userDisplayEmail = userEmail  // Display full email instead of @username
 
     // Show loading state while user data is being fetched
     val isLoading = userData == null && userId.isNotEmpty()
@@ -166,7 +163,7 @@ fun ProfileScreen(onBackClick: () -> Unit = {}) {
             item {
                 ProfileHeaderSection(
                     userName = userName,
-                    username = username,
+                    userDisplayEmail = userDisplayEmail,
                     barterCount = barterListings.size,
                     rentalCount = rentalListings.size,
                     completedCount = 0, // TODO: Calculate completed trades/rentals
@@ -224,7 +221,7 @@ fun ProfileScreen(onBackClick: () -> Unit = {}) {
 @Composable
 fun ProfileHeaderSection(
     userName: String,
-    username: String,
+    userDisplayEmail: String,
     barterCount: Int,
     rentalCount: Int,
     completedCount: Int,
@@ -236,66 +233,118 @@ fun ProfileHeaderSection(
         modifier = Modifier
             .fillMaxWidth()
             .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+        horizontalAlignment = Alignment.Start  // Changed from CenterHorizontally to Start
     ) {
-        Box {
-            Box(
-                modifier = Modifier
-                    .size(100.dp)
-                    .clip(CircleShape)
-                    .background(Color(0xFFE3F2FD))
-                    .align(Alignment.Center)
-            ) {
-                Icon(
-                    Icons.Default.Person,
-                    contentDescription = "Profile Avatar",
-                    modifier = Modifier
-                        .size(80.dp)
-                        .align(Alignment.Center),
-                    tint = Color(0xFF0288D1)
-                )
-            }
-
-            // Pencil icon over avatar (bottom-right)
-            Box(
-                modifier = Modifier
-                    .size(30.dp)
-                    .clip(CircleShape)
-                    .background(Greenish)
-                    .align(Alignment.BottomEnd)
-                    .clickable {
-                        // TODO: replace SettingsActivity with your actual settings activity class name if different
-                        // context.startActivity(Intent(context, SettingsActivity::class.java))
-                    },
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Create,
-                    contentDescription = "Edit Profile / Settings",
-                    tint = White,
-                    modifier = Modifier.size(16.dp)
-                )
-            }
-        }
-        Spacer(modifier = Modifier.height(12.dp))
-        Text(
-            text = if (isLoading) "Loading..." else userName,
-            fontWeight = FontWeight.Bold, 
-            fontSize = 20.sp, 
-            color = Color.Black
-        )
-        Text(username, fontSize = 14.sp, color = Color.Gray)
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Stats row
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            ProfileStat(label = "Barter items", value = barterCount.toString(), modifier = Modifier.weight(1f))
-            ProfileStat(label = "Rental items", value = rentalCount.toString(), modifier = Modifier.weight(1f))
-            ProfileStat(label = "Completed", value = completedCount.toString(), modifier = Modifier.weight(1f))
+            // Profile picture on the left
+            Box {
+                Box(
+                    modifier = Modifier
+                        .size(80.dp)  // Made slightly smaller for left alignment
+                        .clip(CircleShape)
+                        .background(Color(0xFFE3F2FD))
+                ) {
+                    Icon(
+                        Icons.Default.Person,
+                        contentDescription = "Profile Avatar",
+                        modifier = Modifier
+                            .size(50.dp)  // Adjusted icon size
+                            .align(Alignment.Center),
+                        tint = Color(0xFF0288D1)
+                    )
+                }
+
+                // Pencil icon over avatar (bottom-right)
+                Box(
+                    modifier = Modifier
+                        .size(24.dp)  // Made smaller
+                        .clip(CircleShape)
+                        .background(Greenish)
+                        .align(Alignment.BottomEnd)
+                        .clickable {
+                            // TODO: replace SettingsActivity with your actual settings activity class name if different
+                            // context.startActivity(Intent(context, SettingsActivity::class.java))
+                        },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Create,
+                        contentDescription = "Edit Profile / Settings",
+                        tint = White,
+                        modifier = Modifier.size(12.dp)  // Made smaller
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.width(16.dp))
+
+            // Name and email on the right of profile picture
+            Column(
+                verticalArrangement = Arrangement.Center
+            ) {
+                Text(
+                    text = if (isLoading) "Loading..." else userName,
+                    fontWeight = FontWeight.Bold, 
+                    fontSize = 20.sp,  // Slightly smaller for left layout
+                    color = Color.Black
+                )
+                Text(userDisplayEmail, fontSize = 14.sp, color = Color.Gray)
+            }
+        }
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        // Stats row with better styling
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = Color(0xFFF8F9FA)
+            ),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                ProfileStat(
+                    label = "Barter Items", 
+                    value = barterCount.toString(),
+                    modifier = Modifier.weight(1f)
+                )
+                // Divider between stats
+                Box(
+                    modifier = Modifier
+                        .width(1.dp)
+                        .height(40.dp)
+                        .background(Color(0xFFE0E0E0))
+                )
+                ProfileStat(
+                    label = "Rental Items", 
+                    value = rentalCount.toString(),
+                    modifier = Modifier.weight(1f)
+                )
+                // Divider between stats
+                Box(
+                    modifier = Modifier
+                        .width(1.dp)
+                        .height(40.dp)
+                        .background(Color(0xFFE0E0E0))
+                )
+                ProfileStat(
+                    label = "Completed", 
+                    value = completedCount.toString(),
+                    modifier = Modifier.weight(1f)
+                )
+            }
         }
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -308,8 +357,19 @@ fun ProfileStat(label: String, value: String, modifier: Modifier = Modifier) {
         modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text(text = value, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.Black)
-        Text(text = label, fontSize = 12.sp, color = Color.Gray)
+        Text(
+            text = value, 
+            fontWeight = FontWeight.Bold, 
+            fontSize = 18.sp, 
+            color = Color.Black
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            text = label, 
+            fontSize = 12.sp, 
+            color = Color.Gray,
+            fontWeight = FontWeight.Medium
+        )
     }
 }
 
@@ -346,7 +406,7 @@ fun ListingItemCard(item: ListingItem, onClick: () -> Unit) {
                     modifier = Modifier.fillMaxSize()
                 )
             }
-            // --------------------------
+
 
             Spacer(modifier = Modifier.width(16.dp))
 
