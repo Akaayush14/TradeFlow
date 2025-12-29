@@ -21,7 +21,6 @@ val Pink40 = Color(0xFF7D5260)
 val Green= Color(0xFF30944C)
 
 val Greenish = Color(0xFF007D70)
-
 val TealBlue = Color(0xFF044852)
 
 val LightGreen= Color(0xFF91E1A8)
