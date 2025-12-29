@@ -39,10 +39,9 @@ class SplashActivity : ComponentActivity() {
 fun SplashVideoScreen() {
     val context = LocalContext.current
 
-    // Create ExoPlayer
     val exoPlayer = remember {
         ExoPlayer.Builder(context).build().apply {
-            // Load your video from raw folder
+
             val videoUri = Uri.parse("android.resource://${context.packageName}/${R.raw.splash_logo}")
             setMediaItem(MediaItem.fromUri(videoUri))
             prepare()
@@ -74,7 +73,7 @@ fun SplashVideoScreen() {
             factory = { ctx ->
                 PlayerView(ctx).apply {
                     player = exoPlayer
-                    useController = false // Hide video controls
+                    useController = false
                     layoutParams = FrameLayout.LayoutParams(
                         ViewGroup.LayoutParams.MATCH_PARENT,
                         ViewGroup.LayoutParams.MATCH_PARENT
