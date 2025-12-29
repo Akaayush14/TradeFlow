@@ -1,4 +1,4 @@
-package com.example.tradeflow.ui.theme.ui.theme
+package com.example.tradeflow.view.ui.theme
 
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle
