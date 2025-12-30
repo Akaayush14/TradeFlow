@@ -261,7 +261,14 @@ fun ProfileScreen(onBackClick: () -> Unit = {}, onEditProduct: (ProductModel) ->
                 }
             } else {
                 items(data) { product ->
-                    ProductItemCard(product = product, onClick = { }, onEdit = { onEditProduct(it) })
+                    val isOwner = product.ownerId == userId
+                    ProductItemCard(
+                        product = product,
+                        onClick = { },
+                        onEdit = { onEditProduct(it) },
+                        isOwner = isOwner,
+                        onDeleteRequest = { /* will implement backend later */ }
+                    )
                 }
             }
         }
@@ -518,7 +525,13 @@ fun ListingItemCard(item: ListingItem, onClick: () -> Unit) {
 }
 
 @Composable
-fun ProductItemCard(product: ProductModel, onClick: () -> Unit, onEdit: (ProductModel) -> Unit) {
+fun ProductItemCard(
+    product: ProductModel,
+    onClick: () -> Unit,
+    onEdit: (ProductModel) -> Unit,
+    isOwner: Boolean,
+    onDeleteRequest: (ProductModel) -> Unit
+) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -666,76 +679,142 @@ fun ProductItemCard(product: ProductModel, onClick: () -> Unit, onEdit: (Product
                 Spacer(modifier = Modifier.height(12.dp))
                 
                 // Action Buttons (Bottom Row)
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    // Edit Button (Left)
-                    Card(
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(32.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = Color(0xFFE0E0E0)
-                        ),
-                        shape = RoundedCornerShape(8.dp),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+                if (isOwner) {
+                    var showDeleteConfirm by remember { mutableStateOf(false) }
+                    var showDeleteBlocked by remember { mutableStateOf(false) }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Row(
+                        // Edit Button
+                        Card(
                             modifier = Modifier
-                                .fillMaxSize()
-                                .clickable { onEdit(product) },
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.Center
+                                .weight(1f)
+                                .height(32.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = Color(0xFFE0E0E0)
+                            ),
+                            shape = RoundedCornerShape(8.dp),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
                         ) {
-                            Text(
-                                text = "Edit",
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Medium,
-                                color = Color.Black
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Icon(
-                                painter = painterResource(R.drawable.outline_arrow_forward_ios_24),
-                                contentDescription = "Edit",
-                                tint = Color.Black,
-                                modifier = Modifier.size(14.dp)
-                            )
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .clickable { onEdit(product) },
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.Center
+                            ) {
+                                Text(
+                                    text = "Edit",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = Color.Black
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Icon(
+                                    painter = painterResource(R.drawable.outline_arrow_forward_ios_24),
+                                    contentDescription = "Edit",
+                                    tint = Color.Black,
+                                    modifier = Modifier.size(14.dp)
+                                )
+                            }
+                        }
+                        
+                        // Mark as Traded Button
+                        Card(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(32.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = Color(0xFFE0E0E0)
+                            ),
+                            shape = RoundedCornerShape(8.dp),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .clickable { /* TODO: Mark as traded logic */ },
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.Center
+                            ) {
+                                Text(
+                                    text = "Mark as Traded",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = Color.Black
+                                )
+                            }
+                        }
+                        
+                        // Delete Button
+                        Card(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(32.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = Color(0xFFE0E0E0)
+                            ),
+                            shape = RoundedCornerShape(8.dp),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .clickable {
+                                        showDeleteConfirm = product.status == "Available"
+                                        showDeleteBlocked = product.status == "Pending" || product.status == "Completed"
+                                    },
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.Center
+                            ) {
+                                Text(
+                                    text = "Delete",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = Color.Black
+                                )
+                            }
                         }
                     }
                     
-                    // Mark as Traded Button (Right)
-                    Card(
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(32.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = Color(0xFFE0E0E0) // Light grey
-                        ),
-                        shape = RoundedCornerShape(8.dp),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .clickable { /* TODO: Mark as traded logic */ },
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.Center
-                        ) {
-                            Icon(
-                                painter = painterResource(R.drawable.outline_playlist_add_check_circle_24),
-                                contentDescription = "Mark as Traded",
-                                tint = Color.Black,
-                                modifier = Modifier.size(14.dp)
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = "Mark as Traded",
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Medium,
-                                color = Color.Black
-                            )
-                        }
+                    if (showDeleteConfirm) {
+                        AlertDialog(
+                            onDismissRequest = { showDeleteConfirm = false },
+                            title = { Text("Delete item?") },
+                            text = { Text("This item will be permanently removed from your listings.") },
+                            confirmButton = {
+                                TextButton(onClick = {
+                                    showDeleteConfirm = false
+                                    onDeleteRequest(product)
+                                }) {
+                                    Text("Delete", color = Color.Red)
+                                }
+                            },
+                            dismissButton = {
+                                TextButton(onClick = { showDeleteConfirm = false }) {
+                                    Text("Cancel")
+                                }
+                            }
+                        )
+                    }
+                    
+                    if (showDeleteBlocked) {
+                        AlertDialog(
+                            onDismissRequest = { showDeleteBlocked = false },
+                            title = { Text("Delete not allowed") },
+                            text = { Text("You can’t delete this item while a trade is in progress.") },
+                            confirmButton = {
+                                TextButton(onClick = { showDeleteBlocked = false }) {
+                                    Text("Mark as completed")
+                                }
+                            },
+                            dismissButton = {
+                                TextButton(onClick = { showDeleteBlocked = false }) {
+                                    Text("Cancel trade")
+                                }
+                            }
+                        )
                     }
                 }
             }
