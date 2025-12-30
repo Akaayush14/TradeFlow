@@ -282,18 +282,18 @@ fun NoneContent() {
     val context = LocalContext.current
     val userViewModel = remember { UserViewModel(UserRepoImpl()) }
     val allUsers by userViewModel.allUsers.collectAsState()
-    
+
     var showDeleteDialog by remember { mutableStateOf<UserModel?>(null) }
     var showBlockDialog by remember { mutableStateOf<UserModel?>(null) }
     var showRestrictDialog by remember { mutableStateOf<UserModel?>(null) }
-    
+
     LaunchedEffect(Unit) {
         userViewModel.getAllUser()
     }
-    
+
     // Filter users with no restrictions and no blocks (normal users)
     val noneUsers = allUsers?.filter { !it.isBlocked && !it.isRestricted } ?: emptyList()
-    
+
     if (noneUsers.isEmpty()) {
         Box(
             modifier = Modifier.fillMaxSize(),
@@ -323,7 +323,7 @@ fun NoneContent() {
             }
         }
     }
-    
+
     // Dialogs
     UserDialogs(
         showDeleteDialog = showDeleteDialog,
@@ -341,18 +341,18 @@ fun RestrictedContent() {
     val context = LocalContext.current
     val userViewModel = remember { UserViewModel(UserRepoImpl()) }
     val allUsers by userViewModel.allUsers.collectAsState()
-    
+
     var showDeleteDialog by remember { mutableStateOf<UserModel?>(null) }
     var showBlockDialog by remember { mutableStateOf<UserModel?>(null) }
     var showRestrictDialog by remember { mutableStateOf<UserModel?>(null) }
-    
+
     LaunchedEffect(Unit) {
         userViewModel.getAllUser()
     }
-    
+
     // Filter restricted users
     val restrictedUsers = allUsers?.filter { it.isRestricted } ?: emptyList()
-    
+
     if (restrictedUsers.isEmpty()) {
         Box(
             modifier = Modifier.fillMaxSize(),
@@ -382,7 +382,7 @@ fun RestrictedContent() {
             }
         }
     }
-    
+
     // Dialogs
     UserDialogs(
         showDeleteDialog = showDeleteDialog,
@@ -400,18 +400,18 @@ fun BlockedContent() {
     val context = LocalContext.current
     val userViewModel = remember { UserViewModel(UserRepoImpl()) }
     val allUsers by userViewModel.allUsers.collectAsState()
-    
+
     var showDeleteDialog by remember { mutableStateOf<UserModel?>(null) }
     var showBlockDialog by remember { mutableStateOf<UserModel?>(null) }
     var showRestrictDialog by remember { mutableStateOf<UserModel?>(null) }
-    
+
     LaunchedEffect(Unit) {
         userViewModel.getAllUser()
     }
-    
+
     // Filter blocked users
     val blockedUsers = allUsers?.filter { it.isBlocked } ?: emptyList()
-    
+
     if (blockedUsers.isEmpty()) {
         Box(
             modifier = Modifier.fillMaxSize(),
@@ -441,7 +441,7 @@ fun BlockedContent() {
             }
         }
     }
-    
+
     // Dialogs
     UserDialogs(
         showDeleteDialog = showDeleteDialog,
@@ -467,7 +467,7 @@ fun UserCardUser(
         user.isRestricted -> Color(0xFFFFF3E0) // Light orange
         else -> Color.White
     }
-    
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -576,7 +576,7 @@ fun UserDialogs(
     userViewModel: UserViewModel
 ) {
     val context = LocalContext.current
-    
+
     // Delete Confirmation Dialog
     showDeleteDialog?.let { user ->
         AlertDialog(
@@ -611,14 +611,14 @@ fun UserDialogs(
             }
         )
     }
-    
+
     // Block/Unblock Dialog
     showBlockDialog?.let { user ->
         AlertDialog(
             onDismissRequest = onDismissBlock,
             title = { Text(if (user.isBlocked) "Unblock User" else "Block User") },
-            text = { 
-                Text("Are you sure you want to ${if (user.isBlocked) "unblock" else "block"} ${user.name}?") 
+            text = {
+                Text("Are you sure you want to ${if (user.isBlocked) "unblock" else "block"} ${user.name}?")
             },
             confirmButton = {
                 Button(
@@ -650,14 +650,14 @@ fun UserDialogs(
             }
         )
     }
-    
+
     // Restrict/Unrestrict Dialog
     showRestrictDialog?.let { user ->
         AlertDialog(
             onDismissRequest = onDismissRestrict,
             title = { Text(if (user.isRestricted) "Unrestrict User" else "Restrict User") },
-            text = { 
-                Text("Are you sure you want to ${if (user.isRestricted) "unrestrict" else "restrict"} ${user.name}?") 
+            text = {
+                Text("Are you sure you want to ${if (user.isRestricted) "unrestrict" else "restrict"} ${user.name}?")
             },
             confirmButton = {
                 Button(

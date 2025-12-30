@@ -268,17 +268,17 @@ fun ListedItemsContent() {
     val context = LocalContext.current
     val productViewModel = remember { ProductViewModel(ProductRepoImpl()) }
     val allProducts by productViewModel.allProducts.collectAsState()
-    
+
     var showUnlistDialog by remember { mutableStateOf<ProductModel?>(null) }
     var showDeleteDialog by remember { mutableStateOf<ProductModel?>(null) }
-    
+
     LaunchedEffect(Unit) {
         productViewModel.getAllProduct()
     }
-    
+
     // Filter only listed items (isListed = true)
     val listedProducts = allProducts?.filter { it.isListed } ?: emptyList()
-    
+
     if (listedProducts.isEmpty()) {
         Box(
             modifier = Modifier.fillMaxSize(),
@@ -308,14 +308,14 @@ fun ListedItemsContent() {
             }
         }
     }
-    
+
     // Unlist Dialog
     showUnlistDialog?.let { product ->
         AlertDialog(
             onDismissRequest = { showUnlistDialog = null },
             title = { Text("Unlist Item") },
-            text = { 
-                Text("Are you sure you want to unlist ${product.name}?") 
+            text = {
+                Text("Are you sure you want to unlist ${product.name}?")
             },
             confirmButton = {
                 Button(
@@ -345,14 +345,14 @@ fun ListedItemsContent() {
             }
         )
     }
-    
+
     // Delete Dialog
     showDeleteDialog?.let { product ->
         AlertDialog(
             onDismissRequest = { showDeleteDialog = null },
             title = { Text("Delete Item") },
-            text = { 
-                Text("Are you sure you want to delete ${product.name}?") 
+            text = {
+                Text("Are you sure you want to delete ${product.name}?")
             },
             confirmButton = {
                 Button(
@@ -389,17 +389,17 @@ fun UnlistedItemsContent() {
     val context = LocalContext.current
     val productViewModel = remember { ProductViewModel(ProductRepoImpl()) }
     val allProducts by productViewModel.allProducts.collectAsState()
-    
+
     var showListDialog by remember { mutableStateOf<ProductModel?>(null) }
     var showDeleteDialog by remember { mutableStateOf<ProductModel?>(null) }
-    
+
     LaunchedEffect(Unit) {
         productViewModel.getAllProduct()
     }
-    
+
     // Filter only unlisted items (isListed = false)
     val unlistedProducts = allProducts?.filter { !it.isListed } ?: emptyList()
-    
+
     if (unlistedProducts.isEmpty()) {
         Box(
             modifier = Modifier.fillMaxSize(),
@@ -429,14 +429,14 @@ fun UnlistedItemsContent() {
             }
         }
     }
-    
+
     // List Dialog
     showListDialog?.let { product ->
         AlertDialog(
             onDismissRequest = { showListDialog = null },
             title = { Text("List Item") },
-            text = { 
-                Text("Are you sure you want to list ${product.name}?") 
+            text = {
+                Text("Are you sure you want to list ${product.name}?")
             },
             confirmButton = {
                 Button(
@@ -466,14 +466,14 @@ fun UnlistedItemsContent() {
             }
         )
     }
-    
+
     // Delete Dialog
     showDeleteDialog?.let { product ->
         AlertDialog(
             onDismissRequest = { showDeleteDialog = null },
             title = { Text("Delete Item") },
-            text = { 
-                Text("Are you sure you want to delete ${product.name}?") 
+            text = {
+                Text("Are you sure you want to delete ${product.name}?")
             },
             confirmButton = {
                 Button(
