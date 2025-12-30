@@ -140,8 +140,7 @@ fun AboutUsScreen(navController: NavController) {
                             painter = painterResource(id = R.drawable.house_rent_logo),
                             contentDescription = "Logo",
                             modifier = Modifier
-                                .size(140.dp)
-                                .clip(CircleShape)
+                                .size(200.dp)
                                 .background(Color.White)
                                 .padding(16.dp)
                         )
