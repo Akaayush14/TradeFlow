@@ -58,6 +58,7 @@ fun AppNav() {
 }
 
 
+
 class CurvedBottomShape: Shape {
     override fun createOutline(
         size: Size,
@@ -155,6 +156,7 @@ fun SettingsScreen(navController: NavController) {
         SettingsItem("Edit Profile", R.drawable.profile_filled) {
             navController.navigate("edit_profile")
         }
+
         SettingsItemWithValue("Language", selectedLanguage, R.drawable.language) {
             showLanguageDialog = true
         }
