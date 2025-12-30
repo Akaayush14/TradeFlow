@@ -12,6 +12,7 @@
           </Target>
         </DropdownSelection>
         <DialogSelection />
+<<<<<<< HEAD
       </SelectionState>
       <SelectionState runConfigName="AdminDashExp (1)">
         <option name="selectionMode" value="DROPDOWN" />
@@ -27,7 +28,27 @@
       </SelectionState>
       <SelectionState runConfigName="AdminDashExp (3)">
         <option name="selectionMode" value="DROPDOWN" />
+=======
+>>>>>>> f43f40f0e332de2ffc0ea01e4a4a20304d00241d
       </SelectionState>
+<<<<<<< HEAD
+=======
+      <SelectionState runConfigName="LoginActivity (2)">
+        <option name="selectionMode" value="DROPDOWN" />
+      </SelectionState>
+      <SelectionState runConfigName="LoginActivity (3)">
+        <option name="selectionMode" value="DROPDOWN" />
+      </SelectionState>
+      <SelectionState runConfigName="LoginActivity (4)">
+        <option name="selectionMode" value="DROPDOWN" />
+      </SelectionState>
+      <SelectionState runConfigName="LoginActivity (5)">
+        <option name="selectionMode" value="DROPDOWN" />
+      </SelectionState>
+      <SelectionState runConfigName="LoginActivity">
+        <option name="selectionMode" value="DROPDOWN" />
+      </SelectionState>
+>>>>>>> ac31f3213235d7481ff231391e96690c546cde7d
     </selectionStates>
   </component>
 </project>
