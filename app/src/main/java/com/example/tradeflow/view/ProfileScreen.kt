@@ -19,9 +19,10 @@ import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -41,6 +42,7 @@ import com.example.tradeflow.ui.theme.White
 import com.example.tradeflow.viewmodel.ProductViewModel
 import com.example.tradeflow.viewmodel.UserViewModel
 import com.google.firebase.auth.FirebaseAuth
+import kotlinx.coroutines.launch
 
 
 // Enums to manage the state of the tabs
@@ -122,6 +124,7 @@ fun ProfileScreen(onBackClick: () -> Unit = {}, onEditProduct: (ProductModel) ->
     // Show loading state while user data is being fetched
     val isLoading = userData == null
     val snackbarHostState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
     LaunchedEffect(showEditSuccess) {
         if (showEditSuccess) {
             snackbarHostState.showSnackbar("Item updated successfully")
@@ -269,10 +272,34 @@ fun ProfileScreen(onBackClick: () -> Unit = {}, onEditProduct: (ProductModel) ->
                         isOwner = isOwner,
                         onDeleteRequest = { toDelete ->
                             if (toDelete.status != "Available") return@ProductItemCard
-                            val updated = toDelete.copy(isDeleted = true)
-                            productViewModel.updateProduct(updated) { success, _ ->
+                            val id = toDelete.productId
+                            if (id.isNotEmpty()) {
+                                productViewModel.deleteProduct(id) { success, message ->
+                                    if (success) {
+                                        coroutineScope.launch {
+                                            snackbarHostState.showSnackbar("Item deleted successfully")
+                                        }
+                                    } else {
+                                        coroutineScope.launch {
+                                            snackbarHostState.showSnackbar(message)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        ,
+                        onMarkTradedRequest = { toComplete ->
+                            if (toComplete.status != "Available") return@ProductItemCard
+                            val updated = toComplete.copy(status = "Completed", completedAt = System.currentTimeMillis())
+                            productViewModel.updateProduct(updated) { success, message ->
                                 if (success) {
-                                    // Snackbar handled by parent if needed; list refresh comes from Firebase listener
+                                    coroutineScope.launch {
+                                        snackbarHostState.showSnackbar("Traded successfully")
+                                    }
+                                } else {
+                                    coroutineScope.launch {
+                                        snackbarHostState.showSnackbar(message)
+                                    }
                                 }
                             }
                         }
@@ -538,7 +565,8 @@ fun ProductItemCard(
     onClick: () -> Unit,
     onEdit: (ProductModel) -> Unit,
     isOwner: Boolean,
-    onDeleteRequest: (ProductModel) -> Unit
+    onDeleteRequest: (ProductModel) -> Unit,
+    onMarkTradedRequest: (ProductModel) -> Unit
 ) {
     Card(
         modifier = Modifier
@@ -690,12 +718,14 @@ fun ProductItemCard(
                 if (isOwner) {
                     var showDeleteConfirm by remember { mutableStateOf(false) }
                     var showDeleteBlocked by remember { mutableStateOf(false) }
+                    var showMarkConfirm by remember { mutableStateOf(false) }
+                    var showMarkBlocked by remember { mutableStateOf(false) }
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         // Edit Button
-                        Card(
+                        if (product.status != "Completed") Card(
                             modifier = Modifier
                                 .weight(1f)
                                 .height(32.dp),
@@ -729,7 +759,7 @@ fun ProductItemCard(
                         }
                         
                         // Mark as Traded Button
-                        Card(
+                        if (product.status != "Completed") Card(
                             modifier = Modifier
                                 .weight(1f)
                                 .height(32.dp),
@@ -742,7 +772,10 @@ fun ProductItemCard(
                             Row(
                                 modifier = Modifier
                                     .fillMaxSize()
-                                    .clickable { /* TODO: Mark as traded logic */ },
+                                    .clickable {
+                                        showMarkConfirm = product.status == "Available"
+                                        showMarkBlocked = product.status == "Pending" || product.status == "Completed"
+                                    },
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.Center
                             ) {
@@ -756,7 +789,7 @@ fun ProductItemCard(
                         }
                         
                         // Delete Button
-                        Card(
+                        if (product.status != "Completed") Card(
                             modifier = Modifier
                                 .weight(1f)
                                 .height(32.dp),
@@ -786,6 +819,25 @@ fun ProductItemCard(
                         }
                     }
                     
+                    if (product.status == "Completed") {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.Start
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.CheckCircle,
+                                contentDescription = null,
+                                tint = Color(0xFF4CAF50)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "Traded successfully",
+                                fontSize = 12.sp,
+                                color = Color.Black
+                            )
+                        }
+                    }
+                    
                     if (showDeleteConfirm) {
                         AlertDialog(
                             onDismissRequest = { showDeleteConfirm = false },
@@ -802,6 +854,40 @@ fun ProductItemCard(
                             dismissButton = {
                                 TextButton(onClick = { showDeleteConfirm = false }) {
                                     Text("Cancel")
+                                }
+                            }
+                        )
+                    }
+                    
+                    if (showMarkConfirm) {
+                        AlertDialog(
+                            onDismissRequest = { showMarkConfirm = false },
+                            title = { Text("Mark item as traded?") },
+                            text = { Text("This will move the item to completed and remove it from active listings.") },
+                            confirmButton = {
+                                TextButton(onClick = {
+                                    showMarkConfirm = false
+                                    onMarkTradedRequest(product)
+                                }) {
+                                    Text("Mark as Traded")
+                                }
+                            },
+                            dismissButton = {
+                                TextButton(onClick = { showMarkConfirm = false }) {
+                                    Text("Cancel")
+                                }
+                            }
+                        )
+                    }
+                    
+                    if (showMarkBlocked) {
+                        AlertDialog(
+                            onDismissRequest = { showMarkBlocked = false },
+                            title = { Text("Not allowed") },
+                            text = { Text("You can mark this item as traded only after completion.") },
+                            confirmButton = {
+                                TextButton(onClick = { showMarkBlocked = false }) {
+                                    Text("OK")
                                 }
                             }
                         )

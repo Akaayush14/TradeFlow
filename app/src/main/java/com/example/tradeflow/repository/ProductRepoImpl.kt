@@ -62,7 +62,7 @@ class ProductRepoImpl: ProductRepo {
                     val allProducts = mutableListOf<ProductModel>()
                     for(data in snapshot.children){
                         var product = data.getValue(ProductModel::class.java)
-                        if(product != null && product.isDeleted != true){
+                        if(product != null){
                             allProducts.add(product)
                         }
                     }
@@ -87,11 +87,7 @@ class ProductRepoImpl: ProductRepo {
                 if(snapshot.exists()){
                     var data = snapshot.getValue(ProductModel::class.java)
                     if(data != null){
-                        if (data.isDeleted == true) {
-                            callback(false,"Product not found",null)
-                        } else {
-                            callback(true,"product fetched",data)
-                        }
+                        callback(true,"product fetched",data)
                     } else {
                         callback(false,"Product data is null",null)
                     }
@@ -116,7 +112,7 @@ class ProductRepoImpl: ProductRepo {
                     val allProducts = mutableListOf<ProductModel>()
                     for(data in snapshot.children){
                         var product = data.getValue(ProductModel::class.java)
-                        if(product != null && product.isDeleted != true){
+                        if(product != null){
                             allProducts.add(product)
                         }
                     }
@@ -139,7 +135,7 @@ class ProductRepoImpl: ProductRepo {
                     val allProducts = mutableListOf<ProductModel>()
                     for(data in snapshot.children){
                         var product = data.getValue(ProductModel::class.java)
-                        if(product != null && product.isDeleted != true){
+                        if(product != null){
                             allProducts.add(product)
                         }
                     }
@@ -162,7 +158,7 @@ class ProductRepoImpl: ProductRepo {
                     val allProducts = mutableListOf<ProductModel>()
                     for(data in snapshot.children){
                         var product = data.getValue(ProductModel::class.java)
-                        if(product != null && product.isDeleted != true){
+                        if(product != null){
                             allProducts.add(product)
                         }
                     }
