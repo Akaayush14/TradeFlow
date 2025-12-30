@@ -6,14 +6,24 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -24,12 +34,15 @@ import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.TabRowDefaults
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -46,8 +59,14 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.tradeflow.R
+import com.example.tradeflow.model.ProductModel
+import com.example.tradeflow.model.UserModel
+import com.example.tradeflow.repository.ProductRepoImpl
+import com.example.tradeflow.repository.UserRepoImpl
 import com.example.tradeflow.ui.theme.DarkGreen
 import com.example.tradeflow.ui.theme.Greenish
+import com.example.tradeflow.viewmodel.ProductViewModel
+import com.example.tradeflow.viewmodel.UserViewModel
 
 class AdminDashExp : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -91,21 +110,19 @@ fun AdminExp() {
                     navigationIconContentColor = Color.White,
                     actionIconContentColor = Color.White
                 ),
-                navigationIcon = {
-                    IconButton(onClick = {}) {
-                        Icon(
-                            painter = painterResource(R.drawable.ic_search),
-                            contentDescription = "Search",
-                            modifier = Modifier.size(22.dp),
-                            tint = Color.White
-                        )
-                    }
-                },
                 title = {
-                    TextField(
+                    OutlinedTextField(
                         value = searchText,
                         onValueChange = { searchText = it },
                         singleLine = true,
+                        leadingIcon = {
+                            Icon(
+                                painter = painterResource(R.drawable.ic_search),
+                                contentDescription = "Search",
+                                modifier = Modifier.size(22.dp),
+                                tint = Greenish
+                            )
+                        },
                         colors = TextFieldDefaults.colors(
                             focusedContainerColor = Color.White,
                             unfocusedContainerColor = Color.White,
@@ -115,8 +132,8 @@ fun AdminExp() {
                         ),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(40.dp)
-                            .clip(RoundedCornerShape(50.dp))
+                            .height(40.dp),
+                        shape = RoundedCornerShape(50.dp)
                     )
                 },
                 actions = {
@@ -259,8 +276,8 @@ fun AdminExp() {
                     .padding(16.dp)
             ) {
                 when (selectedTab) {
-                    0 -> ItemsContent()
-                    1 -> UsersContent()
+                    0 -> ItemsContent(searchText = searchText)
+                    1 -> UsersContent(searchText = searchText)
                 }
             }
         }
@@ -268,35 +285,575 @@ fun AdminExp() {
 }
 
 @Composable
-fun ItemsContent() {
-    // TODO: Fetch items from database here
-    // Example: val items = viewModel.getItems()
-    // For now, showing empty state
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            text = "No items yet",
-            color = Color.Gray,
-            fontSize = 16.sp
+fun ItemsContent(searchText: String) {
+    val context = LocalContext.current
+    val productViewModel = remember { ProductViewModel(ProductRepoImpl()) }
+    val allProducts by productViewModel.allProducts.collectAsState()
+
+    var showUnlistDialog by remember { mutableStateOf<ProductModel?>(null) }
+    var showListDialog by remember { mutableStateOf<ProductModel?>(null) }
+    var showDeleteDialog by remember { mutableStateOf<ProductModel?>(null) }
+
+    LaunchedEffect(Unit) {
+        productViewModel.getAllProduct()
+    }
+
+    // Filter products based on search text (case-insensitive search by product name)
+    val products = if (searchText.isBlank()) {
+        allProducts ?: emptyList()
+    } else {
+        (allProducts ?: emptyList()).filter { product ->
+            product.name.contains(searchText, ignoreCase = true)
+        }
+    }
+
+    if (products.isEmpty()) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = if (searchText.isBlank()) "No items yet" else "No items found",
+                color = Color.Gray,
+                fontSize = 16.sp
+            )
+        }
+    } else {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            items(
+                items = products,
+                key = { it.productId }
+            ) { product ->
+                ItemCardExp(
+                    product = product,
+                    onListClick = { showListDialog = product },
+                    onUnlistClick = { showUnlistDialog = product },
+                    onDeleteClick = { showDeleteDialog = product }
+                )
+            }
+        }
+    }
+
+    // Unlist Dialog
+    showUnlistDialog?.let { product ->
+        AlertDialog(
+            onDismissRequest = { showUnlistDialog = null },
+            title = { Text("Unlist Item") },
+            text = {
+                Text("Are you sure you want to unlist ${product.name}?")
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        productViewModel.listProduct(product.productId, false) { success, message ->
+                            if (success) {
+                                Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+                                showUnlistDialog = null
+                            } else {
+                                Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+                                showUnlistDialog = null
+                            }
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
+                ) {
+                    Text("Unlist", color = Color.White)
+                }
+            },
+            dismissButton = {
+                Button(
+                    onClick = { showUnlistDialog = null },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.Gray)
+                ) {
+                    Text("Cancel", color = Color.White)
+                }
+            }
+        )
+    }
+
+    // List Dialog
+    showListDialog?.let { product ->
+        AlertDialog(
+            onDismissRequest = { showListDialog = null },
+            title = { Text("List Item") },
+            text = {
+                Text("Are you sure you want to list ${product.name}?")
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        productViewModel.listProduct(product.productId, true) { success, message ->
+                            if (success) {
+                                Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+                                showListDialog = null
+                            } else {
+                                Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+                                showListDialog = null
+                            }
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = DarkGreen)
+                ) {
+                    Text("List", color = Color.White)
+                }
+            },
+            dismissButton = {
+                Button(
+                    onClick = { showListDialog = null },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.Gray)
+                ) {
+                    Text("Cancel", color = Color.White)
+                }
+            }
+        )
+    }
+
+    // Delete Dialog
+    showDeleteDialog?.let { product ->
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = null },
+            title = { Text("Delete Item") },
+            text = {
+                Text("Are you sure you want to delete ${product.name}?")
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        productViewModel.deleteProduct(product.productId) { success, message ->
+                            if (success) {
+                                Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+                                productViewModel.getAllProduct()
+                            } else {
+                                Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+                            }
+                            showDeleteDialog = null
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
+                ) {
+                    Text("Delete", color = Color.White)
+                }
+            },
+            dismissButton = {
+                Button(
+                    onClick = { showDeleteDialog = null },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.Gray)
+                ) {
+                    Text("Cancel", color = Color.White)
+                }
+            }
         )
     }
 }
 
 @Composable
-fun UsersContent() {
-    // TODO: Fetch users from database here
-    // Example: val users = viewModel.getUsers()
-    // For now, showing empty state
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
+fun UsersContent(searchText: String) {
+    val context = LocalContext.current
+    val userViewModel = remember { UserViewModel(UserRepoImpl()) }
+    val allUsers by userViewModel.allUsers.collectAsState()
+
+    var showDeleteDialog by remember { mutableStateOf<UserModel?>(null) }
+    var showBlockDialog by remember { mutableStateOf<UserModel?>(null) }
+    var showRestrictDialog by remember { mutableStateOf<UserModel?>(null) }
+
+    LaunchedEffect(Unit) {
+        userViewModel.getAllUser()
+    }
+
+    // Filter users based on search text (case-insensitive search by user name)
+    val users = if (searchText.isBlank()) {
+        allUsers ?: emptyList()
+    } else {
+        (allUsers ?: emptyList()).filter { user ->
+            user.name.contains(searchText, ignoreCase = true)
+        }
+    }
+
+    if (users.isEmpty()) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = if (searchText.isBlank()) "No users yet" else "No users found",
+                color = Color.Gray,
+                fontSize = 16.sp
+            )
+        }
+    } else {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            items(
+                items = users,
+                key = { it.userId }
+            ) { user ->
+                UserCardExp(
+                    user = user,
+                    onDeleteClick = { showDeleteDialog = user },
+                    onBlockClick = { showBlockDialog = user },
+                    onRestrictClick = { showRestrictDialog = user }
+                )
+            }
+        }
+    }
+
+    // Dialogs
+    UserDialogsExp(
+        showDeleteDialog = showDeleteDialog,
+        showBlockDialog = showBlockDialog,
+        showRestrictDialog = showRestrictDialog,
+        onDismissDelete = { showDeleteDialog = null },
+        onDismissBlock = { showBlockDialog = null },
+        onDismissRestrict = { showRestrictDialog = null },
+        userViewModel = userViewModel
+    )
+}
+
+@Composable
+fun ItemCardExp(
+    product: ProductModel,
+    onListClick: () -> Unit,
+    onUnlistClick: () -> Unit,
+    onDeleteClick: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 4.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = if (!product.isListed) Color(0xFFFFEBEE) else Color.White
+        )
     ) {
-        Text(
-            text = "No users yet",
-            color = Color.Gray,
-            fontSize = 16.sp
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(
+                    text = product.name,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Black
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "Price: $${product.price}",
+                    fontSize = 14.sp,
+                    color = Color.Gray
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "Type: ${product.type}",
+                    fontSize = 14.sp,
+                    color = Color.Gray
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "Location: ${product.location}",
+                    fontSize = 14.sp,
+                    color = Color.Gray
+                )
+                if (!product.isListed) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "UNLISTED",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.Red
+                    )
+                }
+            }
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                if (product.isListed) {
+                    // Show Unlist button when listed
+                    Button(
+                        onClick = onUnlistClick,
+                        colors = ButtonDefaults.buttonColors(containerColor = Color.Red),
+                        modifier = Modifier.height(36.dp)
+                    ) {
+                        Text(
+                            text = "Unlist",
+                            fontSize = 12.sp,
+                            color = Color.White
+                        )
+                    }
+                } else {
+                    // Show List button (green) when unlisted
+                    Button(
+                        onClick = onListClick,
+                        colors = ButtonDefaults.buttonColors(containerColor = DarkGreen),
+                        modifier = Modifier.height(36.dp)
+                    ) {
+                        Text(
+                            text = "List",
+                            fontSize = 12.sp,
+                            color = Color.White
+                        )
+                    }
+                }
+                // Always show Delete button
+                Button(
+                    onClick = onDeleteClick,
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.Red),
+                    modifier = Modifier.height(36.dp)
+                ) {
+                    Text(
+                        text = "Delete",
+                        fontSize = 12.sp,
+                        color = Color.White
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun UserCardExp(
+    user: UserModel,
+    onDeleteClick: () -> Unit,
+    onBlockClick: () -> Unit,
+    onRestrictClick: () -> Unit
+) {
+    // Determine card color: blocked = light red, restricted = light orange, normal = white
+    val cardColor = when {
+        user.isBlocked -> Color(0xFFFFEBEE) // Light red
+        user.isRestricted -> Color(0xFFFFF3E0) // Light orange
+        else -> Color.White
+    }
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 4.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = cardColor
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+            // Name
+            Text(
+                text = user.name,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.Black
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            // Email
+            Text(
+                text = user.email,
+                fontSize = 14.sp,
+                color = Color.Gray
+            )
+            // Status labels
+            if (user.isBlocked) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "BLOCKED",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Red
+                )
+            }
+            if (user.isRestricted) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "RESTRICTED",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFFFF9800) // Orange
+                )
+            }
+            // Buttons at the bottom
+            Spacer(modifier = Modifier.height(12.dp))
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                // Block/Unblock button
+                Button(
+                    onClick = onBlockClick,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (user.isBlocked) DarkGreen else Color.Red
+                    ),
+                    modifier = Modifier.height(32.dp)
+                ) {
+                    Text(
+                        text = if (user.isBlocked) "Unblock" else "Block",
+                        fontSize = 11.sp,
+                        color = Color.White
+                    )
+                }
+                // Restrict/Unrestrict button
+                Button(
+                    onClick = onRestrictClick,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (user.isRestricted) DarkGreen else Color(0xFFFF9800) // Orange
+                    ),
+                    modifier = Modifier.height(32.dp)
+                ) {
+                    Text(
+                        text = if (user.isRestricted) "Unrestrict" else "Restrict",
+                        fontSize = 11.sp,
+                        color = Color.White
+                    )
+                }
+                // Delete button
+                Button(
+                    onClick = onDeleteClick,
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.Red),
+                    modifier = Modifier.height(32.dp)
+                ) {
+                    Text(
+                        text = "Delete",
+                        fontSize = 11.sp,
+                        color = Color.White
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun UserDialogsExp(
+    showDeleteDialog: UserModel?,
+    showBlockDialog: UserModel?,
+    showRestrictDialog: UserModel?,
+    onDismissDelete: () -> Unit,
+    onDismissBlock: () -> Unit,
+    onDismissRestrict: () -> Unit,
+    userViewModel: UserViewModel
+) {
+    val context = LocalContext.current
+
+    // Delete Confirmation Dialog
+    showDeleteDialog?.let { user ->
+        AlertDialog(
+            onDismissRequest = onDismissDelete,
+            title = { Text("Delete User") },
+            text = { Text("Are you sure you want to delete ${user.name}?") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        userViewModel.deleteUser(user.userId) { success, message ->
+                            if (success) {
+                                Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+                                userViewModel.getAllUser()
+                            } else {
+                                Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+                            }
+                            onDismissDelete()
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
+                ) {
+                    Text("Delete", color = Color.White)
+                }
+            },
+            dismissButton = {
+                Button(
+                    onClick = onDismissDelete,
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.Gray)
+                ) {
+                    Text("Cancel", color = Color.White)
+                }
+            }
+        )
+    }
+
+    // Block/Unblock Dialog
+    showBlockDialog?.let { user ->
+        AlertDialog(
+            onDismissRequest = onDismissBlock,
+            title = { Text(if (user.isBlocked) "Unblock User" else "Block User") },
+            text = {
+                Text("Are you sure you want to ${if (user.isBlocked) "unblock" else "block"} ${user.name}?")
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        userViewModel.blockUser(user.userId, !user.isBlocked) { success, message ->
+                            if (success) {
+                                Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+                                userViewModel.getAllUser()
+                            } else {
+                                Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+                            }
+                            onDismissBlock()
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (user.isBlocked) DarkGreen else Color.Red
+                    )
+                ) {
+                    Text(if (user.isBlocked) "Unblock" else "Block", color = Color.White)
+                }
+            },
+            dismissButton = {
+                Button(
+                    onClick = onDismissBlock,
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.Gray)
+                ) {
+                    Text("Cancel", color = Color.White)
+                }
+            }
+        )
+    }
+
+    // Restrict/Unrestrict Dialog
+    showRestrictDialog?.let { user ->
+        AlertDialog(
+            onDismissRequest = onDismissRestrict,
+            title = { Text(if (user.isRestricted) "Unrestrict User" else "Restrict User") },
+            text = {
+                Text("Are you sure you want to ${if (user.isRestricted) "unrestrict" else "restrict"} ${user.name}?")
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        userViewModel.restrictUser(user.userId, !user.isRestricted) { success, message ->
+                            if (success) {
+                                Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+                                userViewModel.getAllUser()
+                            } else {
+                                Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+                            }
+                            onDismissRestrict()
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (user.isRestricted) DarkGreen else Color(0xFFFF9800) // Orange
+                    )
+                ) {
+                    Text(if (user.isRestricted) "Unrestrict" else "Restrict", color = Color.White)
+                }
+            },
+            dismissButton = {
+                Button(
+                    onClick = onDismissRestrict,
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.Gray)
+                ) {
+                    Text("Cancel", color = Color.White)
+                }
+            }
         )
     }
 }
