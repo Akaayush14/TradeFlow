@@ -4,6 +4,7 @@ package com.example.tradeflow.view
 import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -11,8 +12,10 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Create
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -22,7 +25,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -71,7 +73,6 @@ fun ProfileScreen(onBackClick: () -> Unit = {}) {
     var selectedTab by remember { mutableStateOf(ListingType.BOTH) }
     var selectedStatus by remember { mutableStateOf(ListingStatus.ALL) }
 
-
     // Fetch user data when screen loads
     LaunchedEffect(userId) {
         if (userId.isNotEmpty()) {
@@ -103,16 +104,13 @@ fun ProfileScreen(onBackClick: () -> Unit = {}) {
         }
     }
 
-
     // Get user display info - prioritize database data over Firebase Auth display name
     val userName = userData?.name ?: currentUser?.displayName ?: "User"
     val userEmail = userData?.email ?: currentUser?.email ?: ""
     val userDisplayEmail = userEmail  // Display full email instead of @username
 
     // Show loading state while user data is being fetched
-    val isLoading = userData == null && userId.isNotEmpty()
-
-
+    val isLoading = userData == null
 
     Scaffold(
         topBar = {
@@ -261,13 +259,11 @@ fun ProfileHeaderSection(
     completedCount: Int,
     isLoading: Boolean = false
 ) {
-    val context = LocalContext.current
-
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(16.dp),
-        horizontalAlignment = Alignment.Start  // Changed from CenterHorizontally to Start
+        horizontalAlignment = Alignment.Start
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -277,7 +273,7 @@ fun ProfileHeaderSection(
             Box {
                 Box(
                     modifier = Modifier
-                        .size(80.dp)  // Made slightly smaller for left alignment
+                        .size(80.dp)
                         .clip(CircleShape)
                         .background(Color(0xFFE3F2FD))
                 ) {
@@ -285,7 +281,7 @@ fun ProfileHeaderSection(
                         Icons.Default.Person,
                         contentDescription = "Profile Avatar",
                         modifier = Modifier
-                            .size(50.dp)  // Adjusted icon size
+                            .size(50.dp)
                             .align(Alignment.Center),
                         tint = Color(0xFF0288D1)
                     )
@@ -294,7 +290,7 @@ fun ProfileHeaderSection(
                 // Pencil icon over avatar (bottom-right)
                 Box(
                     modifier = Modifier
-                        .size(24.dp)  // Made smaller
+                        .size(24.dp)
                         .clip(CircleShape)
                         .background(Greenish)
                         .align(Alignment.BottomEnd)
@@ -308,7 +304,7 @@ fun ProfileHeaderSection(
                         imageVector = Icons.Default.Create,
                         contentDescription = "Edit Profile / Settings",
                         tint = White,
-                        modifier = Modifier.size(12.dp)  // Made smaller
+                        modifier = Modifier.size(12.dp)
                     )
                 }
             }
@@ -464,7 +460,6 @@ fun ListingItemCard(item: ListingItem, onClick: () -> Unit) {
                 )
             }
 
-
             Spacer(modifier = Modifier.width(16.dp))
 
             Column(modifier = Modifier.weight(1f)) {
@@ -504,25 +499,27 @@ fun ListingItemCard(item: ListingItem, onClick: () -> Unit) {
     }
 }
 
-
 @Composable
 fun ProductItemCard(product: ProductModel, onClick: () -> Unit) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 4.dp)
-            .clickable(onClick = onClick),
-        colors = CardDefaults.cardColors(containerColor = White),
+            .clickable(onClick = onClick)
+            .border(
+                width = 1.dp,
+                color = Color.LightGray,
+                shape = RoundedCornerShape(8.dp)
+            ),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFFF8F8F8)),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        shape = RoundedCornerShape(0.dp)
+        shape = RoundedCornerShape(8.dp)
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 8.dp),
+            modifier = Modifier.padding(vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Image Display Area
+            // Image Display Area (Left Side)
             Box(
                 modifier = Modifier
                     .size(80.dp)
@@ -550,39 +547,148 @@ fun ProductItemCard(product: ProductModel, onClick: () -> Unit) {
 
             Spacer(modifier = Modifier.width(16.dp))
 
+            // Status and Identity (Top Right/Center)
             Column(modifier = Modifier.weight(1f)) {
-                Text(product.name, fontWeight = FontWeight.SemiBold, fontSize = 16.sp, color = Color.Black)
+                // Availability Badge at Top
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(
+                            when (product.status) {
+                                "Available" -> Color(0xFF00897B) // Teal
+                                "Pending" -> Color(0xFFFF9800) // Orange
+                                "Completed" -> Color(0xFF2196F3) // Blue
+                                else -> Color(0xFF9E9E9E) // Gray
+                            }
+                        )
+                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                ) {
+                    Text(
+                        text = product.status,
+                        color = White,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+                
+                Spacer(modifier = Modifier.height(4.dp))
+                
+                // Title
+                Text(product.name, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.Black)
+                
                 Spacer(modifier = Modifier.height(2.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                
+                // Description
+                Text(product.description, fontSize = 14.sp, color = Color.Gray)
+                
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                // Transaction Details Row
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    // Trade Type Badge (Left)
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(12.dp))
-                            .background(
-                                if (product.type == "Barter") Color(0xFF00897B) else Color(0xFF7B1FA2)
-                            )
+                            .background(Color(0xFF00897B)) // Teal
                             .padding(horizontal = 8.dp, vertical = 4.dp)
                     ) {
                         Text(
-                            product.type,
-                            fontSize = 10.sp,
+                            text = product.type,
                             color = White,
+                            fontSize = 10.sp,
                             fontWeight = FontWeight.Bold
                         )
                     }
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(product.description, fontSize = 12.sp, color = Color.Gray, maxLines = 1)
+                    
+                    // Price (Right)
+                    Text(
+                        text = "Rs ${String.format("%.2f", product.price)}",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp,
+                        color = Color.Black
+                    )
+                }
+                
+                Spacer(modifier = Modifier.height(12.dp))
+                
+                // Action Buttons (Bottom Row)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    // Edit Button (Left)
+                    Card(
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(32.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = Color(0xFFF5F5F5)
+                        ),
+                        shape = RoundedCornerShape(8.dp),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .clickable { /* TODO: Navigate to edit screen */ },
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            Text(
+                                text = "Edit",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = Color.Black
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Icon(
+                                painter = painterResource(R.drawable.outline_arrow_forward_ios_24),
+                                contentDescription = "Edit",
+                                tint = Color.Black,
+                                modifier = Modifier.size(14.dp)
+                            )
+                        }
+                    }
+                    
+                    // Mark as Traded Button (Right)
+                    Card(
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(32.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = Color(0xFFF5F5F5) // Light grey
+                        ),
+                        shape = RoundedCornerShape(8.dp),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .clickable { /* TODO: Mark as traded logic */ },
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            Icon(
+                                painter = painterResource(R.drawable.outline_playlist_add_check_circle_24),
+                                contentDescription = "Mark as Traded",
+                                tint = Color.Black,
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "Mark as Traded",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = Color.Black
+                            )
+                        }
+                    }
                 }
             }
-
-            Text(
-                text = "$${String.format("%.2f", product.price)}",
-                fontWeight = FontWeight.Bold,
-                fontSize = 16.sp,
-                color = Color.Black,
-                modifier = Modifier.align(Alignment.Bottom)
-            )
         }
-        // Divider line
-        Spacer(modifier = Modifier.height(1.dp).fillMaxWidth().background(Color.LightGray))
     }
 }

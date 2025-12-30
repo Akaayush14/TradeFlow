@@ -82,7 +82,7 @@ fun AddItemScreen(onBackClick: () -> Unit = {}) {
     val currentUser = FirebaseAuth.getInstance().currentUser
     val ownerId = currentUser?.uid ?: ""
 
-    val typeOptions = listOf("Barter", "Rent")
+    val typeOptions = listOf("Barter", "Rent", "Both")
     val isPlaceholder = selectedPurpose == "Select purpose"
 
     fun validateForm(): Boolean {
