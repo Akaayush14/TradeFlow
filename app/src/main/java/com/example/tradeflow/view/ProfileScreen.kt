@@ -2,6 +2,7 @@
 package com.example.tradeflow.view
 
 import android.app.Activity
+import android.content.Intent
 import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -274,7 +275,8 @@ fun ProfileScreen(onBackClick: () -> Unit = {}, onEditProduct: (ProductModel) ->
                     ProductItemCard(
                         product = product,
                         onClick = {
-                             val intent = android.content.Intent(context, ItemDetailsActivity::class.java)
+                             val intent = Intent(context, ItemDetailsActivity::class.java)
+                             intent.putExtra("productId", product.productId)
                              context.startActivity(intent)
                         },
                         onEdit = { onEditProduct(it) },

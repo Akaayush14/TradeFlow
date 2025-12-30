@@ -44,6 +44,7 @@ android {
 
 dependencies {
     implementation("androidx.compose.runtime:runtime-livedata:1.6.8")
+    implementation("io.coil-kt:coil-compose:2.6.0")
     implementation("com.hbb20:ccp:2.7.3")
     implementation("androidx.media3:media3-exoplayer:1.2.0")
     implementation("androidx.media3:media3-ui:1.2.0")

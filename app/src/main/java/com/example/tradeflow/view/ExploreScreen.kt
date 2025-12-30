@@ -43,6 +43,11 @@ import com.example.tradeflow.ui.theme.Greenish
 import com.example.tradeflow.ui.theme.White
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.sp
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.livedata.observeAsState
+import com.example.tradeflow.model.ProductModel
+import com.example.tradeflow.repository.ProductRepoImpl
+import com.example.tradeflow.viewmodel.ProductViewModel
 
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -54,6 +59,7 @@ import androidx.compose.material.icons.filled.Star
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.foundation.Image
+import androidx.compose.ui.text.font.FontWeight
 import com.example.tradeflow.R
 
 // Add this annotation to use experimental Material 3 APIs
@@ -66,14 +72,23 @@ fun ExploreScreen() {
     var selectedTab by remember { mutableStateOf("All") }
     var searchQuery by remember { mutableStateOf("") }
 
-    // Mock Data
-    val mockItems = listOf(
-        "Vintage Camera" to "$120.00",
-        "Mountain Bike" to "$350.00",
-        "Gaming Console" to "$250.00",
-        "Leather Jacket" to "$80.00",
-        "Acoustic Guitar" to "$150.00"
-    )
+    val productViewModel: ProductViewModel = remember { ProductViewModel(ProductRepoImpl()) }
+    
+    LaunchedEffect(Unit) {
+        productViewModel.getAllProduct()
+    }
+
+    val allProducts by productViewModel.allProducts.observeAsState(initial = emptyList())
+
+    val filteredProducts = allProducts?.filter { product ->
+        val matchesTab = when (selectedTab) {
+            "Rent" -> product.type == "Rent"
+            "Trade" -> product.type == "Barter"
+            else -> true
+        }
+        val matchesSearch = product.name.contains(searchQuery, ignoreCase = true)
+        matchesTab && matchesSearch && !product.isDeleted
+    } ?: emptyList()
 
     Scaffold(
         topBar = {
@@ -193,12 +208,12 @@ fun ExploreScreen() {
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(16.dp)
             ) {
-                items(mockItems) { (name, price) ->
+                items(filteredProducts) { product ->
                     ExploreItemCard(
-                        name = name,
-                        price = price,
+                        product = product,
                         onClick = {
                             val intent = Intent(context, ItemDetailsActivity::class.java)
+                            intent.putExtra("productId", product.productId)
                             context.startActivity(intent)
                         }
                     )
@@ -210,7 +225,7 @@ fun ExploreScreen() {
 }
 
 @Composable
-fun ExploreItemCard(name: String, price: String, onClick: () -> Unit) {
+fun ExploreItemCard(product: ProductModel, onClick: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -243,13 +258,13 @@ fun ExploreItemCard(name: String, price: String, onClick: () -> Unit) {
             modifier = Modifier.fillMaxSize(),
             verticalArrangement = Arrangement.Center
         ) {
-            Text(text = name, fontSize = 18.sp, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
+            Text(text = product.name, fontSize = 18.sp, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(4.dp))
-            Text(text = price, fontSize = 16.sp, color = Greenish, fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold)
+            Text(text = "$${product.price}", fontSize = 16.sp, color = Greenish, fontWeight = FontWeight.SemiBold)
             Spacer(modifier = Modifier.height(8.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Default.Star, contentDescription = null, tint = Color(0xFFFFD700), modifier = Modifier.size(16.dp))
-                Text(text = "4.5", fontSize = 14.sp, color = Color.Gray)
+                Text(text = product.status, fontSize = 14.sp, color = Color.Gray)
             }
         }
     }

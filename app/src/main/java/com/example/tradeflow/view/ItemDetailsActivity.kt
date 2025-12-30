@@ -8,36 +8,19 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.Star
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Divider
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.runtime.Composable
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -48,9 +31,16 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
 import com.example.tradeflow.R
+import com.example.tradeflow.repository.ProductRepoImpl
+import com.example.tradeflow.repository.ReviewRepoImpl
+import com.example.tradeflow.repository.UserRepoImpl
 import com.example.tradeflow.ui.theme.Greenish
 import com.example.tradeflow.ui.theme.White
+import com.example.tradeflow.viewmodel.ProductViewModel
+import com.example.tradeflow.viewmodel.ReviewViewModel
+import com.example.tradeflow.viewmodel.UserViewModel
 
 class ItemDetailsActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -66,6 +56,31 @@ class ItemDetailsActivity : ComponentActivity() {
 fun ItemDetailsScreen() {
     val context = LocalContext.current
     val activity = context as? Activity
+    val productId = activity?.intent?.getStringExtra("productId") ?: ""
+
+    val productViewModel = remember { ProductViewModel(ProductRepoImpl()) }
+    val userViewModel = remember { UserViewModel(UserRepoImpl()) }
+    val reviewViewModel = remember { ReviewViewModel(ReviewRepoImpl()) }
+
+    val product by productViewModel.products.observeAsState()
+    val owner by userViewModel.users.observeAsState()
+    val reviews by reviewViewModel.reviews.observeAsState(emptyList())
+    val loading by productViewModel.loading.observeAsState(false)
+
+    LaunchedEffect(productId) {
+        if (productId.isNotEmpty()) {
+            productViewModel.getProductById(productId)
+            reviewViewModel.getReviewsByProductId(productId)
+        }
+    }
+
+    LaunchedEffect(product) {
+        product?.ownerId?.let { ownerId ->
+            if (ownerId.isNotEmpty()) {
+                userViewModel.getUserById(ownerId)
+            }
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -82,193 +97,200 @@ fun ItemDetailsScreen() {
             )
         }
     ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .background(White)
-                .verticalScroll(rememberScrollState())
-        ) {
-            // 1. Item Images (Placeholder)
-            Box(
+        if (loading || (product == null && productId.isNotEmpty())) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator(color = Greenish)
+            }
+        } else if (product == null) {
+             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text("Product not found")
+            }
+        } else {
+            Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .height(250.dp)
-                    .background(Color.LightGray),
-                contentAlignment = Alignment.Center
+                    .fillMaxSize()
+                    .padding(paddingValues)
+                    .background(White)
+                    .verticalScroll(rememberScrollState())
             ) {
-                // In a real app, use a Pager or LazyRow for carousel
-                // Placeholder image
-                Image(
-                    painter = painterResource(id = R.drawable.ic_launcher_foreground), // Replace with actual placeholder or R.drawable.placeholder if available
-                    contentDescription = "Item Image",
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Fit
-                )
-                
-                // Overlay for multiple images indicator
+                // 1. Item Image
                 Box(
                     modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        .padding(8.dp)
-                        .background(Color.Black.copy(alpha = 0.6f), RoundedCornerShape(12.dp))
-                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                        .fillMaxWidth()
+                        .height(250.dp)
+                        .background(Color.LightGray),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Text("1/3", color = White, fontSize = 12.sp)
-                }
-            }
-
-            Column(modifier = Modifier.padding(16.dp)) {
-                // 2. Item Title, Price, Availability
-                Text(
-                    text = "Vintage Film Camera",
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.Black
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(
-                        text = "$120.00",
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = Greenish
-                    )
-                    ContainerTag(text = "For Rent", color = Color(0xFFE0F7FA), textColor = Color(0xFF006064))
-                }
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "Status: Available",
-                    fontSize = 14.sp,
-                    color = Color.Gray
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-                Divider(color = Color.LightGray, thickness = 0.5.dp)
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // 3. Owner Info
-                Text(
-                    text = "Owner",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.Black
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    // Profile Pic Placeholder
-                    Image(
-                        painter = painterResource(id = R.drawable.ic_launcher_foreground), // Replace with R.drawable.profile_placeholder
-                        contentDescription = "Owner Profile",
-                        modifier = Modifier
-                            .size(50.dp)
-                            .clip(CircleShape)
-                            .border(1.dp, Color.Gray, CircleShape)
-                            .background(Color.LightGray),
-                        contentScale = ContentScale.Crop
-                    )
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = "John Doe",
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.SemiBold
+                    if (product!!.imageUrl.isNotEmpty()) {
+                        AsyncImage(
+                            model = product!!.imageUrl,
+                            contentDescription = "Item Image",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
                         )
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.Star, contentDescription = null, tint = Color(0xFFFFD700), modifier = Modifier.size(16.dp))
+                    } else {
+                        Image(
+                            painter = painterResource(id = R.drawable.ic_launcher_foreground),
+                            contentDescription = "Placeholder",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Fit
+                        )
+                    }
+                }
+
+                Column(modifier = Modifier.padding(16.dp)) {
+                    // 2. Item Title, Price, Type
+                    Text(
+                        text = product!!.name,
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.Black
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = "$${product!!.price}",
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Greenish
+                        )
+                        ContainerTag(
+                            text = product!!.type,
+                            color = if (product!!.type == "Rent") Color(0xFFE0F7FA) else Color(0xFFFFF3E0),
+                            textColor = if (product!!.type == "Rent") Color(0xFF006064) else Color(0xFFE65100)
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "Status: ${product!!.status}",
+                        fontSize = 14.sp,
+                        color = Color.Gray
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Divider(color = Color.LightGray, thickness = 0.5.dp)
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // 3. Owner Info
+                    Text(
+                        text = "Owner",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.Black
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Image(
+                            painter = painterResource(id = R.drawable.ic_launcher_foreground),
+                            contentDescription = "Owner Profile",
+                            modifier = Modifier
+                                .size(50.dp)
+                                .clip(CircleShape)
+                                .border(1.dp, Color.Gray, CircleShape)
+                                .background(Color.LightGray),
+                            contentScale = ContentScale.Crop
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = "4.8 (24 reviews)",
-                                fontSize = 14.sp,
-                                color = Color.Gray,
-                                modifier = Modifier.padding(start = 4.dp)
+                                text = owner?.name ?: "Loading...",
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                             Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Default.Star, contentDescription = null, tint = Color(0xFFFFD700), modifier = Modifier.size(16.dp))
+                                Text(
+                                    text = "4.8 (24 reviews)", // Placeholder rating for user
+                                    fontSize = 14.sp,
+                                    color = Color.Gray,
+                                    modifier = Modifier.padding(start = 4.dp)
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Divider(color = Color.LightGray, thickness = 0.5.dp)
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // 4. Description
+                    Text(
+                        text = "Description",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.Black
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = product!!.description,
+                        fontSize = 14.sp,
+                        color = Color.DarkGray,
+                        lineHeight = 20.sp
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Divider(color = Color.LightGray, thickness = 0.5.dp)
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // 5. Reviews
+                    Text(
+                        text = "Reviews (${reviews?.size ?: 0})",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.Black
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    
+                    if (reviews.isNullOrEmpty()) {
+                        Text("No reviews yet.", fontSize = 14.sp, color = Color.Gray)
+                    } else {
+                        reviews!!.forEach { review ->
+                            ReviewItem(
+                                username = review.userName,
+                                rating = review.rating.toInt(),
+                                comment = review.comment
                             )
                         }
                     }
-                    IconButton(onClick = { Toast.makeText(context, "Navigate to profile", Toast.LENGTH_SHORT).show() }) {
-                        // Arrow forward or profile icon
-                    }
-                }
 
-                Spacer(modifier = Modifier.height(16.dp))
-                Divider(color = Color.LightGray, thickness = 0.5.dp)
-                Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(24.dp))
 
-                // 4. Description
-                Text(
-                    text = "Description",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.Black
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "A well-maintained vintage film camera from the 80s. Fully functional and comes with a 50mm lens. Great for photography enthusiasts.",
-                    fontSize = 14.sp,
-                    color = Color.DarkGray,
-                    lineHeight = 20.sp
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-                Divider(color = Color.LightGray, thickness = 0.5.dp)
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // 5. Reviews
-                Text(
-                    text = "Reviews",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.Black
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                // Sample Review Item
-                ReviewItem(
-                    username = "Alice Smith",
-                    rating = 5,
-                    comment = "Great item! Exactly as described."
-                )
-                ReviewItem(
-                    username = "Bob Johnson",
-                    rating = 4,
-                    comment = "Good condition, but delivery was a bit slow."
-                )
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                // 6. Action Buttons
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    Button(
-                        onClick = { Toast.makeText(context, "Opening Chat...", Toast.LENGTH_SHORT).show() },
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(50.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color.Gray),
-                        shape = RoundedCornerShape(8.dp)
+                    // 6. Action Buttons
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        Icon(painter = painterResource(id = R.drawable.inbox_filled),
-                            contentDescription = null, tint = White)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Message", color = White)
-                    }
+                        Button(
+                            onClick = { Toast.makeText(context, "Opening Chat...", Toast.LENGTH_SHORT).show() },
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(50.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color.Gray),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Icon(Icons.Default.Email,
+                                contentDescription = null, tint = White)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Message", color = White)
+                        }
 
-                    Button(
-                        onClick = { Toast.makeText(context, "Requesting Rent/Trade...", Toast.LENGTH_SHORT).show() },
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(50.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Greenish),
-                        shape = RoundedCornerShape(8.dp)
-                    ) {
-                        Text("Rent Now", color = White)
+                        Button(
+                            onClick = { Toast.makeText(context, "Requesting ${product!!.type}...", Toast.LENGTH_SHORT).show() },
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(50.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Greenish),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Text("${product!!.type} Now", color = White)
+                        }
                     }
                 }
             }
@@ -299,16 +321,11 @@ fun ReviewItem(username: String, rating: Int, comment: String) {
                         imageVector = if (index < rating) Icons.Default.Star else Icons.Outlined.Star,
                         contentDescription = null,
                         tint = Color(0xFFFFD700),
-                        modifier = Modifier.size(14.dp)
+                        modifier = Modifier.size(16.dp)
                     )
                 }
             }
         }
-        Text(
-            text = comment,
-            fontSize = 13.sp,
-            color = Color.Gray,
-            modifier = Modifier.padding(top = 4.dp)
-        )
+        Text(text = comment, fontSize = 14.sp, color = Color.Gray)
     }
 }
