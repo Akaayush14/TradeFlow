@@ -760,10 +760,9 @@ fun ProductItemCard(
                                     color = Color.Black
                                 )
                                 Spacer(modifier = Modifier.width(6.dp))
-                                Icon(
-                                    painter = painterResource(R.drawable.outline_arrow_forward_ios_24),
+                                Image(
+                                    painter = painterResource(R.drawable.edit),
                                     contentDescription = "Edit",
-                                    tint = Color.Black,
                                     modifier = Modifier.size(14.dp)
                                 )
                             }
@@ -791,10 +790,16 @@ fun ProductItemCard(
                                 horizontalArrangement = Arrangement.Center
                             ) {
                                 Text(
-                                    text = "Mark as Traded",
+                                    text = " Traded",
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.Medium,
                                     color = Color.Black
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Image(
+                                    painter = painterResource(R.drawable.traded),
+                                    contentDescription = "Traded",
+                                    modifier = Modifier.size(14.dp)
                                 )
                             }
                         }
@@ -825,6 +830,12 @@ fun ProductItemCard(
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.Medium,
                                     color = Color.Black
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Image(
+                                    painter = painterResource(R.drawable.delete),
+                                    contentDescription = "Delete",
+                                    modifier = Modifier.size(14.dp)
                                 )
                             }
                         }
