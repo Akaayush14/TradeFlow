@@ -10,7 +10,8 @@ data class ProductModel(
     var description: String = "",
     var type: String = "", // "Barter" or "Rent"
     var ownerId: String = "", // User ID who created this product
-    var createdAt: Long = System.currentTimeMillis()
+    var createdAt: Long = System.currentTimeMillis(),
+    var isListed: Boolean = false // true if listed, false if unlisted
 ){
     fun toMap(): Map<String, Any?>{
         return mapOf(
@@ -23,7 +24,8 @@ data class ProductModel(
             "description" to description,
             "type" to type,
             "ownerId" to ownerId,
-            "createdAt" to createdAt
+            "createdAt" to createdAt,
+            "isListed" to isListed
         )
     }
 }

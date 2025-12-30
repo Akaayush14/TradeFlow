@@ -40,7 +40,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.platform.LocalContext
-import com.example.classwork.viewmodel.UserViewModel
+import com.example.tradeflow.viewmodel.UserViewModel
 import com.example.tradeflow.R
 import com.example.tradeflow.RegisterActivity
 import com.example.tradeflow.repository.UserRepoImpl

@@ -141,6 +141,7 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
         <activity
             android:name=".view.AdminDashUser"
             android:exported="true"
@@ -151,6 +152,7 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
         <activity
             android:name=".view.AdminProfile"
             android:exported="true"

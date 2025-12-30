@@ -37,4 +37,21 @@ interface UserRepo {
 
     fun getAllUser(callback: (Boolean, String, List<UserModel>?) -> Unit)
 
+    fun deleteUser(
+        userId: String,
+        callback: (Boolean, String) -> Unit
+    )
+
+    fun blockUser(
+        userId: String,
+        isBlocked: Boolean,
+        callback: (Boolean, String) -> Unit
+    )
+
+    fun restrictUser(
+        userId: String,
+        isRestricted: Boolean,
+        callback: (Boolean, String) -> Unit
+    )
+
 }

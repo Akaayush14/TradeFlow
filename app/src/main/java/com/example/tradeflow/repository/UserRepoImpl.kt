@@ -107,10 +107,28 @@ class UserRepoImpl: UserRepo{
                     for (data in snapshot.children){
                         var user = data.getValue(UserModel::class.java)
                         if(user!=null){
+                            // Read isBlocked value from Firebase, default to false if field doesn't exist
+                            if (data.hasChild("isBlocked")) {
+                                val isBlockedValue = data.child("isBlocked").getValue(Boolean::class.java)
+                                user.isBlocked = isBlockedValue ?: false
+                            } else {
+                                // Field doesn't exist in database, default to false
+                                user.isBlocked = false
+                            }
+                            // Read isRestricted value from Firebase, default to false if field doesn't exist
+                            if (data.hasChild("isRestricted")) {
+                                val isRestrictedValue = data.child("isRestricted").getValue(Boolean::class.java)
+                                user.isRestricted = isRestrictedValue ?: false
+                            } else {
+                                // Field doesn't exist in database, default to false
+                                user.isRestricted = false
+                            }
                             allUsers.add(user)
                         }
                     }
                     callback(true, "User fetched", allUsers)
+                } else {
+                    callback(true, "No users found", emptyList())
                 }
             }
 
@@ -118,5 +136,48 @@ class UserRepoImpl: UserRepo{
                 callback(false, error.message, null)
             }
         })
+    }
+
+    override fun deleteUser(
+        userId: String,
+        callback: (Boolean, String) -> Unit
+    ) {
+        ref.child(userId).removeValue().addOnCompleteListener {
+            if(it.isSuccessful){
+                callback(true, "User deleted successfully")
+            }else{
+                callback(false, "${it.exception?.message}")
+            }
+        }
+    }
+
+    override fun blockUser(
+        userId: String,
+        isBlocked: Boolean,
+        callback: (Boolean, String) -> Unit
+    ) {
+        ref.child(userId).child("isBlocked").setValue(isBlocked).addOnCompleteListener {
+            if(it.isSuccessful){
+                val message = if(isBlocked) "User blocked successfully" else "User unblocked successfully"
+                callback(true, message)
+            }else{
+                callback(false, "${it.exception?.message}")
+            }
+        }
+    }
+
+    override fun restrictUser(
+        userId: String,
+        isRestricted: Boolean,
+        callback: (Boolean, String) -> Unit
+    ) {
+        ref.child(userId).child("isRestricted").setValue(isRestricted).addOnCompleteListener {
+            if(it.isSuccessful){
+                val message = if(isRestricted) "User restricted successfully" else "User unrestricted successfully"
+                callback(true, message)
+            }else{
+                callback(false, "${it.exception?.message}")
+            }
+        }
     }
 }

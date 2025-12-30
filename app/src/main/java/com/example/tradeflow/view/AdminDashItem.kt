@@ -2,14 +2,27 @@ package com.example.tradeflow.view
 
 import android.content.Intent
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -25,6 +38,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -38,10 +53,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.tradeflow.ui.theme.DarkGreen
-import androidx.activity.compose.BackHandler
 import com.example.tradeflow.R
+import com.example.tradeflow.model.ProductModel
+import com.example.tradeflow.repository.ProductRepoImpl
+import com.example.tradeflow.ui.theme.DarkGreen
 import com.example.tradeflow.ui.theme.Greenish
+import com.example.tradeflow.viewmodel.ProductViewModel
 
 class AdminDashItem : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -248,34 +265,349 @@ fun AdminItemScreen(onBackClick: () -> Unit = {}) {
 
 @Composable
 fun ListedItemsContent() {
-    // TODO: Fetch listed items from database here
-    // Example: val items = viewModel.getListedItems()
-    // For now, showing empty state
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            text = "No listed items yet",
-            color = Color.Gray,
-            fontSize = 16.sp
+    val context = LocalContext.current
+    val productViewModel = remember { ProductViewModel(ProductRepoImpl()) }
+    val allProducts by productViewModel.allProducts.collectAsState()
+    
+    var showUnlistDialog by remember { mutableStateOf<ProductModel?>(null) }
+    var showDeleteDialog by remember { mutableStateOf<ProductModel?>(null) }
+    
+    LaunchedEffect(Unit) {
+        productViewModel.getAllProduct()
+    }
+    
+    // Filter only listed items (isListed = true)
+    val listedProducts = allProducts?.filter { it.isListed } ?: emptyList()
+    
+    if (listedProducts.isEmpty()) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = "No listed items yet",
+                color = Color.Gray,
+                fontSize = 16.sp
+            )
+        }
+    } else {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            items(
+                items = listedProducts,
+                key = { it.productId }
+            ) { product ->
+                ItemCardItem(
+                    product = product,
+                    onListClick = { },
+                    onUnlistClick = { showUnlistDialog = product },
+                    onDeleteClick = { showDeleteDialog = product }
+                )
+            }
+        }
+    }
+    
+    // Unlist Dialog
+    showUnlistDialog?.let { product ->
+        AlertDialog(
+            onDismissRequest = { showUnlistDialog = null },
+            title = { Text("Unlist Item") },
+            text = { 
+                Text("Are you sure you want to unlist ${product.name}?") 
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        productViewModel.listProduct(product.productId, false) { success, message ->
+                            if (success) {
+                                Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+                                showUnlistDialog = null
+                            } else {
+                                Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+                                showUnlistDialog = null
+                            }
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
+                ) {
+                    Text("Unlist", color = Color.White)
+                }
+            },
+            dismissButton = {
+                Button(
+                    onClick = { showUnlistDialog = null },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.Gray)
+                ) {
+                    Text("Cancel", color = Color.White)
+                }
+            }
+        )
+    }
+    
+    // Delete Dialog
+    showDeleteDialog?.let { product ->
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = null },
+            title = { Text("Delete Item") },
+            text = { 
+                Text("Are you sure you want to delete ${product.name}?") 
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        productViewModel.deleteProduct(product.productId) { success, message ->
+                            if (success) {
+                                Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+                                productViewModel.getAllProduct()
+                            } else {
+                                Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+                            }
+                            showDeleteDialog = null
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
+                ) {
+                    Text("Delete", color = Color.White)
+                }
+            },
+            dismissButton = {
+                Button(
+                    onClick = { showDeleteDialog = null },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.Gray)
+                ) {
+                    Text("Cancel", color = Color.White)
+                }
+            }
         )
     }
 }
 
 @Composable
 fun UnlistedItemsContent() {
-    // TODO: Fetch unlisted items from database here
-    // Example: val items = viewModel.getUnlistedItems()
-    // For now, showing empty state
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            text = "No unlisted items yet",
-            color = Color.Gray,
-            fontSize = 16.sp
+    val context = LocalContext.current
+    val productViewModel = remember { ProductViewModel(ProductRepoImpl()) }
+    val allProducts by productViewModel.allProducts.collectAsState()
+    
+    var showListDialog by remember { mutableStateOf<ProductModel?>(null) }
+    var showDeleteDialog by remember { mutableStateOf<ProductModel?>(null) }
+    
+    LaunchedEffect(Unit) {
+        productViewModel.getAllProduct()
+    }
+    
+    // Filter only unlisted items (isListed = false)
+    val unlistedProducts = allProducts?.filter { !it.isListed } ?: emptyList()
+    
+    if (unlistedProducts.isEmpty()) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = "No unlisted items yet",
+                color = Color.Gray,
+                fontSize = 16.sp
+            )
+        }
+    } else {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            items(
+                items = unlistedProducts,
+                key = { it.productId }
+            ) { product ->
+                ItemCardItem(
+                    product = product,
+                    onListClick = { showListDialog = product },
+                    onUnlistClick = { },
+                    onDeleteClick = { showDeleteDialog = product }
+                )
+            }
+        }
+    }
+    
+    // List Dialog
+    showListDialog?.let { product ->
+        AlertDialog(
+            onDismissRequest = { showListDialog = null },
+            title = { Text("List Item") },
+            text = { 
+                Text("Are you sure you want to list ${product.name}?") 
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        productViewModel.listProduct(product.productId, true) { success, message ->
+                            if (success) {
+                                Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+                                showListDialog = null
+                            } else {
+                                Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+                                showListDialog = null
+                            }
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = DarkGreen)
+                ) {
+                    Text("List", color = Color.White)
+                }
+            },
+            dismissButton = {
+                Button(
+                    onClick = { showListDialog = null },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.Gray)
+                ) {
+                    Text("Cancel", color = Color.White)
+                }
+            }
         )
+    }
+    
+    // Delete Dialog
+    showDeleteDialog?.let { product ->
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = null },
+            title = { Text("Delete Item") },
+            text = { 
+                Text("Are you sure you want to delete ${product.name}?") 
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        productViewModel.deleteProduct(product.productId) { success, message ->
+                            if (success) {
+                                Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+                                productViewModel.getAllProduct()
+                            } else {
+                                Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+                            }
+                            showDeleteDialog = null
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
+                ) {
+                    Text("Delete", color = Color.White)
+                }
+            },
+            dismissButton = {
+                Button(
+                    onClick = { showDeleteDialog = null },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.Gray)
+                ) {
+                    Text("Cancel", color = Color.White)
+                }
+            }
+        )
+    }
+}
+
+@Composable
+fun ItemCardItem(
+    product: ProductModel,
+    onListClick: () -> Unit,
+    onUnlistClick: () -> Unit,
+    onDeleteClick: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 4.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = if (!product.isListed) Color(0xFFFFEBEE) else Color.White
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(
+                    text = product.name,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Black
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "Price: $${product.price}",
+                    fontSize = 14.sp,
+                    color = Color.Gray
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "Type: ${product.type}",
+                    fontSize = 14.sp,
+                    color = Color.Gray
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "Location: ${product.location}",
+                    fontSize = 14.sp,
+                    color = Color.Gray
+                )
+                if (!product.isListed) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "UNLISTED",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.Red
+                    )
+                }
+            }
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                if (product.isListed) {
+                    // Show Unlist button when listed
+                    Button(
+                        onClick = onUnlistClick,
+                        colors = ButtonDefaults.buttonColors(containerColor = Color.Red),
+                        modifier = Modifier.height(36.dp)
+                    ) {
+                        Text(
+                            text = "Unlist",
+                            fontSize = 12.sp,
+                            color = Color.White
+                        )
+                    }
+                } else {
+                    // Show List button (green) when unlisted
+                    Button(
+                        onClick = onListClick,
+                        colors = ButtonDefaults.buttonColors(containerColor = DarkGreen),
+                        modifier = Modifier.height(36.dp)
+                    ) {
+                        Text(
+                            text = "List",
+                            fontSize = 12.sp,
+                            color = Color.White
+                        )
+                    }
+                }
+                // Always show Delete button
+                Button(
+                    onClick = onDeleteClick,
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.Red),
+                    modifier = Modifier.height(36.dp)
+                ) {
+                    Text(
+                        text = "Delete",
+                        fontSize = 12.sp,
+                        color = Color.White
+                    )
+                }
+            }
+        }
     }
 }

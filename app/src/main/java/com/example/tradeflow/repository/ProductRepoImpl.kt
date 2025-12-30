@@ -63,6 +63,14 @@ class ProductRepoImpl: ProductRepo {
                     for(data in snapshot.children){
                         var product = data.getValue(ProductModel::class.java)
                         if(product != null){
+                            // Read isListed value from Firebase, default to true only if field doesn't exist
+                            if (data.hasChild("isListed")) {
+                                val isListedValue = data.child("isListed").getValue(Boolean::class.java)
+                                product.isListed = isListedValue ?: true
+                            } else {
+                                // Field doesn't exist in database, default to true
+                                product.isListed = true
+                            }
                             allProducts.add(product)
                         }
                     }
@@ -172,5 +180,20 @@ class ProductRepoImpl: ProductRepo {
                 callback(false,error.message,null)
             }
         })
+    }
+
+    override fun listProduct(
+        productId: String,
+        isListed: Boolean,
+        callback: (Boolean, String) -> Unit
+    ) {
+        ref.child(productId).child("isListed").setValue(isListed).addOnCompleteListener {
+            if(it.isSuccessful){
+                val message = if(isListed) "Product listed successfully" else "Product unlisted successfully"
+                callback(true, message)
+            }else{
+                callback(false, "${it.exception?.message}")
+            }
+        }
     }
 }

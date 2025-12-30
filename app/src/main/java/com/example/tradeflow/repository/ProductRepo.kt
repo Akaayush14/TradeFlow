@@ -34,4 +34,9 @@ interface ProductRepo {
         type: String,
         callback:(Boolean,String,List<ProductModel>?)->Unit
     )
+    fun listProduct(
+        productId: String,
+        isListed: Boolean,
+        callback: (Boolean, String) -> Unit
+    )
 }
