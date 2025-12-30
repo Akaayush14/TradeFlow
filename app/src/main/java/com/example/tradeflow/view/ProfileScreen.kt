@@ -629,10 +629,9 @@ fun ProductItemCard(product: ProductModel, onClick: () -> Unit) {
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     // Location Icon from drawable
-                    Icon(
-                        painter = painterResource(R.drawable.location_icon), // You'll need to add this drawable
+                    Image(
+                        painter = painterResource(R.drawable.location_on), // You'll need to add this drawable
                         contentDescription = "Location",
-                        tint = Color.Gray,
                         modifier = Modifier.size(16.dp)
                     )
                     Spacer(modifier = Modifier.width(4.dp))
@@ -643,6 +642,16 @@ fun ProductItemCard(product: ProductModel, onClick: () -> Unit) {
                         maxLines = 1
                     )
                 }
+                
+                Spacer(modifier = Modifier.height(4.dp))
+                
+                // Gray divider line below location
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(1.dp)
+                        .background(Color.LightGray)
+                )
                 
                 Spacer(modifier = Modifier.height(12.dp))
                 
@@ -657,7 +666,7 @@ fun ProductItemCard(product: ProductModel, onClick: () -> Unit) {
                             .weight(1f)
                             .height(32.dp),
                         colors = CardDefaults.cardColors(
-                            containerColor = Color(0xFFF5F5F5)
+                            containerColor = Color(0xFFE0E0E0)
                         ),
                         shape = RoundedCornerShape(8.dp),
                         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
@@ -691,7 +700,7 @@ fun ProductItemCard(product: ProductModel, onClick: () -> Unit) {
                             .weight(1f)
                             .height(32.dp),
                         colors = CardDefaults.cardColors(
-                            containerColor = Color(0xFFF5F5F5) // Light grey
+                            containerColor = Color(0xFFE0E0E0) // Light grey
                         ),
                         shape = RoundedCornerShape(8.dp),
                         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
