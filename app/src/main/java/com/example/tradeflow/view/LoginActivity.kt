@@ -1,5 +1,6 @@
-package com.example.tradeflow
+package com.example.tradeflow.view
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -38,10 +39,12 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.tradeflow.ui.theme.Green
+import androidx.compose.ui.platform.LocalContext
+import com.example.classwork.viewmodel.UserViewModel
+import com.example.tradeflow.R
+import com.example.tradeflow.RegisterActivity
+import com.example.tradeflow.repository.UserRepoImpl
 import com.example.tradeflow.ui.theme.Greenish
-import com.example.tradeflow.ui.theme.TealBlue
-
 
 class LoginActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -63,6 +66,37 @@ fun LoginScreen() {
     val BlueButton = Color(0xFF006CFF)
     val Teal = Color(0xFF00897B)
 
+    var isLoading by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf("") }
+
+    //For navigating a var is declared
+    val context = LocalContext.current
+    val userViewModel = remember { UserViewModel(UserRepoImpl()) }
+
+    fun handleLogin() {
+        if (email.isBlank() || password.isBlank()) {
+            errorMessage = "Please enter email and password"
+            return
+        }
+
+        isLoading = true
+        errorMessage = ""
+
+        userViewModel.login(email.trim(), password) { success, message ->
+            isLoading = false
+            if (success) {
+                // Navigate to DashboardPage on successful login
+                val intent = Intent(context, DashboardPage::class.java)
+                intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                context.startActivity(intent)
+                // Finish LoginActivity so user can't go back
+                (context as? android.app.Activity)?.finish()
+            } else {
+                errorMessage = message
+            }
+        }
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -74,10 +108,7 @@ fun LoginScreen() {
             modifier = Modifier
                 .fillMaxWidth()
                 .height(280.dp)
-                .background(
-                    Greenish
-
-                ),
+                .background(Greenish),
             contentAlignment = Alignment.Center
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -96,7 +127,7 @@ fun LoginScreen() {
         Column(
             modifier = Modifier
                 .padding(horizontal = 25.dp)
-        ) {
+        )  {
 
             Text(
                 text = "Welcome!",
@@ -148,16 +179,31 @@ fun LoginScreen() {
             Text(
                 text = "Forgot password?",
                 color = BlueButton,
-                modifier = Modifier.clickable() { /* Navigate to Forgot screen */ },
+                modifier = Modifier.clickable{
+                    context.startActivity(
+                        Intent(context, ForgetPasswordActivity::class.java)
+                    )},
                 fontSize = 14.sp,
                 fontWeight = FontWeight.SemiBold
             )
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // ERROR MESSAGE
+            if (errorMessage.isNotEmpty()) {
+                Text(
+                    text = errorMessage,
+                    color = Color.Red,
+                    fontSize = 14.sp,
+                    modifier = Modifier.padding(vertical = 8.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
 
             // LOGIN BUTTON
             Button(
-                onClick = { /* Handle Login */ },
+                onClick = { handleLogin() },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(55.dp),
@@ -179,7 +225,10 @@ fun LoginScreen() {
                     text = "Register now",
                     color = BlueButton,
                     fontWeight = FontWeight.Bold,
-                    modifier = Modifier.clickable { /* Navigate register */ }
+                    modifier = Modifier.clickable{
+                        context.startActivity(
+                            Intent(context, RegisterActivity::class.java)
+                        )},
                 )
             }
 

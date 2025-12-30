@@ -1,4 +1,4 @@
-package com.example.tradeflow.ui.theme
+package com.example.tradeflow.view.ui.theme
 
 import android.app.Activity
 import android.os.Build
@@ -10,12 +10,6 @@ import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
-import com.example.tradeflow.ui.theme.Pink40
-import com.example.tradeflow.ui.theme.Pink80
-import com.example.tradeflow.ui.theme.Purple40
-import com.example.tradeflow.ui.theme.Purple80
-import com.example.tradeflow.ui.theme.PurpleGrey40
-import com.example.tradeflow.ui.theme.PurpleGrey80
 
 private val DarkColorScheme = darkColorScheme(
     primary = Purple80,

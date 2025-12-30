@@ -1,4 +1,4 @@
-package com.example.tradeflow
+package com.example.tradeflow.view
 
 import android.content.Intent
 import android.os.Bundle
@@ -32,6 +32,8 @@ import androidx.compose.ui.graphics.Outline
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
+import com.example.tradeflow.view.AboutUsScreen
+import com.example.tradeflow.R
 
 class SettingScreenActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {

@@ -1,4 +1,4 @@
-package com.example.tradeflow
+package com.example.tradeflow.view
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
