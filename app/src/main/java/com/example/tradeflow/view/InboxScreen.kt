@@ -28,6 +28,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -124,7 +125,7 @@ fun InboxScreen(onBackClick: () -> Unit = {}) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun InboxTopAppBar(onBackClick: () -> Unit = {}) {
-    // Use CenterAlignedTopAppBar for a centered title
+    // Use TopAppBar for a left-aligned title
     CenterAlignedTopAppBar(
         title = {
             Text(
@@ -143,7 +144,7 @@ fun InboxTopAppBar(onBackClick: () -> Unit = {}) {
             }
         },
         // Use the appropriate TopAppBarDefaults colors function
-        colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+        colors = TopAppBarDefaults.topAppBarColors(
             containerColor = Greenish,
             titleContentColor = White,
             navigationIconContentColor = White

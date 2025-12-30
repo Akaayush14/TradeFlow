@@ -59,6 +59,7 @@ import androidx.compose.material.icons.filled.Star
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.foundation.Image
+import androidx.compose.material3.TopAppBar
 import androidx.compose.ui.text.font.FontWeight
 import com.example.tradeflow.R
 

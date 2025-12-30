@@ -158,7 +158,7 @@ fun ProfileScreen(onBackClick: () -> Unit = {}, onEditProduct: (ProductModel) ->
                         )
                     }
                 },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = Greenish,
                     titleContentColor = White,
                     navigationIconContentColor = White

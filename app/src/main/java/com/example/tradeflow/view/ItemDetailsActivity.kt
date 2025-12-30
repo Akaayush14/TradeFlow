@@ -84,11 +84,11 @@ fun ItemDetailsScreen() {
 
     Scaffold(
         topBar = {
-            TopAppBar(
+            CenterAlignedTopAppBar(
                 title = { Text("Item Details", color = White) },
                 navigationIcon = {
                     IconButton(onClick = { activity?.finish() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = White)
+                        Icon(painterResource(id = R.drawable.outline_arrow_back_ios_new_24), contentDescription = "Back", tint = White)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(

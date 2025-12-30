@@ -183,7 +183,7 @@ fun AddItemScreen(
 
     Scaffold(
         topBar = {
-            CenterAlignedTopAppBar(
+            TopAppBar(
                 title = {
                     Text(
                         text = if (mode == AddItemMode.ADD) "Add New Item" else "Edit Item",
@@ -200,8 +200,10 @@ fun AddItemScreen(
                         )
                     }
                 },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = Greenish
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Greenish,
+                    titleContentColor = White,
+                    navigationIconContentColor = White
                 )
             )
         },
