@@ -79,6 +79,8 @@ fun ProfileScreen(onBackClick: () -> Unit = {}) {
             Log.d("ProfileScreen", "Fetching user data for userId: $userId")
             userViewModel.getUserById(userId)
             productViewModel.getProductsByOwner(userId)
+        } else {
+            Log.d("ProfileScreen", "userId is empty: $userId")
         }
     }
 
@@ -86,6 +88,7 @@ fun ProfileScreen(onBackClick: () -> Unit = {}) {
     LaunchedEffect(userData) {
         Log.d("ProfileScreen", "User data updated: $userData")
         Log.d("ProfileScreen", "User name: ${userData?.name}")
+        Log.d("ProfileScreen", "User email: ${userData?.email}")
     }
 
     // Memoized filtering logic
@@ -108,6 +111,11 @@ fun ProfileScreen(onBackClick: () -> Unit = {}) {
     val userName = userData?.name ?: currentUser?.displayName ?: "User"
     val userEmail = userData?.email ?: currentUser?.email ?: ""
     val userDisplayEmail = userEmail  // Display full email instead of @username
+
+    // Debug logging
+    Log.d("ProfileScreen", "Final userName: $userName")
+    Log.d("ProfileScreen", "userData?.name: ${userData?.name}")
+    Log.d("ProfileScreen", "currentUser?.displayName: ${currentUser?.displayName}")
 
     // Show loading state while user data is being fetched
     val isLoading = userData == null
@@ -316,7 +324,7 @@ fun ProfileHeaderSection(
                 verticalArrangement = Arrangement.Center
             ) {
                 Text(
-                    text = if (isLoading) "Loading..." else userName,
+                    text = userName,
                     fontWeight = FontWeight.Bold,
                     fontSize = 20.sp,  // Slightly smaller for left layout
                     color = Color.Black
@@ -610,6 +618,29 @@ fun ProductItemCard(product: ProductModel, onClick: () -> Unit) {
                         fontWeight = FontWeight.Bold,
                         fontSize = 16.sp,
                         color = Color.Black
+                    )
+                }
+                
+                Spacer(modifier = Modifier.height(4.dp))
+                
+                // Location Display
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    // Location Icon from drawable
+                    Icon(
+                        painter = painterResource(R.drawable.location_icon), // You'll need to add this drawable
+                        contentDescription = "Location",
+                        tint = Color.Gray,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = product.location,
+                        fontSize = 12.sp,
+                        color = Color.Gray,
+                        maxLines = 1
                     )
                 }
                 
