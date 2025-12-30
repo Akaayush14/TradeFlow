@@ -96,9 +96,9 @@ fun ProfileScreen(onBackClick: () -> Unit = {}, onEditProduct: (ProductModel) ->
     // Memoized filtering logic
     val filteredListings = remember(selectedTab, selectedStatus, allProducts) {
         val typeFiltered = when (selectedTab) {
-            ListingType.BARTER -> allProducts.orEmpty().filter { it.type == "Barter" }
-            ListingType.RENTAL -> allProducts.orEmpty().filter { it.type == "Rent" }
-            ListingType.BOTH -> allProducts.orEmpty()
+            ListingType.BARTER -> allProducts.orEmpty().filter { it.type == "Barter" && it.isDeleted != true }
+            ListingType.RENTAL -> allProducts.orEmpty().filter { it.type == "Rent" && it.isDeleted != true }
+            ListingType.BOTH -> allProducts.orEmpty().filter { it.isDeleted != true }
         }
 
         when (selectedStatus) {
@@ -267,7 +267,15 @@ fun ProfileScreen(onBackClick: () -> Unit = {}, onEditProduct: (ProductModel) ->
                         onClick = { },
                         onEdit = { onEditProduct(it) },
                         isOwner = isOwner,
-                        onDeleteRequest = { /* will implement backend later */ }
+                        onDeleteRequest = { toDelete ->
+                            if (toDelete.status != "Available") return@ProductItemCard
+                            val updated = toDelete.copy(isDeleted = true)
+                            productViewModel.updateProduct(updated) { success, _ ->
+                                if (success) {
+                                    // Snackbar handled by parent if needed; list refresh comes from Firebase listener
+                                }
+                            }
+                        }
                     )
                 }
             }

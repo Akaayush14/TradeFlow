@@ -11,7 +11,8 @@ data class ProductModel(
     var type: String = "", // "Barter", "Rent", or "Both"
     var status: String = "Available", // "Available", "Pending", "Completed"
     var ownerId: String = "", // User ID who created this product
-    var createdAt: Long = System.currentTimeMillis()
+    var createdAt: Long = System.currentTimeMillis(),
+    var isDeleted: Boolean = false
 ){
     fun toMap(): Map<String, Any?>{
         return mapOf(
@@ -25,7 +26,8 @@ data class ProductModel(
             "type" to type,
             "status" to status,
             "ownerId" to ownerId,
-            "createdAt" to createdAt
+            "createdAt" to createdAt,
+            "isDeleted" to isDeleted
         )
     }
 }
