@@ -19,6 +19,8 @@ import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -56,7 +58,7 @@ data class ListingItem(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ProfileScreen(onBackClick: () -> Unit = {}) {
+fun ProfileScreen(onBackClick: () -> Unit = {}, onEditProduct: (ProductModel) -> Unit = {}, showEditSuccess: Boolean = false, onSnackbarShown: () -> Unit = {}) {
     val userViewModel: UserViewModel = remember { UserViewModel(UserRepoImpl()) }
     val productViewModel: ProductViewModel = remember { ProductViewModel(ProductRepoImpl()) }
 
@@ -119,6 +121,13 @@ fun ProfileScreen(onBackClick: () -> Unit = {}) {
 
     // Show loading state while user data is being fetched
     val isLoading = userData == null
+    val snackbarHostState = remember { SnackbarHostState() }
+    LaunchedEffect(showEditSuccess) {
+        if (showEditSuccess) {
+            snackbarHostState.showSnackbar("Item updated successfully")
+            onSnackbarShown()
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -146,6 +155,7 @@ fun ProfileScreen(onBackClick: () -> Unit = {}) {
                 )
             )
         },
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         containerColor = White
     ) { innerPadding ->
         // Single scrollable column so header + listings scroll together
@@ -251,7 +261,7 @@ fun ProfileScreen(onBackClick: () -> Unit = {}) {
                 }
             } else {
                 items(data) { product ->
-                    ProductItemCard(product = product, onClick = { /* Handle item click */ })
+                    ProductItemCard(product = product, onClick = { }, onEdit = { onEditProduct(it) })
                 }
             }
         }
@@ -508,7 +518,7 @@ fun ListingItemCard(item: ListingItem, onClick: () -> Unit) {
 }
 
 @Composable
-fun ProductItemCard(product: ProductModel, onClick: () -> Unit) {
+fun ProductItemCard(product: ProductModel, onClick: () -> Unit, onEdit: (ProductModel) -> Unit) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -674,7 +684,7 @@ fun ProductItemCard(product: ProductModel, onClick: () -> Unit) {
                         Row(
                             modifier = Modifier
                                 .fillMaxSize()
-                                .clickable { /* TODO: Navigate to edit screen */ },
+                                .clickable { onEdit(product) },
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.Center
                         ) {

@@ -27,6 +27,7 @@ import com.example.tradeflow.R
 import com.example.tradeflow.ui.theme.Greenish
 import com.example.tradeflow.ui.theme.Transparent
 import com.example.tradeflow.ui.theme.White
+import com.example.tradeflow.model.ProductModel
 
 class DashboardPage : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -47,6 +48,9 @@ fun DashboardPageBody() {
     data class NavItem(val label: String, val iconOutlined: Int, val iconFilled: Int)
 
     var selectedIndex by remember { mutableStateOf(0) }
+    var addItemMode by remember { mutableStateOf(AddItemMode.ADD) }
+    var editingProduct by remember { mutableStateOf<ProductModel?>(null) }
+    var showEditSuccess by remember { mutableStateOf(false) }
 
     val listItem = listOf(
         NavItem(label = "Explore", R.drawable.explore, R.drawable.explore_filled),
@@ -94,9 +98,32 @@ fun DashboardPageBody() {
             when (selectedIndex) {
                 0 -> ExploreScreen()
                 1 -> InboxScreen(onBackClick = { selectedIndex = 0 })
-                2 -> AddItemScreen(onBackClick = { selectedIndex = 0 })
+                2 -> AddItemScreen(
+                    mode = addItemMode,
+                    initialProduct = editingProduct,
+                    onBackClick = {
+                        selectedIndex = if (addItemMode == AddItemMode.EDIT) 4 else 0
+                        addItemMode = AddItemMode.ADD
+                        editingProduct = null
+                    },
+                    onSaved = {
+                        selectedIndex = 4
+                        addItemMode = AddItemMode.ADD
+                        editingProduct = null
+                        showEditSuccess = true
+                    }
+                )
                 3 -> NotificationScreen(onBackClick = { selectedIndex = 0 })
-                4 -> ProfileScreen(onBackClick = { selectedIndex = 0 })
+                4 -> ProfileScreen(
+                    onBackClick = { selectedIndex = 0 },
+                    onEditProduct = { product ->
+                        addItemMode = AddItemMode.EDIT
+                        editingProduct = product
+                        selectedIndex = 2
+                    },
+                    showEditSuccess = showEditSuccess,
+                    onSnackbarShown = { showEditSuccess = false }
+                )
                 else -> ExploreScreen()
             }
         }
