@@ -1,33 +1,39 @@
- package com.example.tradeflow
 
+package com.example.tradeflow
 import android.os.Bundle
+import android.util.Size
 import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.compose.setContent
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.*
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import androidx.compose.ui.unit.*
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
-import com.example.tradeflow.ui.theme.Green
-import com.example.tradeflow.view.AboutUsScreen
+import com.example.tradeflow.view.CurvedBottomShape
+import kotlinx.coroutines.launch
 
- class AboutUsActivity : ComponentActivity() {
+class AboutUsActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -38,118 +44,205 @@ import com.example.tradeflow.view.AboutUsScreen
     }
 }
 
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AboutUsScreen(navController: NavController) {
+
+    val listState = rememberLazyListState()
+    val coroutineScope = rememberCoroutineScope()
+
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text("About Us") },
+                title = { Text("About Us", color = Color.White) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(
-                            imageVector = Icons.Default.ArrowBack,
-                            contentDescription = "Back"
+                        Icon(Icons.Default.ArrowBack, null, tint = Color.White)
+                    }
+                },
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                    containerColor = Color(0xFF009688)
+                )
+            )
+        },
+        floatingActionButton = {
+            if (listState.firstVisibleItemIndex > 0) {
+                FloatingActionButton(
+                    containerColor = Color(0xFF007D70),
+                    onClick = {
+                        coroutineScope.launch {
+                            listState.animateScrollToItem(0)
+                        }
+                    }
+                ) {
+                    Icon(
+                        Icons.Default.KeyboardArrowUp,
+                        contentDescription = "Scroll to Top",
+                        tint = Color.White
+                    )
+                }
+            }
+        }
+    ) { padding ->
+
+        LazyColumn(
+            state = listState,
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        listOf(Color(0xFFF5F8F8), Color(0xFFFCFDFD))
+                    )
+                )
+                .padding(padding),
+            contentPadding = PaddingValues(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            item {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(240.dp)
+                        .clip(CurvedBottomShape())
+                        .background(
+                            Brush.verticalGradient(
+                                listOf(
+                                    Color(0xFF005F56),
+                                    Color(0xFF007D70),
+                                    Color(0xFF4DB6AC)
+                                )
+                            )
+                        )
+                ) {
+
+                    Box(
+                        modifier = Modifier
+                            .size(160.dp)
+                            .offset((-40).dp, (-30).dp)
+                            .clip(CircleShape)
+                            .background(Color.White.copy(alpha = 0.12f))
+                    )
+
+                    Box(
+                        modifier = Modifier
+                            .size(120.dp)
+                            .offset(260.dp, 20.dp)
+                            .clip(CircleShape)
+                            .background(Color.White.copy(alpha = 0.10f))
+                    )
+
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Image(
+                            painter = painterResource(id = R.drawable.house_rent_logo),
+                            contentDescription = "Logo",
+                            modifier = Modifier
+                                .size(140.dp)
+                                .clip(CircleShape)
+                                .background(Color.White)
+                                .padding(16.dp)
                         )
                     }
                 }
-            )
-        }
-    ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
+            }
 
-            Box(
-                modifier = Modifier
-                    .size(120.dp)
-                    .clip(CircleShape)
-                    .background(Color(0xFF007D70)),
-                contentAlignment = Alignment.Center
-            ) {
-                Image(
-                    painter = painterResource(id = R.drawable.house_rent_logo),
-                    contentDescription = "App Logo",
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(12.dp)
+            item {
+                Text(
+                    "Trade Smarter, Live Better",
+                    color = Color.Gray,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
                 )
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            item { SectionTitle("About Us") }
 
-            Text(
-                text = "TradeFlow",
-                color = Green,
-                fontSize = 28.sp,
-                fontWeight = FontWeight.ExtraBold
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Text(
-                text = "Connecting Sellers & Buyers for Pre-loved Items",
-                fontSize = 16.sp,
-                color = Color.Gray,
-                textAlign = TextAlign.Center
-            )
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            Text(
-                text = "TradeFlow is a modern marketplace where users can buy and sell pre-owned items securely. Whether it's a camera, gadget, or collectible, our app ensures a smooth and trustworthy transaction between sellers and buyers.",
-                fontSize = 16.sp,
-                textAlign = TextAlign.Center,
-                color = Color.DarkGray
-            )
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            Column(
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                FeatureItem(
-                    "Secure Transactions",
-                    "Buy and sell with peace of mind using our secure payment system."
+            item {
+                Text(
+                    text = "Welcome to TradeFlow! We are revolutionizing the way people exchange goods and services using a powerful credit-based system.",
+                    fontSize = 15.sp,
+                    color = Color.DarkGray,
+                    lineHeight = 22.sp,
+                    textAlign = TextAlign.Justify
                 )
-                FeatureItem(
-                    "Wide Selection",
-                    "Explore a variety of used items from cameras to electronics."
+            }
+
+            item { SectionTitle("What We Offer") }
+
+            items(
+                listOf(
+                    "🔁 Easy Trading" to "Trade items effortlessly",
+                    "🏠 Flexible Rentals" to "Rent when you need",
+                    "💎 Credit System" to "Fair & simple currency",
+                    "🔒 Secure" to "Safe transactions"
                 )
-                FeatureItem(
-                    "Community Trust",
-                    "Ratings and reviews help maintain a trustworthy marketplace."
+            ) { FeatureCard(it.first, it.second) }
+
+            item { SectionTitle("Our Vision") }
+
+            item {
+                Text(
+                    "A world where resources are shared efficiently and sustainably.",
+                    fontSize = 15.sp,
+                    color = Color.DarkGray
+                )
+            }
+
+            item {
+                Button(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF6C63FF)),
+                    onClick = {}
+                ) {
+                    Text("View Privacy Policy")
+                }
+            }
+
+            item {
+                Text(
+                    "© 2024 TradeFlow. All rights reserved.",
+                    fontSize = 12.sp,
+                    color = Color.Gray,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
                 )
             }
         }
     }
 }
 
+/* -------- COMPONENTS -------- */
 @Composable
-fun FeatureItem(title: String, description: String) {
-    Column(modifier = Modifier.padding(vertical = 8.dp)) {
-        Text(
-            text = title,
-            fontWeight = FontWeight.Bold,
-            fontSize = 18.sp,
-            color = Color(0xFF00897B)
-        )
-        Spacer(modifier = Modifier.height(4.dp))
-        Text(
-            text = description,
-            fontSize = 14.sp,
-            color = Color.Gray
-        )
+fun SectionTitle(title: String) {
+    Text(
+        text = title,
+        fontSize = 24.sp,
+        fontWeight = FontWeight.Bold,
+        color = Color(0xFF6C63FF)
+    )
+}
+
+@Composable
+fun FeatureCard(title: String, description: String) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF6C63FF)),
+        elevation = CardDefaults.cardElevation(6.dp)
+    ) {
+        Column(Modifier.padding(16.dp)) {
+            Text(title, fontWeight = FontWeight.Bold, color = Color.White)
+            Spacer(Modifier.height(8.dp))
+            Text(description, color = Color.White.copy(alpha = 0.9f))
+        }
     }
 }
 
 @Preview(showBackground = true)
 @Composable
 fun PreviewAboutUs() {
-    val navController = rememberNavController()
-    AboutUsScreen(navController)
+    AboutUsScreen(rememberNavController())
 }

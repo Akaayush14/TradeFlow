@@ -130,7 +130,7 @@ fun AboutUsScreen(onBackClick: () -> Unit = {}) {
             Spacer(modifier = Modifier.height(32.dp))
 
             // About Us Section
-            SectionTitle(text = "About Us")
+            SectionTitle1(text = "About Us")
 
             ParagraphText(
                 text = "Welcome to TradeFlow! We are revolutionizing the way people exchange goods and services by creating a seamless platform where users can trade and rent items using our unique credit system."
@@ -146,7 +146,7 @@ fun AboutUsScreen(onBackClick: () -> Unit = {}) {
             )
 
             // What We Offer Section
-            SectionTitle(text = "What We Offer")
+            SectionTitle1(text = "What We Offer")
 
             FeatureCard(
                 emoji = "🔄",
@@ -174,7 +174,7 @@ fun AboutUsScreen(onBackClick: () -> Unit = {}) {
             )
 
             // Our Vision Section
-            SectionTitle(text = "Our Vision")
+            SectionTitle1(text = "Our Vision")
 
             ParagraphText(
                 text = "We envision a world where resources are shared efficiently, reducing waste and building stronger communities. TradeFlow isn't just an app—it's a movement towards conscious consumption and collaborative living.",
@@ -194,7 +194,7 @@ fun AboutUsScreen(onBackClick: () -> Unit = {}) {
 }
 
 @Composable
-fun SectionTitle(text: String) {
+fun SectionTitle1(text: String) {
     Text(
         text = text,
         fontSize = 24.sp,
@@ -272,3 +272,4 @@ fun FeatureCard(
         }
     }
 }
+

@@ -81,17 +81,7 @@
         </activity>
 
         <activity
-            android:name=".view.ChatSystemActivity"
-            android:exported="true"
-            android:theme="@style/Theme.TradeFlow">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity>
-        <activity
-            android:name=".view.NotificationsActivity"
+            android:name=".ChatSystemActivity"
             android:exported="true"
             android:theme="@style/Theme.TradeFlow">
             <intent-filter>
@@ -104,6 +94,7 @@
         <activity
             android:name=".view.SettingScreenActivity"
             android:exported="true"
+            android:label="@string/title_activity_splash"
             android:theme="@style/Theme.TradeFlow">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -111,6 +102,18 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <activity
+            android:name=".view.NotificationsActivity"
+            android:exported="true"
+            android:theme="@style/Theme.TradeFlow">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
         <activity
             android:name=".view.EditProfileActivity"
             android:exported="true"
