@@ -36,8 +36,9 @@
             </intent-filter>
         </activity>
 
+
         <activity
-            android:name=".view.ProfileScreen"
+            android:name=".view.ItemDetailsActivity"
             android:exported="true"
             android:theme="@style/Theme.TradeFlow">
             <intent-filter>
@@ -196,6 +197,7 @@
             android:name=".view.AdminDashItem"
             android:exported="false"
             android:theme="@style/Theme.TradeFlow" />
+
     </application>
 
 </manifest>

@@ -1,6 +1,7 @@
 
 package com.example.tradeflow.view
 
+import android.app.Activity
 import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -28,6 +29,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -49,6 +51,9 @@ import kotlinx.coroutines.launch
 enum class ListingType { BARTER, RENTAL, BOTH }
 enum class ListingStatus { ALL, AVAILABLE, PENDING, COMPLETED }
 
+
+
+
 data class ListingItem(
     val id: Int,
     val name: String,
@@ -63,6 +68,7 @@ data class ListingItem(
 fun ProfileScreen(onBackClick: () -> Unit = {}, onEditProduct: (ProductModel) -> Unit = {}, showEditSuccess: Boolean = false, onSnackbarShown: () -> Unit = {}) {
     val userViewModel: UserViewModel = remember { UserViewModel(UserRepoImpl()) }
     val productViewModel: ProductViewModel = remember { ProductViewModel(ProductRepoImpl()) }
+    val context = LocalContext.current
 
     val currentUser = FirebaseAuth.getInstance().currentUser
     val userId = currentUser?.uid ?: ""
@@ -267,7 +273,10 @@ fun ProfileScreen(onBackClick: () -> Unit = {}, onEditProduct: (ProductModel) ->
                     val isOwner = product.ownerId == userId
                     ProductItemCard(
                         product = product,
-                        onClick = { },
+                        onClick = {
+                             val intent = android.content.Intent(context, ItemDetailsActivity::class.java)
+                             context.startActivity(intent)
+                        },
                         onEdit = { onEditProduct(it) },
                         isOwner = isOwner,
                         onDeleteRequest = { toDelete ->

@@ -44,6 +44,18 @@ import com.example.tradeflow.ui.theme.White
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.sp
 
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
+import androidx.compose.foundation.Image
+import com.example.tradeflow.R
+
 // Add this annotation to use experimental Material 3 APIs
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -51,14 +63,17 @@ fun ExploreScreen() {
     val context = LocalContext.current
     val activity = context as Activity
 
-
-
-
     var selectedTab by remember { mutableStateOf("All") }
     var searchQuery by remember { mutableStateOf("") }
 
-
-
+    // Mock Data
+    val mockItems = listOf(
+        "Vintage Camera" to "$120.00",
+        "Mountain Bike" to "$350.00",
+        "Gaming Console" to "$250.00",
+        "Leather Jacket" to "$80.00",
+        "Acoustic Guitar" to "$150.00"
+    )
 
     Scaffold(
         topBar = {
@@ -134,7 +149,7 @@ fun ExploreScreen() {
             )
         }
 
-    ) { paddingValues: PaddingValues ->
+    ) { paddingValues ->
         // The main content uses the padding provided by the Scaffold (for the top bar)
         Column(
             modifier = Modifier
@@ -174,10 +189,68 @@ fun ExploreScreen() {
                 }
             }
 
-            Text(
-                text = "Content for the $selectedTab tab goes here.",
-                modifier = Modifier.padding(16.dp)
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(16.dp)
+            ) {
+                items(mockItems) { (name, price) ->
+                    ExploreItemCard(
+                        name = name,
+                        price = price,
+                        onClick = {
+                            val intent = Intent(context, ItemDetailsActivity::class.java)
+                            context.startActivity(intent)
+                        }
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun ExploreItemCard(name: String, price: String, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(120.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .background(Color.White)
+            .border(1.dp, Color.LightGray, RoundedCornerShape(12.dp))
+            .clickable { onClick() }
+            .padding(8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // Placeholder Image
+        Box(
+            modifier = Modifier
+                .size(100.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .background(Color.LightGray),
+            contentAlignment = Alignment.Center
+        ) {
+             Icon(
+                imageVector = Icons.Default.Search, // Placeholder icon
+                contentDescription = null,
+                tint = Color.Gray
             )
+        }
+
+        Spacer(modifier = Modifier.width(16.dp))
+
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.Center
+        ) {
+            Text(text = name, fontSize = 18.sp, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(text = price, fontSize = 16.sp, color = Greenish, fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold)
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Default.Star, contentDescription = null, tint = Color(0xFFFFD700), modifier = Modifier.size(16.dp))
+                Text(text = "4.5", fontSize = 14.sp, color = Color.Gray)
+            }
         }
     }
 }
