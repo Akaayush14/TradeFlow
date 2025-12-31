@@ -29,6 +29,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.Outline
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
@@ -310,22 +311,20 @@ fun IOSStyleLogoutDialog(onCancel: () -> Unit, onConfirm: () -> Unit) {
                 .fillMaxWidth(),
             colors = CardDefaults.cardColors(containerColor = Color.White)
         ) {
-            Column(
+            Box(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 24.dp, vertical = 16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+                    .size(120.dp)
+                    .background(Color(0xFF009688)), // change color if needed
+                contentAlignment = Alignment.Center
             ) {
-
                 Image(
                     painter = painterResource(R.drawable.house_rent_logo),
                     contentDescription = null,
-                    modifier = Modifier
-                        .size(120.dp)
-                        .padding(top = 8.dp)
+                    modifier = Modifier.size(80.dp),
+                    contentScale = ContentScale.Fit
                 )
-
-                Spacer(modifier = Modifier.height(16.dp))
+            }
+            Spacer(modifier = Modifier.height(16.dp))
 
                 Text(
                     text = "Comeback Soon!",
@@ -344,6 +343,7 @@ fun IOSStyleLogoutDialog(onCancel: () -> Unit, onConfirm: () -> Unit) {
                 )
 
                 Spacer(modifier = Modifier.height(24.dp))
+
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -357,13 +357,11 @@ fun IOSStyleLogoutDialog(onCancel: () -> Unit, onConfirm: () -> Unit) {
                     ) {
                         Text("Cancel", color = Color.Gray, fontWeight = FontWeight.Medium)
                     }
-
                     Spacer(
                         modifier = Modifier
                             .width(1.dp)
                             .background(Color.LightGray)
                     )
-
                     Box(
                         modifier = Modifier
                             .weight(1f)
@@ -376,7 +374,8 @@ fun IOSStyleLogoutDialog(onCancel: () -> Unit, onConfirm: () -> Unit) {
             }
         }
     }
-}
+
+
 
 /* ---------------- LANGUAGE DIALOG ---------------- */
 @Composable
