@@ -318,7 +318,7 @@ fun AdminExp() {
                     onClick = { selectedTab = 0 },
                     text = {
                         Text(
-                            "user",
+                            "User",
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Normal,
                             color = if (selectedTab == 0) Color.Black else Color.Gray
@@ -330,7 +330,7 @@ fun AdminExp() {
                     onClick = { selectedTab = 1 },
                     text = {
                         Text(
-                            "metrics",
+                            "Metrics",
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Normal,
                             color = if (selectedTab == 1) Color.Black else Color.Gray
@@ -342,7 +342,7 @@ fun AdminExp() {
                     onClick = { selectedTab = 2 },
                     text = {
                         Text(
-                            "items",
+                            "Items",
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Normal,
                             color = if (selectedTab == 2) Color.Black else Color.Gray
