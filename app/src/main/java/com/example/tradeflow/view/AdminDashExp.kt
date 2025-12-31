@@ -389,7 +389,7 @@ fun AdminExp() {
             confirmButton = {
                 Button(
                     onClick = {
-                        if (passwordInput == "123") {
+                        if (passwordInput == "1234") {
                             showPasswordDialog = false
                             passwordInput = ""
                             val intent = Intent(context, AdminAdmin::class.java)
