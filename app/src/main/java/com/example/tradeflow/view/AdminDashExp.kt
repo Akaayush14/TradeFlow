@@ -6,6 +6,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,10 +15,12 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -25,6 +28,9 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.NavigationBar
@@ -52,6 +58,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -59,12 +66,15 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.tradeflow.R
+import com.example.tradeflow.model.NotificationModel
 import com.example.tradeflow.model.ProductModel
 import com.example.tradeflow.model.UserModel
+import com.example.tradeflow.repository.NotificationRepoImpl
 import com.example.tradeflow.repository.ProductRepoImpl
 import com.example.tradeflow.repository.UserRepoImpl
 import com.example.tradeflow.ui.theme.DarkGreen
 import com.example.tradeflow.ui.theme.Greenish
+import com.example.tradeflow.viewmodel.NotificationViewModel
 import com.example.tradeflow.viewmodel.ProductViewModel
 import com.example.tradeflow.viewmodel.UserViewModel
 
@@ -87,6 +97,16 @@ fun AdminExp() {
     var searchText by remember { mutableStateOf("") }
     var selectedTab by remember { mutableStateOf(0) } // 0 for items, 1 for user
     var backPressedTime by remember { mutableLongStateOf(0L) }
+    var showPasswordDialog by remember { mutableStateOf(false) }
+    var passwordInput by remember { mutableStateOf("") }
+
+    // Notification view model for unread count
+    val notificationViewModel = remember { NotificationViewModel(NotificationRepoImpl()) }
+    val unreadCount by notificationViewModel.unreadCount.collectAsState()
+
+    LaunchedEffect(Unit) {
+        notificationViewModel.getUnreadCount()
+    }
 
     // Handle back button press
     BackHandler {
@@ -132,7 +152,7 @@ fun AdminExp() {
                         ),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(40.dp),
+                            .height(56.dp),
                         shape = RoundedCornerShape(50.dp)
                     )
                 },
@@ -150,6 +170,15 @@ fun AdminExp() {
                     }
                 }
             )
+        },
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = { showPasswordDialog = true },
+                containerColor = Greenish,
+                contentColor = Color.White
+            ) {
+                Icon(Icons.Filled.Add, "Add Admin")
+            }
         },
         bottomBar = {
             NavigationBar(containerColor = Greenish) {
@@ -202,6 +231,25 @@ fun AdminExp() {
                     },
                     label = { Text("Items", color = Color.White) }
                 )
+                NavigationBarItem(
+                    selected = selectedIndex == 4,
+                    onClick = {
+                        val intent = Intent(context, AdminNotification::class.java)
+                        context.startActivity(intent)
+                        if (context is ComponentActivity) {
+                            context.finish()
+                        }
+                    },
+                    icon = {
+                        BadgedNotificationIconExp(
+                            unreadCount = unreadCount,
+                            iconPainter = painterResource(R.drawable.notification_filled),
+                            contentDescription = "notification"
+                        )
+                    },
+                    label = { Text("notification", color = Color.White) }
+                )
+
 
                 NavigationBarItem(
                     selected = selectedIndex == 2,
@@ -282,12 +330,64 @@ fun AdminExp() {
             }
         }
     }
+
+    if (showPasswordDialog) {
+        AlertDialog(
+            onDismissRequest = { 
+                showPasswordDialog = false 
+                passwordInput = ""
+            },
+            title = { Text("Admin Access") },
+            text = {
+                Column {
+                    Text("Enter password to access Admin controls:")
+                    Spacer(modifier = Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = passwordInput,
+                        onValueChange = { passwordInput = it },
+                        singleLine = true,
+                        visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        if (passwordInput == "123") {
+                            showPasswordDialog = false
+                            passwordInput = ""
+                            val intent = Intent(context, AdminAdmin::class.java)
+                            context.startActivity(intent)
+                        } else {
+                            Toast.makeText(context, "Incorrect password", Toast.LENGTH_SHORT).show()
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Greenish)
+                ) {
+                    Text("Enter", color = Color.White)
+                }
+            },
+            dismissButton = {
+                Button(
+                    onClick = { 
+                        showPasswordDialog = false
+                        passwordInput = ""
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.Gray)
+                ) {
+                    Text("Cancel", color = Color.White)
+                }
+            }
+        )
+    }
 }
 
 @Composable
 fun ItemsContent(searchText: String) {
     val context = LocalContext.current
     val productViewModel = remember { ProductViewModel(ProductRepoImpl()) }
+    val notificationViewModel = remember { NotificationViewModel(NotificationRepoImpl()) }
     val allProducts by productViewModel.allProducts.collectAsState()
 
     var showUnlistDialog by remember { mutableStateOf<ProductModel?>(null) }
@@ -350,6 +450,13 @@ fun ItemsContent(searchText: String) {
                     onClick = {
                         productViewModel.listProduct(product.productId, false) { success, message ->
                             if (success) {
+                                // Create notification
+                                val notification = NotificationModel(
+                                    message = "Item '${product.name}' has been unlisted successfully",
+                                    type = "item_unlisted",
+                                    itemId = product.productId
+                                )
+                                notificationViewModel.addNotification(notification) { _, _ -> }
                                 Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
                                 showUnlistDialog = null
                             } else {
@@ -387,6 +494,13 @@ fun ItemsContent(searchText: String) {
                     onClick = {
                         productViewModel.listProduct(product.productId, true) { success, message ->
                             if (success) {
+                                // Create notification
+                                val notification = NotificationModel(
+                                    message = "Item '${product.name}' has been listed successfully",
+                                    type = "item_listed",
+                                    itemId = product.productId
+                                )
+                                notificationViewModel.addNotification(notification) { _, _ -> }
                                 Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
                                 showListDialog = null
                             } else {
@@ -424,6 +538,13 @@ fun ItemsContent(searchText: String) {
                     onClick = {
                         productViewModel.deleteProduct(product.productId) { success, message ->
                             if (success) {
+                                // Create notification
+                                val notification = NotificationModel(
+                                    message = "Item '${product.name}' has been deleted successfully",
+                                    type = "item_deleted",
+                                    itemId = product.productId
+                                )
+                                notificationViewModel.addNotification(notification) { _, _ -> }
                                 Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
                                 productViewModel.getAllProduct()
                             } else {
@@ -453,6 +574,7 @@ fun ItemsContent(searchText: String) {
 fun UsersContent(searchText: String) {
     val context = LocalContext.current
     val userViewModel = remember { UserViewModel(UserRepoImpl()) }
+    val notificationViewModel = remember { NotificationViewModel(NotificationRepoImpl()) }
     val allUsers by userViewModel.allUsers.collectAsState()
 
     var showDeleteDialog by remember { mutableStateOf<UserModel?>(null) }
@@ -468,6 +590,7 @@ fun UsersContent(searchText: String) {
         allUsers ?: emptyList()
     } else {
         (allUsers ?: emptyList()).filter { user ->
+            user.userId.isNotEmpty() && user.name.isNotEmpty() && 
             user.name.contains(searchText, ignoreCase = true)
         }
     }
@@ -510,7 +633,8 @@ fun UsersContent(searchText: String) {
         onDismissDelete = { showDeleteDialog = null },
         onDismissBlock = { showBlockDialog = null },
         onDismissRestrict = { showRestrictDialog = null },
-        userViewModel = userViewModel
+        userViewModel = userViewModel,
+        notificationViewModel = notificationViewModel
     )
 }
 
@@ -740,7 +864,8 @@ fun UserDialogsExp(
     onDismissDelete: () -> Unit,
     onDismissBlock: () -> Unit,
     onDismissRestrict: () -> Unit,
-    userViewModel: UserViewModel
+    userViewModel: UserViewModel,
+    notificationViewModel: NotificationViewModel
 ) {
     val context = LocalContext.current
 
@@ -755,6 +880,13 @@ fun UserDialogsExp(
                     onClick = {
                         userViewModel.deleteUser(user.userId) { success, message ->
                             if (success) {
+                                // Create notification
+                                val notification = NotificationModel(
+                                    message = "User '${user.name}' has been deleted successfully",
+                                    type = "user_deleted",
+                                    userId = user.userId
+                                )
+                                notificationViewModel.addNotification(notification) { _, _ -> }
                                 Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
                                 userViewModel.getAllUser()
                             } else {
@@ -792,6 +924,17 @@ fun UserDialogsExp(
                     onClick = {
                         userViewModel.blockUser(user.userId, !user.isBlocked) { success, message ->
                             if (success) {
+                                // Create notification
+                                val notification = NotificationModel(
+                                    message = if (user.isBlocked) {
+                                        "User '${user.name}' has been unblocked successfully"
+                                    } else {
+                                        "User '${user.name}' has been blocked successfully"
+                                    },
+                                    type = if (user.isBlocked) "user_unblocked" else "user_blocked",
+                                    userId = user.userId
+                                )
+                                notificationViewModel.addNotification(notification) { _, _ -> }
                                 Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
                                 userViewModel.getAllUser()
                             } else {
@@ -831,6 +974,17 @@ fun UserDialogsExp(
                     onClick = {
                         userViewModel.restrictUser(user.userId, !user.isRestricted) { success, message ->
                             if (success) {
+                                // Create notification
+                                val notification = NotificationModel(
+                                    message = if (user.isRestricted) {
+                                        "User '${user.name}' has been unrestricted successfully"
+                                    } else {
+                                        "User '${user.name}' has been restricted successfully"
+                                    },
+                                    type = if (user.isRestricted) "user_unrestricted" else "user_restricted",
+                                    userId = user.userId
+                                )
+                                notificationViewModel.addNotification(notification) { _, _ -> }
                                 Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
                                 userViewModel.getAllUser()
                             } else {
@@ -855,5 +1009,36 @@ fun UserDialogsExp(
                 }
             }
         )
+    }
+}
+
+@Composable
+fun BadgedNotificationIconExp(
+    unreadCount: Int,
+    iconPainter: Painter,
+    contentDescription: String
+) {
+    Box {
+        Icon(
+            painter = iconPainter,
+            contentDescription = contentDescription,
+            tint = Color.White
+        )
+        if (unreadCount > 0) {
+            Box(
+                modifier = Modifier
+                    .size(18.dp)
+                    .offset(x = 12.dp, y = (-8).dp)
+                    .background(Color.Red, CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = if (unreadCount > 99) "99+" else unreadCount.toString(),
+                    color = Color.White,
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
     }
 }

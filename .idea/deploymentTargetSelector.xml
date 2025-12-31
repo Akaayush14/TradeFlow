@@ -16,13 +16,13 @@
       <SelectionState runConfigName="AdminDashExp">
         <option name="selectionMode" value="DROPDOWN" />
       </SelectionState>
-      <SelectionState runConfigName="AdminDashExp (1)">
-        <option name="selectionMode" value="DROPDOWN" />
-      </SelectionState>
       <SelectionState runConfigName="AdminDashExp (2)">
         <option name="selectionMode" value="DROPDOWN" />
       </SelectionState>
       <SelectionState runConfigName="AdminDashExp (3)">
+        <option name="selectionMode" value="DROPDOWN" />
+      </SelectionState>
+      <SelectionState runConfigName="AdminDashExp (5)">
         <option name="selectionMode" value="DROPDOWN" />
       </SelectionState>
     </selectionStates>

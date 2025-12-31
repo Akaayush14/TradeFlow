@@ -175,6 +175,10 @@
             </intent-filter>
         </activity>
         <activity
+            android:name=".view.AdminAdmin"
+            android:exported="false"
+            android:theme="@style/Theme.TradeFlow" />
+        <activity
             android:name=".view.AdminSettings"
             android:exported="true"
             android:theme="@style/Theme.TradeFlow" />

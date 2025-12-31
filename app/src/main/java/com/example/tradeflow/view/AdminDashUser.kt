@@ -6,6 +6,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,9 +15,12 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -46,6 +50,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -53,10 +58,13 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.tradeflow.R
+import com.example.tradeflow.model.NotificationModel
 import com.example.tradeflow.model.UserModel
+import com.example.tradeflow.repository.NotificationRepoImpl
 import com.example.tradeflow.repository.UserRepoImpl
 import com.example.tradeflow.ui.theme.DarkGreen
 import com.example.tradeflow.ui.theme.Greenish
+import com.example.tradeflow.viewmodel.NotificationViewModel
 import com.example.tradeflow.viewmodel.UserViewModel
 
 class AdminDashUser : ComponentActivity() {
@@ -82,6 +90,14 @@ fun AdminUserScreen(onBackClick: () -> Unit = {}) {
     val context = LocalContext.current
     var selectedIndex by remember { mutableStateOf(1) } // History tab selected
     var selectedTab by remember { mutableStateOf(0) } // 0 for None, 1 for Restricted, 2 for Blocked
+
+    // Notification view model for unread count
+    val notificationViewModel = remember { NotificationViewModel(NotificationRepoImpl()) }
+    val unreadCount by notificationViewModel.unreadCount.collectAsState()
+
+    LaunchedEffect(Unit) {
+        notificationViewModel.getUnreadCount()
+    }
 
     BackHandler {
         val intent = Intent(context, AdminDashExp::class.java)
@@ -177,6 +193,27 @@ fun AdminUserScreen(onBackClick: () -> Unit = {}) {
                     },
                     label = { Text("Items", color = Color.White) }
                 )
+
+
+                NavigationBarItem(
+                    selected = selectedIndex == 4,
+                    onClick = {
+                        val intent = Intent(context, AdminNotification::class.java)
+                        context.startActivity(intent)
+                        if (context is ComponentActivity) {
+                            context.finish()
+                        }
+                    },
+                    icon = {
+                        BadgedNotificationIconUser(
+                            unreadCount = unreadCount,
+                            iconPainter = painterResource(R.drawable.notification_filled),
+                            contentDescription = "notification"
+                        )
+                    },
+                    label = { Text("notification", color = Color.White) }
+                )
+
 
                 NavigationBarItem(
                     selected = selectedIndex == 2,
@@ -281,6 +318,7 @@ fun AdminUserScreen(onBackClick: () -> Unit = {}) {
 fun NoneContent() {
     val context = LocalContext.current
     val userViewModel = remember { UserViewModel(UserRepoImpl()) }
+    val notificationViewModel = remember { NotificationViewModel(NotificationRepoImpl()) }
     val allUsers by userViewModel.allUsers.collectAsState()
 
     var showDeleteDialog by remember { mutableStateOf<UserModel?>(null) }
@@ -292,7 +330,9 @@ fun NoneContent() {
     }
 
     // Filter users with no restrictions and no blocks (normal users)
-    val noneUsers = allUsers?.filter { !it.isBlocked && !it.isRestricted } ?: emptyList()
+    val noneUsers = allUsers?.filter { 
+        it.userId.isNotEmpty() && it.name.isNotEmpty() && !it.isBlocked && !it.isRestricted 
+    } ?: emptyList()
 
     if (noneUsers.isEmpty()) {
         Box(
@@ -332,7 +372,8 @@ fun NoneContent() {
         onDismissDelete = { showDeleteDialog = null },
         onDismissBlock = { showBlockDialog = null },
         onDismissRestrict = { showRestrictDialog = null },
-        userViewModel = userViewModel
+        userViewModel = userViewModel,
+        notificationViewModel = notificationViewModel
     )
 }
 
@@ -340,6 +381,7 @@ fun NoneContent() {
 fun RestrictedContent() {
     val context = LocalContext.current
     val userViewModel = remember { UserViewModel(UserRepoImpl()) }
+    val notificationViewModel = remember { NotificationViewModel(NotificationRepoImpl()) }
     val allUsers by userViewModel.allUsers.collectAsState()
 
     var showDeleteDialog by remember { mutableStateOf<UserModel?>(null) }
@@ -351,7 +393,9 @@ fun RestrictedContent() {
     }
 
     // Filter restricted users
-    val restrictedUsers = allUsers?.filter { it.isRestricted } ?: emptyList()
+    val restrictedUsers = allUsers?.filter { 
+        it.userId.isNotEmpty() && it.name.isNotEmpty() && it.isRestricted 
+    } ?: emptyList()
 
     if (restrictedUsers.isEmpty()) {
         Box(
@@ -391,7 +435,8 @@ fun RestrictedContent() {
         onDismissDelete = { showDeleteDialog = null },
         onDismissBlock = { showBlockDialog = null },
         onDismissRestrict = { showRestrictDialog = null },
-        userViewModel = userViewModel
+        userViewModel = userViewModel,
+        notificationViewModel = notificationViewModel
     )
 }
 
@@ -399,6 +444,7 @@ fun RestrictedContent() {
 fun BlockedContent() {
     val context = LocalContext.current
     val userViewModel = remember { UserViewModel(UserRepoImpl()) }
+    val notificationViewModel = remember { NotificationViewModel(NotificationRepoImpl()) }
     val allUsers by userViewModel.allUsers.collectAsState()
 
     var showDeleteDialog by remember { mutableStateOf<UserModel?>(null) }
@@ -410,7 +456,9 @@ fun BlockedContent() {
     }
 
     // Filter blocked users
-    val blockedUsers = allUsers?.filter { it.isBlocked } ?: emptyList()
+    val blockedUsers = allUsers?.filter { 
+        it.userId.isNotEmpty() && it.name.isNotEmpty() && it.isBlocked 
+    } ?: emptyList()
 
     if (blockedUsers.isEmpty()) {
         Box(
@@ -450,7 +498,8 @@ fun BlockedContent() {
         onDismissDelete = { showDeleteDialog = null },
         onDismissBlock = { showBlockDialog = null },
         onDismissRestrict = { showRestrictDialog = null },
-        userViewModel = userViewModel
+        userViewModel = userViewModel,
+        notificationViewModel = notificationViewModel
     )
 }
 
@@ -484,7 +533,7 @@ fun UserCardUser(
         ) {
             // Name
             Text(
-                text = user.name,
+                text = user.name.ifEmpty { "Unknown User" },
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color.Black
@@ -492,7 +541,7 @@ fun UserCardUser(
             Spacer(modifier = Modifier.height(4.dp))
             // Email
             Text(
-                text = user.email,
+                text = user.email.ifEmpty { "No email" },
                 fontSize = 14.sp,
                 color = Color.Gray
             )
@@ -573,7 +622,8 @@ fun UserDialogs(
     onDismissDelete: () -> Unit,
     onDismissBlock: () -> Unit,
     onDismissRestrict: () -> Unit,
-    userViewModel: UserViewModel
+    userViewModel: UserViewModel,
+    notificationViewModel: NotificationViewModel
 ) {
     val context = LocalContext.current
 
@@ -588,6 +638,13 @@ fun UserDialogs(
                     onClick = {
                         userViewModel.deleteUser(user.userId) { success, message ->
                             if (success) {
+                                // Create notification
+                                val notification = NotificationModel(
+                                    message = "User '${user.name}' has been deleted successfully",
+                                    type = "user_deleted",
+                                    userId = user.userId
+                                )
+                                notificationViewModel.addNotification(notification) { _, _ -> }
                                 Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
                                 userViewModel.getAllUser()
                             } else {
@@ -625,6 +682,17 @@ fun UserDialogs(
                     onClick = {
                         userViewModel.blockUser(user.userId, !user.isBlocked) { success, message ->
                             if (success) {
+                                // Create notification
+                                val notification = NotificationModel(
+                                    message = if (user.isBlocked) {
+                                        "User '${user.name}' has been unblocked successfully"
+                                    } else {
+                                        "User '${user.name}' has been blocked successfully"
+                                    },
+                                    type = if (user.isBlocked) "user_unblocked" else "user_blocked",
+                                    userId = user.userId
+                                )
+                                notificationViewModel.addNotification(notification) { _, _ -> }
                                 Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
                                 userViewModel.getAllUser()
                             } else {
@@ -664,6 +732,17 @@ fun UserDialogs(
                     onClick = {
                         userViewModel.restrictUser(user.userId, !user.isRestricted) { success, message ->
                             if (success) {
+                                // Create notification
+                                val notification = NotificationModel(
+                                    message = if (user.isRestricted) {
+                                        "User '${user.name}' has been unrestricted successfully"
+                                    } else {
+                                        "User '${user.name}' has been restricted successfully"
+                                    },
+                                    type = if (user.isRestricted) "user_unrestricted" else "user_restricted",
+                                    userId = user.userId
+                                )
+                                notificationViewModel.addNotification(notification) { _, _ -> }
                                 Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
                                 userViewModel.getAllUser()
                             } else {
@@ -688,5 +767,36 @@ fun UserDialogs(
                 }
             }
         )
+    }
+}
+
+@Composable
+fun BadgedNotificationIconUser(
+    unreadCount: Int,
+    iconPainter: Painter,
+    contentDescription: String
+) {
+    Box {
+        Icon(
+            painter = iconPainter,
+            contentDescription = contentDescription,
+            tint = Color.White
+        )
+        if (unreadCount > 0) {
+            Box(
+                modifier = Modifier
+                    .size(18.dp)
+                    .offset(x = 12.dp, y = (-8).dp)
+                    .background(Color.Red, CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = if (unreadCount > 99) "99+" else unreadCount.toString(),
+                    color = Color.White,
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
     }
 }
