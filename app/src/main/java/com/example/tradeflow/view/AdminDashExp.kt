@@ -356,7 +356,7 @@ fun AdminExp() {
             ) {
                 when (selectedTab) {
                     0 -> UsersContent(searchText = searchText)
-                    1 -> MetricsContent()
+                    1 -> MetricsContent(onRequireAdminAccess = { showPasswordDialog = true })
                     2 -> ItemsContent(searchText = searchText)
                 }
             }
@@ -416,7 +416,7 @@ fun AdminExp() {
 }
 
 @Composable
-fun MetricsContent() {
+fun MetricsContent(onRequireAdminAccess: () -> Unit) {
     val context = LocalContext.current
     val userViewModel = remember { UserViewModel(UserRepoImpl()) }
     val productViewModel = remember { ProductViewModel(ProductRepoImpl()) }
@@ -547,14 +547,16 @@ fun MetricsContent() {
                 value = "$totalAdmins",
                 icon = painterResource(R.drawable.ic_user),
                 color = Greenish,
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f),
+                onClick = { onRequireAdminAccess() }
             )
             MetricCard(
                 title = "Blocked",
                 value = "$blockedAdmins",
                 icon = painterResource(R.drawable.ic_user),
                 color = Color.Red,
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f),
+                onClick = { onRequireAdminAccess() }
             )
         }
 
@@ -567,7 +569,8 @@ fun MetricsContent() {
                 value = "$restrictedAdmins",
                 icon = painterResource(R.drawable.ic_user),
                 color = Color(0xFFFF9800),
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f),
+                onClick = { onRequireAdminAccess() }
             )
             Spacer(modifier = Modifier.weight(1f))
         }
