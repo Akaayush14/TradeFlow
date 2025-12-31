@@ -3,6 +3,8 @@ package com.example.tradeflow.view
 import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
@@ -41,6 +43,7 @@ import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.foundation.Image
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -316,18 +319,28 @@ fun ListedItemsContent() {
         productViewModel.getAllProduct()
     }
 
+    val hasInternet = isInternetAvailableItem(context)
     // Filter only listed items (isListed = true)
     val listedProducts = allProducts?.filter { it.isListed } ?: emptyList()
 
-    if (listedProducts.isEmpty()) {
+    if (!hasInternet) {
         Box(
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center
         ) {
-            Text(
-                text = "No listed items yet",
-                color = Color.Gray,
-                fontSize = 16.sp
+            Image(
+                painter = painterResource(R.drawable.no_internet),
+                contentDescription = null
+            )
+        }
+    } else if (listedProducts.isEmpty()) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            Image(
+                painter = painterResource(R.drawable.no_data),
+                contentDescription = null
             )
         }
     } else {
@@ -452,18 +465,28 @@ fun UnlistedItemsContent() {
         productViewModel.getAllProduct()
     }
 
+    val hasInternet = isInternetAvailableItem(context)
     // Filter only unlisted items (isListed = false)
     val unlistedProducts = allProducts?.filter { !it.isListed } ?: emptyList()
 
-    if (unlistedProducts.isEmpty()) {
+    if (!hasInternet) {
         Box(
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center
         ) {
-            Text(
-                text = "No unlisted items yet",
-                color = Color.Gray,
-                fontSize = 16.sp
+            Image(
+                painter = painterResource(R.drawable.no_internet),
+                contentDescription = null
+            )
+        }
+    } else if (unlistedProducts.isEmpty()) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            Image(
+                painter = painterResource(R.drawable.no_data),
+                contentDescription = null
             )
         }
     } else {
@@ -572,6 +595,15 @@ fun UnlistedItemsContent() {
             }
         )
     }
+}
+
+fun isInternetAvailableItem(context: android.content.Context): Boolean {
+    val connectivityManager = context.getSystemService(android.content.Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+    val network = connectivityManager.activeNetwork ?: return false
+    val capabilities = connectivityManager.getNetworkCapabilities(network) ?: return false
+    return capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) ||
+            capabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) ||
+            capabilities.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)
 }
 
 @Composable

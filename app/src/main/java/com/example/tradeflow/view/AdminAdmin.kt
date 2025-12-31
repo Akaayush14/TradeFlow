@@ -5,6 +5,8 @@ import android.content.Intent
 import android.os.Bundle
 import android.widget.DatePicker
 import android.widget.Toast
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
@@ -39,6 +41,7 @@ import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.foundation.Image
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -198,15 +201,25 @@ fun AdminListContent() {
         viewModel.getAllAdmins()
     }
 
-    if (admins == null || admins!!.isEmpty()) {
+    val hasInternet = isInternetAvailableAdmin(context)
+    if (!hasInternet) {
         Box(
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center
         ) {
-            Text(
-                text = "No admins found",
-                color = Color.Gray,
-                fontSize = 16.sp
+            Image(
+                painter = painterResource(R.drawable.no_internet),
+                contentDescription = null
+            )
+        }
+    } else if (admins == null || admins!!.isEmpty()) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            Image(
+                painter = painterResource(R.drawable.no_data),
+                contentDescription = null
             )
         }
     } else {
@@ -248,6 +261,19 @@ fun RegisterAdminContent() {
         }, year, month, day
     )
 
+    val hasInternet = isInternetAvailableAdmin(context)
+    if (!hasInternet) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            Image(
+                painter = painterResource(R.drawable.no_internet),
+                contentDescription = null
+            )
+        }
+        return
+    }
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -387,6 +413,15 @@ fun RegisterAdminContent() {
             Text("Register Admin", fontSize = 18.sp, color = Color.White)
         }
     }
+}
+
+fun isInternetAvailableAdmin(context: android.content.Context): Boolean {
+    val connectivityManager = context.getSystemService(android.content.Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+    val network = connectivityManager.activeNetwork ?: return false
+    val capabilities = connectivityManager.getNetworkCapabilities(network) ?: return false
+    return capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) ||
+            capabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) ||
+            capabilities.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)
 }
 
 @Composable

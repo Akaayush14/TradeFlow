@@ -2,6 +2,8 @@ package com.example.tradeflow.view
 import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
@@ -40,6 +42,7 @@ import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.foundation.Image
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -331,20 +334,30 @@ fun NoneContent() {
         userViewModel.getAllUser()
     }
 
+    val hasInternet = isInternetAvailable(context)
     // Filter users with no restrictions and no blocks (normal users)
     val noneUsers = allUsers?.filter { 
         it.userId.isNotEmpty() && it.name.isNotEmpty() && !it.isBlocked && !it.isRestricted 
     } ?: emptyList()
 
-    if (noneUsers.isEmpty()) {
+    if (!hasInternet) {
         Box(
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center
         ) {
-            Text(
-                text = "No users",
-                color = Color.Gray,
-                fontSize = 16.sp
+            Image(
+                painter = painterResource(R.drawable.no_internet),
+                contentDescription = null
+            )
+        }
+    } else if (noneUsers.isEmpty()) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            Image(
+                painter = painterResource(R.drawable.no_data),
+                contentDescription = null
             )
         }
     } else {
@@ -394,20 +407,30 @@ fun RestrictedContent() {
         userViewModel.getAllUser()
     }
 
+    val hasInternet = isInternetAvailable(context)
     // Filter restricted users
     val restrictedUsers = allUsers?.filter { 
         it.userId.isNotEmpty() && it.name.isNotEmpty() && it.isRestricted 
     } ?: emptyList()
 
-    if (restrictedUsers.isEmpty()) {
+    if (!hasInternet) {
         Box(
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center
         ) {
-            Text(
-                text = "No restricted users",
-                color = Color.Gray,
-                fontSize = 16.sp
+            Image(
+                painter = painterResource(R.drawable.no_internet),
+                contentDescription = null
+            )
+        }
+    } else if (restrictedUsers.isEmpty()) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            Image(
+                painter = painterResource(R.drawable.no_data),
+                contentDescription = null
             )
         }
     } else {
@@ -457,20 +480,30 @@ fun BlockedContent() {
         userViewModel.getAllUser()
     }
 
+    val hasInternet = isInternetAvailable(context)
     // Filter blocked users
     val blockedUsers = allUsers?.filter { 
         it.userId.isNotEmpty() && it.name.isNotEmpty() && it.isBlocked 
     } ?: emptyList()
 
-    if (blockedUsers.isEmpty()) {
+    if (!hasInternet) {
         Box(
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center
         ) {
-            Text(
-                text = "No blocked users",
-                color = Color.Gray,
-                fontSize = 16.sp
+            Image(
+                painter = painterResource(R.drawable.no_internet),
+                contentDescription = null
+            )
+        }
+    } else if (blockedUsers.isEmpty()) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            Image(
+                painter = painterResource(R.drawable.no_data),
+                contentDescription = null
             )
         }
     } else {
@@ -503,6 +536,15 @@ fun BlockedContent() {
         userViewModel = userViewModel,
         notificationViewModel = notificationViewModel
     )
+}
+
+fun isInternetAvailable(context: android.content.Context): Boolean {
+    val connectivityManager = context.getSystemService(android.content.Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+    val network = connectivityManager.activeNetwork ?: return false
+    val capabilities = connectivityManager.getNetworkCapabilities(network) ?: return false
+    return capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) ||
+            capabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) ||
+            capabilities.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)
 }
 
 @Composable

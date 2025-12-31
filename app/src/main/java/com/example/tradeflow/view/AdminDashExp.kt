@@ -2,11 +2,14 @@ package com.example.tradeflow.view
 import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -461,12 +464,34 @@ fun MetricsContent(onRequireAdminAccess: () -> Unit) {
     // Notification Metrics
     val totalNotifications = notifications?.size ?: 0
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState()),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
+    val hasInternet = isInternetAvailableExp(context)
+    if (!hasInternet) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            Image(
+                painter = painterResource(R.drawable.no_internet),
+                contentDescription = null
+            )
+        }
+    } else if (totalUsers == 0 && totalAdmins == 0 && totalProducts == 0) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            Image(
+                painter = painterResource(R.drawable.no_data),
+                contentDescription = null
+            )
+        }
+    } else {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
         // User Metrics Section
         Text(
             text = "User Statistics",
@@ -645,7 +670,7 @@ fun MetricsContent(onRequireAdminAccess: () -> Unit) {
             )
         }
 
-        // Charts/Graphs placeholders removed as per request to focus on fetching values
+        }
     }
 }
 
@@ -729,7 +754,7 @@ fun ItemsContent(searchText: String) {
         productViewModel.getAllProduct()
     }
 
-    // Filter products based on search text (case-insensitive search by product name)
+    val hasInternet = isInternetAvailableExp(context)
     val products = if (searchText.isBlank()) {
         allProducts ?: emptyList()
     } else {
@@ -737,16 +762,24 @@ fun ItemsContent(searchText: String) {
             product.name.contains(searchText, ignoreCase = true)
         }
     }
-
-    if (products.isEmpty()) {
+    if (!hasInternet) {
         Box(
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center
         ) {
-            Text(
-                text = if (searchText.isBlank()) "No items yet" else "No items found",
-                color = Color.Gray,
-                fontSize = 16.sp
+            Image(
+                painter = painterResource(R.drawable.no_internet),
+                contentDescription = null
+            )
+        }
+    } else if (products.isEmpty()) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            Image(
+                painter = painterResource(R.drawable.no_data),
+                contentDescription = null
             )
         }
     } else {
@@ -916,7 +949,7 @@ fun UsersContent(searchText: String) {
         userViewModel.getAllUser()
     }
 
-    // Filter users based on search text (case-insensitive search by user name)
+    val hasInternet = isInternetAvailableExp(context)
     val users = if (searchText.isBlank()) {
         allUsers ?: emptyList()
     } else {
@@ -925,16 +958,24 @@ fun UsersContent(searchText: String) {
                     user.name.contains(searchText, ignoreCase = true)
         }
     }
-
-    if (users.isEmpty()) {
+    if (!hasInternet) {
         Box(
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center
         ) {
-            Text(
-                text = if (searchText.isBlank()) "No users yet" else "No users found",
-                color = Color.Gray,
-                fontSize = 16.sp
+            Image(
+                painter = painterResource(R.drawable.no_internet),
+                contentDescription = null
+            )
+        }
+    } else if (users.isEmpty()) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            Image(
+                painter = painterResource(R.drawable.no_data),
+                contentDescription = null
             )
         }
     } else {
@@ -967,6 +1008,15 @@ fun UsersContent(searchText: String) {
         userViewModel = userViewModel,
         notificationViewModel = notificationViewModel
     )
+}
+
+fun isInternetAvailableExp(context: android.content.Context): Boolean {
+    val connectivityManager = context.getSystemService(android.content.Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+    val network = connectivityManager.activeNetwork ?: return false
+    val capabilities = connectivityManager.getNetworkCapabilities(network) ?: return false
+    return capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) ||
+            capabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) ||
+            capabilities.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)
 }
 
 @Composable
