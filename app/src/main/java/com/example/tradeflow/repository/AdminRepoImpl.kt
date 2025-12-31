@@ -114,6 +114,7 @@ class AdminRepoImpl : AdminRepo {
                                     admin.name = data.child("name").getValue(String::class.java) ?: ""
                                     admin.email = data.child("email").getValue(String::class.java) ?: ""
                                     admin.phone = data.child("phone").getValue(String::class.java) ?: ""
+                                    admin.dateOfBirth = data.child("dateOfBirth").getValue(String::class.java) ?: ""
                                     
                                     if (data.hasChild("isBlocked")) {
                                         val isBlockedValue = data.child("isBlocked").getValue(Boolean::class.java)

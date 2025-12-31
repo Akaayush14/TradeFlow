@@ -72,8 +72,10 @@ class AdminDashItem : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        val targetTab = intent.getIntExtra("target_tab", 0)
         setContent {
             AdminItemScreen(
+                initialTab = targetTab,
                 onBackClick = {
                     val intent = Intent(this, AdminDashExp::class.java)
                     startActivity(intent)
@@ -87,10 +89,10 @@ class AdminDashItem : ComponentActivity() {
 @Preview
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
-fun AdminItemScreen(onBackClick: () -> Unit = {}) {
+fun AdminItemScreen(initialTab: Int = 0, onBackClick: () -> Unit = {}) {
     val context = LocalContext.current
     var selectedIndex by remember { mutableStateOf(3) } // Admin Items tab selected
-    var selectedTab by remember { mutableStateOf(0) } // 0 for Listed Items, 1 for Unlisted Items
+    var selectedTab by remember { mutableStateOf(initialTab) } // 0 for Listed Items, 1 for Unlisted Items
 
     // Notification view model for unread count
     val notificationViewModel = remember { NotificationViewModel(NotificationRepoImpl()) }

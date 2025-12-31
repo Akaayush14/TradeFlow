@@ -1,15 +1,19 @@
 package com.example.tradeflow.view
 
+import android.app.DatePickerDialog
 import android.content.Intent
 import android.os.Bundle
+import android.widget.DatePicker
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -53,11 +57,12 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.tradeflow.R
-import com.example.tradeflow.model.UserModel
-import com.example.tradeflow.repository.UserRepoImpl
+import com.example.tradeflow.model.AdminModel
+import com.example.tradeflow.repository.AdminRepoImpl
 import com.example.tradeflow.ui.theme.DarkGreen
 import com.example.tradeflow.ui.theme.Greenish
-import com.example.tradeflow.viewmodel.UserViewModel
+import com.example.tradeflow.viewmodel.AdminViewModel
+import java.util.Calendar
 
 class AdminAdmin : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -127,6 +132,7 @@ fun AdminAdminScreen() {
             modifier = Modifier
                 .padding(padding)
                 .fillMaxSize()
+            .padding(16.dp)
         ) {
             // Tab Row for Admin and Register Admin
             TabRow(
@@ -166,11 +172,12 @@ fun AdminAdminScreen() {
                 )
             }
 
+            Spacer(modifier = Modifier.height(16.dp))
+
             // Content based on selected tab
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(16.dp)
             ) {
                 when (selectedTab) {
                     0 -> AdminListContent()
@@ -183,85 +190,212 @@ fun AdminAdminScreen() {
 
 @Composable
 fun AdminListContent() {
-    // TODO: Implement the following:
-    // 1. Create UserViewModel instance with UserRepoImpl()
-    // 2. Collect allUsers state from viewModel
-    // 3. Create state for showDeleteDialog (UserModel?)
-    // 4. Use LaunchedEffect to call getAllUser() when composable loads
-    // 5. Filter allUsers to show only admins (where user.isAdmin == true)
-    //    Note: You'll need to add isAdmin field to UserModel if not present
-    // 6. Display empty state if no admins found
-    // 7. Display LazyColumn with AdminCard for each admin
-    // 8. Pass onDeleteClick handler to show delete confirmation dialog
-    // 9. Implement delete confirmation AlertDialog
-    // 10. In delete dialog, call userViewModel.deleteUser() with admin.userId
-    // 11. Refresh admin list after successful deletion
-    // 12. Show appropriate Toast messages for success/failure
+    val context = LocalContext.current
+    val viewModel = remember { AdminViewModel(AdminRepoImpl()) }
+    val admins by viewModel.allAdmins.collectAsState()
 
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            text = "Admin List - TO DO",
-            color = Color.Gray,
-            fontSize = 16.sp
-        )
+    LaunchedEffect(Unit) {
+        viewModel.getAllAdmins()
+    }
+
+    if (admins == null || admins!!.isEmpty()) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = "No admins found",
+                color = Color.Gray,
+                fontSize = 16.sp
+            )
+        }
+    } else {
+        LazyColumn(
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            items(admins!!) { admin ->
+                AdminCard(
+                    admin = admin,
+                    viewModel = viewModel
+                )
+            }
+        }
     }
 }
 
 @Composable
 fun RegisterAdminContent() {
-    // TODO: Implement the following:
-    // 1. Create UserViewModel instance with UserRepoImpl()
-    // 2. Create state variables for: name, email, phone, password, confirmPassword
-    // 3. Create form with OutlinedTextField for each field:
-    //    - Name (regular text)
-    //    - Email (regular text)
-    //    - Phone (regular text)
-    //    - Password (use PasswordVisualTransformation)
-    //    - Confirm Password (use PasswordVisualTransformation)
-    // 4. Add Register Admin button
-    // 5. Implement validation in button onClick:
-    //    - Check if name is not blank
-    //    - Check if email is not blank (bonus: validate email format)
-    //    - Check if phone is not blank
-    //    - Check if password is not blank
-    //    - Check if password and confirmPassword match
-    //    - Check if password is at least 6 characters
-    // 6. If validation passes:
-    //    - Call userViewModel.register(email, password, phone)
-    //    - On success, create UserModel with:
-    //      * userId from registration response
-    //      * name, email, phone from form
-    //      * isAdmin = true (You'll need to add this field to UserModel)
-    //    - Call userViewModel.addUserToDatabase(userId, userModel)
-    //    - On success, show success toast and clear all form fields
-    //    - On failure, show error toast with message
-    // 7. Show appropriate Toast messages for validation errors and success/failure
-    // 8. Center the form vertically and horizontally on screen
+    val context = LocalContext.current
+    val viewModel = remember { AdminViewModel(AdminRepoImpl()) }
+    
+    var name by remember { mutableStateOf("") }
+    var email by remember { mutableStateOf("") }
+    var phone by remember { mutableStateOf("") }
+    var dob by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
+    var confirmPassword by remember { mutableStateOf("") }
+
+    // Date Picker Dialog
+    val calendar = Calendar.getInstance()
+    val year = calendar.get(Calendar.YEAR)
+    val month = calendar.get(Calendar.MONTH)
+    val day = calendar.get(Calendar.DAY_OF_MONTH)
+
+    val datePickerDialog = DatePickerDialog(
+        context,
+        { _: DatePicker, year: Int, month: Int, dayOfMonth: Int ->
+            dob = "$dayOfMonth/${month + 1}/$year"
+        }, year, month, day
+    )
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp),
+            .padding(horizontal = 16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+        verticalArrangement = Arrangement.Top
     ) {
         Text(
-            text = "Register New Admin - TO DO",
+            text = "Register New Admin",
             fontSize = 24.sp,
             fontWeight = FontWeight.Bold,
-            color = DarkGreen
+            color = DarkGreen,
+            modifier = Modifier.padding(bottom = 24.dp)
         )
+
+        OutlinedTextField(
+            value = name,
+            onValueChange = { name = it },
+            label = { Text("Name") },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        OutlinedTextField(
+            value = email,
+            onValueChange = { email = it },
+            label = { Text("Email") },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        OutlinedTextField(
+            value = phone,
+            onValueChange = { phone = it },
+            label = { Text("Phone") },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Box(modifier = Modifier.fillMaxWidth()) {
+            OutlinedTextField(
+                value = dob,
+                onValueChange = { },
+                label = { Text("Date of Birth") },
+                modifier = Modifier.fillMaxWidth(),
+                readOnly = true,
+                trailingIcon = {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_calender), // Assuming you have a calendar icon, otherwise use default
+                        contentDescription = "Select Date",
+                        modifier = Modifier.clickable { datePickerDialog.show() }
+                    )
+                }
+            )
+            // Overlay to capture clicks for the whole field if desired, 
+            // but trailing icon click is standard. 
+            // For better UX, let's make the whole field clickable.
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .clickable { datePickerDialog.show() }
+            )
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        OutlinedTextField(
+            value = password,
+            onValueChange = { password = it },
+            label = { Text("Password") },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            visualTransformation = PasswordVisualTransformation()
+        )
+        
+        Spacer(modifier = Modifier.height(8.dp))
+
+        OutlinedTextField(
+            value = confirmPassword,
+            onValueChange = { confirmPassword = it },
+            label = { Text("Confirm Password") },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            visualTransformation = PasswordVisualTransformation()
+        )
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        Button(
+            onClick = {
+                if (name.isBlank() || email.isBlank() || phone.isBlank() || dob.isBlank() || password.isBlank()) {
+                    Toast.makeText(context, "Please fill all fields", Toast.LENGTH_SHORT).show()
+                } else if (password != confirmPassword) {
+                    Toast.makeText(context, "Passwords do not match", Toast.LENGTH_SHORT).show()
+                } else if (password.length < 6) {
+                    Toast.makeText(context, "Password must be at least 6 characters", Toast.LENGTH_SHORT).show()
+                } else {
+                    viewModel.register(email, password, phone) { success, msg, userId ->
+                        if (success) {
+                            val newAdmin = AdminModel(
+                                userId = userId,
+                                name = name,
+                                email = email,
+                                phone = phone,
+                                dateOfBirth = dob,
+                                isBlocked = false,
+                                isRestricted = false
+                            )
+                            viewModel.addAdminToDatabase(userId, newAdmin) { dbSuccess, dbMsg ->
+                                Toast.makeText(context, dbMsg, Toast.LENGTH_SHORT).show()
+                                if (dbSuccess) {
+                                    name = ""
+                                    email = ""
+                                    phone = ""
+                                    dob = ""
+                                    password = ""
+                                    confirmPassword = ""
+                                }
+                            }
+                        } else {
+                            Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                }
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(50.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = Greenish)
+        ) {
+            Text("Register Admin", fontSize = 18.sp, color = Color.White)
+        }
     }
 }
 
 @Composable
 fun AdminCard(
-    admin: UserModel,
-    onDeleteClick: () -> Unit
+    admin: AdminModel,
+    viewModel: AdminViewModel
 ) {
+    val context = LocalContext.current
+    
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -284,27 +418,79 @@ fun AdminCard(
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = admin.email,
+                text = "Email: ${admin.email}",
                 fontSize = 14.sp,
                 color = Color.Gray
             )
-            Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = admin.phone,
+                text = "Phone: ${admin.phone}",
                 fontSize = 14.sp,
                 color = Color.Gray
             )
-            Spacer(modifier = Modifier.height(12.dp))
-            Button(
-                onClick = onDeleteClick,
-                colors = ButtonDefaults.buttonColors(containerColor = Color.Red),
-                modifier = Modifier.height(36.dp)
-            ) {
+            if (admin.dateOfBirth.isNotEmpty()) {
                 Text(
-                    text = "Delete",
-                    fontSize = 12.sp,
-                    color = Color.White
+                    text = "DOB: ${admin.dateOfBirth}",
+                    fontSize = 14.sp,
+                    color = Color.Gray
                 )
+            }
+            
+            Spacer(modifier = Modifier.height(12.dp))
+            
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                // Block/Unblock Button
+                Button(
+                    onClick = {
+                        viewModel.updateAdminStatus(
+                            userId = admin.userId,
+                            isBlocked = !admin.isBlocked,
+                            isRestricted = admin.isRestricted
+                        ) { success, msg ->
+                            Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (admin.isBlocked) Color.Red else Color.Gray
+                    ),
+                    modifier = Modifier.weight(1f).padding(end = 4.dp)
+                ) {
+                    Text(if (admin.isBlocked) "Unblock" else "Block", fontSize = 12.sp)
+                }
+
+                // Restrict/Unrestrict Button
+                Button(
+                    onClick = {
+                        viewModel.updateAdminStatus(
+                            userId = admin.userId,
+                            isBlocked = admin.isBlocked,
+                            isRestricted = !admin.isRestricted
+                        ) { success, msg ->
+                            Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (admin.isRestricted) Color(0xFFFFA500) else Color.Gray // Orange for restricted
+                    ),
+                    modifier = Modifier.weight(1f).padding(horizontal = 4.dp)
+                ) {
+                    Text(if (admin.isRestricted) "Unrestrict" else "Restrict", fontSize = 12.sp)
+                }
+
+                // Delete Button
+                Button(
+                    onClick = {
+                        viewModel.deleteAdmin(admin.userId) { success, msg ->
+                            Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.Red),
+                    modifier = Modifier.weight(1f).padding(start = 4.dp)
+                ) {
+                    Text("Delete", fontSize = 12.sp)
+                }
             }
         }
     }

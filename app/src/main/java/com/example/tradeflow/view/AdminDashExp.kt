@@ -18,10 +18,14 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -69,11 +73,13 @@ import com.example.tradeflow.R
 import com.example.tradeflow.model.NotificationModel
 import com.example.tradeflow.model.ProductModel
 import com.example.tradeflow.model.UserModel
+import com.example.tradeflow.repository.AdminRepoImpl
 import com.example.tradeflow.repository.NotificationRepoImpl
 import com.example.tradeflow.repository.ProductRepoImpl
 import com.example.tradeflow.repository.UserRepoImpl
 import com.example.tradeflow.ui.theme.DarkGreen
 import com.example.tradeflow.ui.theme.Greenish
+import com.example.tradeflow.viewmodel.AdminViewModel
 import com.example.tradeflow.viewmodel.NotificationViewModel
 import com.example.tradeflow.viewmodel.ProductViewModel
 import com.example.tradeflow.viewmodel.UserViewModel
@@ -95,7 +101,7 @@ fun AdminExp() {
     val context = LocalContext.current
     var selectedIndex by remember { mutableStateOf(0) }
     var searchText by remember { mutableStateOf("") }
-    var selectedTab by remember { mutableStateOf(0) } // 0 for items, 1 for user
+    var selectedTab by remember { mutableStateOf(1) } // 0 for User, 1 for Metrics, 2 for Items
     var backPressedTime by remember { mutableLongStateOf(0L) }
     var showPasswordDialog by remember { mutableStateOf(false) }
     var passwordInput by remember { mutableStateOf("") }
@@ -131,30 +137,45 @@ fun AdminExp() {
                     actionIconContentColor = Color.White
                 ),
                 title = {
-                    OutlinedTextField(
-                        value = searchText,
-                        onValueChange = { searchText = it },
-                        singleLine = true,
-                        leadingIcon = {
-                            Icon(
-                                painter = painterResource(R.drawable.ic_search),
-                                contentDescription = "Search",
-                                modifier = Modifier.size(22.dp),
-                                tint = Greenish
+                    // Hide search bar on metrics tab
+                    if (selectedTab != 1) {
+                        OutlinedTextField(
+                            value = searchText,
+                            onValueChange = { searchText = it },
+                            singleLine = true,
+                            leadingIcon = {
+                                Icon(
+                                    painter = painterResource(R.drawable.ic_search),
+                                    contentDescription = "Search",
+                                    modifier = Modifier.size(22.dp),
+                                    tint = Greenish
+                                )
+                            },
+                            colors = TextFieldDefaults.colors(
+                                focusedContainerColor = Color.White,
+                                unfocusedContainerColor = Color.White,
+                                focusedIndicatorColor = Color.Transparent,
+                                unfocusedIndicatorColor = Color.Transparent,
+                                cursorColor = Color.Black
+                            ),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(56.dp),
+                            shape = RoundedCornerShape(50.dp)
+                        )
+                    } else {
+                        Box(
+                            modifier = Modifier.fillMaxWidth(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "Dashboard",
+                                color = Color.White,
+                                fontSize = 20.sp,
+                                fontWeight = FontWeight.Bold
                             )
-                        },
-                        colors = TextFieldDefaults.colors(
-                            focusedContainerColor = Color.White,
-                            unfocusedContainerColor = Color.White,
-                            focusedIndicatorColor = Color.Transparent,
-                            unfocusedIndicatorColor = Color.Transparent,
-                            cursorColor = Color.Black
-                        ),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(56.dp),
-                        shape = RoundedCornerShape(50.dp)
-                    )
+                        }
+                    }
                 },
                 actions = {
                     IconButton(onClick = {
@@ -269,8 +290,6 @@ fun AdminExp() {
                     },
                     label = { Text("Profile", color = Color.White) }
                 )
-
-
             }
         }
     ) { padding ->
@@ -279,7 +298,7 @@ fun AdminExp() {
                 .padding(padding)
                 .fillMaxSize()
         ) {
-            // Tab Row for Items and User
+            // Tab Row for Metrics, Items and User
             TabRow(
                 selectedTabIndex = selectedTab,
                 containerColor = Color.White,
@@ -296,7 +315,7 @@ fun AdminExp() {
                     onClick = { selectedTab = 0 },
                     text = {
                         Text(
-                            "items",
+                            "user",
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Normal,
                             color = if (selectedTab == 0) Color.Black else Color.Gray
@@ -308,10 +327,22 @@ fun AdminExp() {
                     onClick = { selectedTab = 1 },
                     text = {
                         Text(
-                            "user",
+                            "metrics",
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Normal,
                             color = if (selectedTab == 1) Color.Black else Color.Gray
+                        )
+                    }
+                )
+                Tab(
+                    selected = selectedTab == 2,
+                    onClick = { selectedTab = 2 },
+                    text = {
+                        Text(
+                            "items",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Normal,
+                            color = if (selectedTab == 2) Color.Black else Color.Gray
                         )
                     }
                 )
@@ -324,8 +355,9 @@ fun AdminExp() {
                     .padding(16.dp)
             ) {
                 when (selectedTab) {
-                    0 -> ItemsContent(searchText = searchText)
-                    1 -> UsersContent(searchText = searchText)
+                    0 -> UsersContent(searchText = searchText)
+                    1 -> MetricsContent()
+                    2 -> ItemsContent(searchText = searchText)
                 }
             }
         }
@@ -333,8 +365,8 @@ fun AdminExp() {
 
     if (showPasswordDialog) {
         AlertDialog(
-            onDismissRequest = { 
-                showPasswordDialog = false 
+            onDismissRequest = {
+                showPasswordDialog = false
                 passwordInput = ""
             },
             title = { Text("Admin Access") },
@@ -370,7 +402,7 @@ fun AdminExp() {
             },
             dismissButton = {
                 Button(
-                    onClick = { 
+                    onClick = {
                         showPasswordDialog = false
                         passwordInput = ""
                     },
@@ -380,6 +412,302 @@ fun AdminExp() {
                 }
             }
         )
+    }
+}
+
+@Composable
+fun MetricsContent() {
+    val context = LocalContext.current
+    val userViewModel = remember { UserViewModel(UserRepoImpl()) }
+    val productViewModel = remember { ProductViewModel(ProductRepoImpl()) }
+    val notificationViewModel = remember { NotificationViewModel(NotificationRepoImpl()) }
+    val adminViewModel = remember { AdminViewModel(AdminRepoImpl()) }
+
+    val allUsers by userViewModel.allUsers.collectAsState()
+    val allProducts by productViewModel.allProducts.collectAsState()
+    val notifications by notificationViewModel.notifications.collectAsState()
+    val unreadCount by notificationViewModel.unreadCount.collectAsState()
+    val allAdmins by adminViewModel.allAdmins.collectAsState()
+
+    LaunchedEffect(Unit) {
+        userViewModel.getAllUser()
+        productViewModel.getAllProduct()
+        notificationViewModel.getAllNotifications()
+        notificationViewModel.getUnreadCount()
+        adminViewModel.getAllAdmins()
+    }
+
+    // User Metrics
+    val totalUsers = allUsers?.size ?: 0
+    val blockedUsers = allUsers?.count { it.isBlocked } ?: 0
+    val restrictedUsers = allUsers?.count { it.isRestricted } ?: 0
+
+    // Admin Metrics
+    val totalAdmins = allAdmins?.size ?: 0
+    val blockedAdmins = allAdmins?.count { it.isBlocked } ?: 0
+    val restrictedAdmins = allAdmins?.count { it.isRestricted } ?: 0
+
+    // Product Metrics
+    val totalProducts = allProducts?.size ?: 0
+    val listedProducts = allProducts?.count { it.isListed } ?: 0
+    val unlistedProducts = allProducts?.count { !it.isListed } ?: 0
+    val avgPrice = if (totalProducts > 0) {
+        val totalPrice = allProducts?.sumOf { it.price } ?: 0.0
+        totalPrice / totalProducts
+    } else {
+        0.0
+    }
+
+    // Notification Metrics
+    val totalNotifications = notifications?.size ?: 0
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        // User Metrics Section
+        Text(
+            text = "User Statistics",
+            fontSize = 20.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color.Black
+        )
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            MetricCard(
+                title = "Total Users",
+                value = "$totalUsers",
+                icon = painterResource(R.drawable.ic_user),
+                color = Greenish,
+                modifier = Modifier.weight(1f),
+                onClick = {
+                    val intent = Intent(context, AdminDashUser::class.java).apply {
+                        putExtra("target_tab", 0)
+                    }
+                    context.startActivity(intent)
+                }
+            )
+            MetricCard(
+                title = "Blocked",
+                value = "$blockedUsers",
+                icon = painterResource(R.drawable.ic_user),
+                color = Color.Red,
+                modifier = Modifier.weight(1f),
+                onClick = {
+                    val intent = Intent(context, AdminDashUser::class.java).apply {
+                        putExtra("target_tab", 2)
+                    }
+                    context.startActivity(intent)
+                }
+            )
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            MetricCard(
+                title = "Restricted",
+                value = "$restrictedUsers",
+                icon = painterResource(R.drawable.ic_user),
+                color = Color(0xFFFF9800),
+                modifier = Modifier.weight(1f),
+                onClick = {
+                    val intent = Intent(context, AdminDashUser::class.java).apply {
+                        putExtra("target_tab", 2)
+                    }
+                    context.startActivity(intent)
+                }
+
+            )
+            Spacer(modifier = Modifier.weight(1f))
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Admin Metrics Section
+        Text(
+            text = "Admin Statistics",
+            fontSize = 20.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color.Black
+        )
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            MetricCard(
+                title = "Total Admins",
+                value = "$totalAdmins",
+                icon = painterResource(R.drawable.ic_user),
+                color = Greenish,
+                modifier = Modifier.weight(1f)
+            )
+            MetricCard(
+                title = "Blocked",
+                value = "$blockedAdmins",
+                icon = painterResource(R.drawable.ic_user),
+                color = Color.Red,
+                modifier = Modifier.weight(1f)
+            )
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            MetricCard(
+                title = "Restricted",
+                value = "$restrictedAdmins",
+                icon = painterResource(R.drawable.ic_user),
+                color = Color(0xFFFF9800),
+                modifier = Modifier.weight(1f)
+            )
+            Spacer(modifier = Modifier.weight(1f))
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Product Metrics Section
+        Text(
+            text = "Product Statistics",
+            fontSize = 20.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color.Black
+        )
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            MetricCard(
+                title = "Total Products",
+                value = "$totalProducts",
+                icon = painterResource(R.drawable.ic_items),
+                color = Greenish,
+                modifier = Modifier.weight(1f),
+                onClick = {
+                    val intent = Intent(context, AdminDashItem::class.java)
+                    context.startActivity(intent)
+                }
+            )
+            MetricCard(
+                title = "Listed",
+                value = "$listedProducts",
+                icon = painterResource(R.drawable.ic_items),
+                color = DarkGreen,
+                modifier = Modifier.weight(1f),
+                onClick = {
+                    val intent = Intent(context, AdminDashItem::class.java).apply {
+                        putExtra("target_tab", 0)
+                    }
+                    context.startActivity(intent)
+                }
+
+
+
+
+            )
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            MetricCard(
+                title = "Unlisted",
+                value = "$unlistedProducts",
+                icon = painterResource(R.drawable.ic_items),
+                color = Color.Red,
+                modifier = Modifier.weight(1f),
+                onClick = {
+                    val intent = Intent(context, AdminDashItem::class.java).apply {
+                        putExtra("target_tab", 1)
+                    }
+                    context.startActivity(intent)
+                }
+            )
+            MetricCard(
+                title = "Avg Price",
+                value = "$${String.format("%.2f", avgPrice)}",
+                icon = painterResource(R.drawable.ic_items),
+                color = Color(0xFF4CAF50),
+                modifier = Modifier.weight(1f)
+            )
+        }
+
+        // Charts/Graphs placeholders removed as per request to focus on fetching values
+    }
+}
+
+@Composable
+fun MetricCard(
+    title: String,
+    value: String,
+    icon: Painter,
+    color: Color,
+    modifier: Modifier = Modifier,
+    onClick: (() -> Unit)? = null
+) {
+    Card(
+        modifier = if (onClick != null) {
+            modifier
+                .height(120.dp)
+                .clickable { onClick() }
+        } else {
+            modifier
+                .height(120.dp)
+        },
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color.White
+        ),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Top
+            ) {
+                Text(
+                    text = title,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = Color.Gray
+                )
+                Box(
+                    modifier = Modifier
+                        .size(32.dp)
+                        .background(color.copy(alpha = 0.1f), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        painter = icon,
+                        contentDescription = title,
+                        tint = color,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+            }
+            Text(
+                text = value,
+                fontSize = 28.sp,
+                fontWeight = FontWeight.Bold,
+                color = color
+            )
+        }
     }
 }
 
@@ -590,8 +918,8 @@ fun UsersContent(searchText: String) {
         allUsers ?: emptyList()
     } else {
         (allUsers ?: emptyList()).filter { user ->
-            user.userId.isNotEmpty() && user.name.isNotEmpty() && 
-            user.name.contains(searchText, ignoreCase = true)
+            user.userId.isNotEmpty() && user.name.isNotEmpty() &&
+                    user.name.contains(searchText, ignoreCase = true)
         }
     }
 
