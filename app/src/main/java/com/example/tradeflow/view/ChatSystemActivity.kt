@@ -11,26 +11,31 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Call
-import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import java.text.SimpleDateFormat
 import java.util.*
-import kotlin.random.Random
+
+
 
 class ChatSystemActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -42,6 +47,7 @@ class ChatSystemActivity : ComponentActivity() {
         }
     }
 }
+
 data class ChatMessage(
     val id: String = UUID.randomUUID().toString(),
     val text: String,
@@ -50,6 +56,7 @@ data class ChatMessage(
     var replyTo: ChatMessage? = null
 )
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChatScreen() {
     val context = LocalContext.current
@@ -58,14 +65,19 @@ fun ChatScreen() {
     val messages = remember { mutableStateListOf<ChatMessage>() }
     var showOptionsDialog by remember { mutableStateOf<ChatMessage?>(null) }
 
+    val listState = rememberLazyListState()
+
     fun sendMessage(text: String) {
         if (text.isNotBlank()) {
-            messages.add(ChatMessage(text = text, isMe = true, replyTo = replyMessage))
+            val newMsg = ChatMessage(text = text, isMe = true, replyTo = replyMessage)
+            messages.add(newMsg)
             replyMessage = null
-            messages.add(ChatMessage(text = "Auto reply ${Random.nextInt(100)}", isMe = false))
             messageText = ""
+
+
         }
     }
+
 
     Column(modifier = Modifier.fillMaxSize()) {
 
@@ -80,6 +92,7 @@ fun ChatScreen() {
                 .background(Color(0xFFECE5DD))
         ) {
             LazyColumn(
+                state = listState,
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(8.dp),
@@ -114,11 +127,14 @@ fun ChatScreen() {
         ChatInputBar(
             text = messageText,
             onTextChange = { messageText = it },
-            onSend = { sendMessage(messageText) }
+            onSend = { sendMessage(messageText) },
+            onAttachClick = {
+                // TODO: open attachment picker
+            }
         )
-    }
+}
 
-    showOptionsDialog?.let { msg ->
+        showOptionsDialog?.let { msg ->
         Dialog(onDismissRequest = { showOptionsDialog = null }) {
             Column(
                 modifier = Modifier
@@ -128,18 +144,14 @@ fun ChatScreen() {
                 TextButton(onClick = {
                     messages.remove(msg)
                     showOptionsDialog = null
-                }) {
-                    Text("Delete")
-                }
+                }) { Text("Delete") }
+
                 TextButton(onClick = {
                     replyMessage = msg
                     showOptionsDialog = null
-                }) {
-                    Text("Reply")
-                }
-                TextButton(onClick = { showOptionsDialog = null }) {
-                    Text("Cancel")
-                }
+                }) { Text("Reply") }
+
+                TextButton(onClick = { showOptionsDialog = null }) { Text("Cancel") }
             }
         }
     }
@@ -151,8 +163,9 @@ fun ChatTopBar(
     onCall: () -> Unit,
     onVideoCall: () -> Unit
 ) {
+    var expanded by remember { mutableStateOf(false) }
+
     TopAppBar(
-        colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF075E54)),
         title = {
             Column {
                 Text("TradeFlow", color = Color.White, fontSize = 16.sp)
@@ -160,18 +173,61 @@ fun ChatTopBar(
             }
         },
         actions = {
+
             IconButton(onClick = onCall) {
                 Icon(Icons.Default.Call, contentDescription = "Call", tint = Color.White)
             }
+
             IconButton(onClick = onVideoCall) {
                 Icon(Icons.Default.Videocam, contentDescription = "Video Call", tint = Color.White)
             }
-            IconButton(onClick = { }) {
-                Icon(Icons.Default.MoreVert, contentDescription = "More", tint = Color.White)
+
+            // 🔽 MORE MENU
+            Box {
+                IconButton(onClick = { expanded = true }) {
+                    Icon(
+                        Icons.Default.MoreVert,
+                        contentDescription = "More",
+                        tint = Color.White
+                    )
+                }
+
+                DropdownMenu(
+                    expanded = expanded,
+                    onDismissRequest = { expanded = false }
+                ) {
+
+                    DropdownMenuItem(
+                        text = { Text("Clear chat") },
+                        onClick = {
+                            expanded = false
+                            // TODO: clear messages
+                        }
+                    )
+
+                    DropdownMenuItem(
+                        text = { Text("Block user") },
+                        onClick = {
+                            expanded = false
+                            // TODO: block user
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Report") },
+                        onClick = {
+                            expanded = false
+                            // TODO: report user
+                        }
+                    )
+                }
             }
-        }
+        },
+        colors = TopAppBarDefaults.topAppBarColors(
+            containerColor = Color(0xFF075E54)
+        )
     )
 }
+
 
 @Composable
 fun MessageBubble(
@@ -179,52 +235,60 @@ fun MessageBubble(
     onLongPress: () -> Unit,
     onReply: () -> Unit
 ) {
+    val bubbleColor = if (message.isMe) Color(0xFF25D366) else Color.White
+    val textColor = if (message.isMe) Color.White else Color.Black
+    val alignment = if (message.isMe) Arrangement.End else Arrangement.Start
+
     Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = if (message.isMe) Arrangement.End else Arrangement.Start
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp, vertical = 2.dp),
+        horizontalArrangement = alignment
     ) {
-        Box(
+        Column(
             modifier = Modifier
-                .background(
-                    if (message.isMe) Color(0xFF25D366) else Color.White,
-                    RoundedCornerShape(16.dp)
-                )
-                .padding(10.dp)
+                .background(bubbleColor, RoundedCornerShape(16.dp))
+                .padding(horizontal = 12.dp, vertical = 8.dp)
                 .combinedClickable(
-                    onClick = {},
+                    onClick = { /* do nothing */ },
                     onLongClick = onLongPress
                 )
-                .widthIn(max = 280.dp)
+                .widthIn(max = 250.dp)
         ) {
-            Column {
-                message.replyTo?.let {
-                    Text(
-                        "Reply: ${it.text}",
-                        fontSize = 12.sp,
-                        color = Color.DarkGray
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                }
+            message.replyTo?.let {
                 Text(
-                    text = message.text,
-                    color = if (message.isMe) Color.White else Color.Black
+                    text = "Reply: ${it.text}",
+                    fontSize = 12.sp,
+                    color = Color.DarkGray,
+                    maxLines = 1
                 )
                 Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    formatTime(message.time),
-                    fontSize = 10.sp,
-                    color = Color.Gray
-                )
             }
+
+            Text(
+                text = message.text,
+                color = textColor,
+                fontSize = 16.sp
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = formatTime(message.time),
+                fontSize = 10.sp,
+                color = Color.Gray,
+                modifier = Modifier.align(Alignment.End)
+            )
         }
     }
 }
 
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChatInputBar(
     text: String,
     onTextChange: (String) -> Unit,
-    onSend: () -> Unit
+    onSend: () -> Unit,
+    onAttachClick: () -> Unit // New callback for plus button
 ) {
     Row(
         modifier = Modifier
@@ -232,17 +296,43 @@ fun ChatInputBar(
             .padding(8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
+        // Plus button for attachments
+        IconButton(
+            onClick = onAttachClick,
+            modifier = Modifier
+                .size(48.dp)
+                .background(Color(0xFF075E54), CircleShape)
+        ) {
+            Text("+", color = Color.White, fontSize = 24.sp)
+        }
+
+        Spacer(modifier = Modifier.width(8.dp))
+
+        // Message input field
         TextField(
             value = text,
             onValueChange = onTextChange,
-            modifier = Modifier.weight(1f),
-            placeholder = { Text("Message") },
+            placeholder = { Text("Message", color = Color.Gray) },
+            modifier = Modifier
+                .weight(1f)
+                .background(Color(0xFFF0F0F0), RoundedCornerShape(24.dp)), // light gray background
+            singleLine = true,
             shape = RoundedCornerShape(24.dp),
-            singleLine = true
+            keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Send),
+            keyboardActions = KeyboardActions(onSend = { onSend() }),
+            textStyle = TextStyle(fontSize = 16.sp, color = Color.Black),
+            colors = TextFieldDefaults.colors(
+                focusedContainerColor = Color.Transparent,
+                unfocusedContainerColor = Color.Transparent,
+                focusedIndicatorColor = Color.Transparent,
+                unfocusedIndicatorColor = Color.Transparent
+            )
         )
 
-        Spacer(modifier = Modifier.width(6.dp))
 
+        Spacer(modifier = Modifier.width(8.dp))
+
+        // Send button
         IconButton(
             onClick = onSend,
             modifier = Modifier
@@ -254,26 +344,20 @@ fun ChatInputBar(
     }
 }
 
-/* ---------------- API FUNCTIONS ---------------- */
+
 
 fun makePhoneCall(context: Context, number: String) {
-    val intent = Intent(Intent.ACTION_DIAL).apply {
-        data = Uri.parse("tel:$number")
-    }
+    val intent = Intent(Intent.ACTION_DIAL).apply { data = Uri.parse("tel:$number") }
     context.startActivity(intent)
 }
 
 fun openVideoCall(context: Context) {
-    val intent = Intent(Intent.ACTION_VIEW).apply {
-        data = Uri.parse("https://meet.google.com")
-    }
+    val intent = Intent(Intent.ACTION_VIEW).apply { data = Uri.parse("https://meet.google.com") }
     context.startActivity(intent)
 }
 
-fun formatTime(time: Long): String {
-    return SimpleDateFormat("hh:mm a", Locale.getDefault()).format(Date(time))
-}
-
+fun formatTime(time: Long): String =
+    SimpleDateFormat("hh:mm a", Locale.getDefault()).format(Date(time))
 
 @Preview(showBackground = true)
 @Composable
