@@ -143,7 +143,8 @@ fun AdminUserScreen(initialTab: Int = 0, onBackClick: () -> Unit = {}) {
                     IconButton(onClick = onBackClick) {
                         Icon(
                             painter = painterResource(id = R.drawable.ic_back),
-                            contentDescription = "Back"
+                            contentDescription = "Back",
+                            tint = Color.White
                         )
                     }
                 },

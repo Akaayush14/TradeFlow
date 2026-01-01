@@ -102,7 +102,8 @@ fun AdminProfileScreen(onBackClick: () -> Unit = {}) {
                     IconButton(onClick = onBackClick) {
                         Icon(
                             painter = painterResource(id = R.drawable.ic_back),
-                            contentDescription = "Back"
+                            contentDescription = "Back",
+                            tint = Color.White
                         )
                     }
                 },
