@@ -84,6 +84,7 @@ import com.example.tradeflow.repository.NotificationRepoImpl
 import com.example.tradeflow.repository.UserRepoImpl
 import com.example.tradeflow.ui.theme.DarkGreen
 import com.example.tradeflow.ui.theme.Greenish
+import com.example.tradeflow.ui.theme.White
 import com.example.tradeflow.viewmodel.NotificationViewModel
 import com.example.tradeflow.viewmodel.UserViewModel
 
@@ -155,7 +156,7 @@ fun AdminUserScreen(initialTab: Int = 0, onBackClick: () -> Unit = {}) {
                     ) {
                         Text(
                             text = "User",
-                            color = DarkGreen,
+                            color = White,
                             style = MaterialTheme.typography.titleLarge
                         )
                     }
