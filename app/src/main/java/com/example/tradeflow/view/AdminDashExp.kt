@@ -8,6 +8,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.MutatorMutex
 import androidx.compose.foundation.background
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
@@ -49,7 +50,6 @@ import androidx.compose.material3.TabRowDefaults
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -72,6 +72,33 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.AnimationSpec
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.unit.Velocity
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.animation.core.animate
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.ui.unit.IntOffset
+import kotlin.math.roundToInt
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Surface
+import kotlinx.coroutines.delay
+
 import com.example.tradeflow.R
 import com.example.tradeflow.model.NotificationModel
 import com.example.tradeflow.model.ProductModel
@@ -431,6 +458,8 @@ fun MetricsContent(onRequireAdminAccess: () -> Unit) {
     val notifications by notificationViewModel.notifications.collectAsState()
     val unreadCount by notificationViewModel.unreadCount.collectAsState()
     val allAdmins by adminViewModel.allAdmins.collectAsState()
+    
+    val coroutineScope = rememberCoroutineScope()
 
     LaunchedEffect(Unit) {
         userViewModel.getAllUser()
@@ -465,211 +494,225 @@ fun MetricsContent(onRequireAdminAccess: () -> Unit) {
     val totalNotifications = notifications?.size ?: 0
 
     val hasInternet = isInternetAvailableExp(context)
-    if (!hasInternet) {
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
-        ) {
-            Image(
-                painter = painterResource(R.drawable.no_internet),
-                contentDescription = null
-            )
+    val scrollState = rememberScrollState()
+    var isRefreshing by remember { mutableStateOf(false) }
+
+    PullToRefreshLayout(
+        isRefreshing = isRefreshing,
+        onRefresh = {
+            isRefreshing = true
+            coroutineScope.launch {
+                userViewModel.getAllUser()
+                productViewModel.getAllProduct()
+                notificationViewModel.getAllNotifications()
+                notificationViewModel.getUnreadCount()
+                adminViewModel.getAllAdmins()
+                delay(1000) // Simulate delay for better UI
+                isRefreshing = false
+            }
         }
-    } else if (totalUsers == 0 && totalAdmins == 0 && totalProducts == 0) {
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
-        ) {
-            Image(
-                painter = painterResource(R.drawable.no_data),
-                contentDescription = null
-            )
-        }
-    } else {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-        // User Metrics Section
-        Text(
-            text = "User Statistics",
-            fontSize = 20.sp,
-            fontWeight = FontWeight.Bold,
-            color = Color.Black
-        )
+    ) {
+        if (!hasInternet) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Image(
+                    painter = painterResource(R.drawable.no_internet),
+                    contentDescription = null
+                )
+            }
+        } else if (totalUsers == 0 && totalAdmins == 0 && totalProducts == 0) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Image(
+                    painter = painterResource(R.drawable.no_data),
+                    contentDescription = null
+                )
+            }
+        } else {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(scrollState),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                // User Metrics Section
+                Text(
+                    text = "User Statistics",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Black
+                )
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            MetricCard(
-                title = "Total Users",
-                value = "$totalUsers",
-                icon = painterResource(R.drawable.ic_user),
-                color = Greenish,
-                modifier = Modifier.weight(1f),
-                onClick = {
-                    val intent = Intent(context, AdminDashUser::class.java).apply {
-                        putExtra("target_tab", 0)
-                    }
-                    context.startActivity(intent)
-                }
-            )
-            MetricCard(
-                title = "Blocked",
-                value = "$blockedUsers",
-                icon = painterResource(R.drawable.ic_user),
-                color = Color.Red,
-                modifier = Modifier.weight(1f),
-                onClick = {
-                    val intent = Intent(context, AdminDashUser::class.java).apply {
-                        putExtra("target_tab", 2)
-                    }
-                    context.startActivity(intent)
-                }
-            )
-        }
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            MetricCard(
-                title = "Restricted",
-                value = "$restrictedUsers",
-                icon = painterResource(R.drawable.ic_user),
-                color = Color(0xFFFF9800),
-                modifier = Modifier.weight(1f),
-                onClick = {
-                    val intent = Intent(context, AdminDashUser::class.java).apply {
-                        putExtra("target_tab", 2)
-                    }
-                    context.startActivity(intent)
-                }
-
-            )
-            Spacer(modifier = Modifier.weight(1f))
-        }
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        // Admin Metrics Section
-        Text(
-            text = "Admin Statistics",
-            fontSize = 20.sp,
-            fontWeight = FontWeight.Bold,
-            color = Color.Black
-        )
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            MetricCard(
-                title = "Total Admins",
-                value = "$totalAdmins",
-                icon = painterResource(R.drawable.ic_user),
-                color = Greenish,
-                modifier = Modifier.weight(1f),
-                onClick = { onRequireAdminAccess() }
-            )
-            MetricCard(
-                title = "Blocked",
-                value = "$blockedAdmins",
-                icon = painterResource(R.drawable.ic_user),
-                color = Color.Red,
-                modifier = Modifier.weight(1f),
-                onClick = { onRequireAdminAccess() }
-            )
-        }
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            MetricCard(
-                title = "Restricted",
-                value = "$restrictedAdmins",
-                icon = painterResource(R.drawable.ic_user),
-                color = Color(0xFFFF9800),
-                modifier = Modifier.weight(1f),
-                onClick = { onRequireAdminAccess() }
-            )
-            Spacer(modifier = Modifier.weight(1f))
-        }
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        // Product Metrics Section
-        Text(
-            text = "Product Statistics",
-            fontSize = 20.sp,
-            fontWeight = FontWeight.Bold,
-            color = Color.Black
-        )
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            MetricCard(
-                title = "Total Products",
-                value = "$totalProducts",
-                icon = painterResource(R.drawable.ic_items),
-                color = Greenish,
-                modifier = Modifier.weight(1f),
-                onClick = {
-                    val intent = Intent(context, AdminDashItem::class.java)
-                    context.startActivity(intent)
-                }
-            )
-            MetricCard(
-                title = "Listed",
-                value = "$listedProducts",
-                icon = painterResource(R.drawable.ic_items),
-                color = DarkGreen,
-                modifier = Modifier.weight(1f),
-                onClick = {
-                    val intent = Intent(context, AdminDashItem::class.java).apply {
-                        putExtra("target_tab", 0)
-                    }
-                    context.startActivity(intent)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    MetricCard(
+                        title = "Total Users",
+                        value = "$totalUsers",
+                        icon = painterResource(R.drawable.ic_user),
+                        color = Greenish,
+                        modifier = Modifier.weight(1f),
+                        onClick = {
+                            val intent = Intent(context, AdminDashUser::class.java).apply {
+                                putExtra("target_tab", 0)
+                            }
+                            context.startActivity(intent)
+                        }
+                    )
+                    MetricCard(
+                        title = "Blocked",
+                        value = "$blockedUsers",
+                        icon = painterResource(R.drawable.ic_user),
+                        color = Color.Red,
+                        modifier = Modifier.weight(1f),
+                        onClick = {
+                            val intent = Intent(context, AdminDashUser::class.java).apply {
+                                putExtra("target_tab", 2)
+                            }
+                            context.startActivity(intent)
+                        }
+                    )
                 }
 
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    MetricCard(
+                        title = "Restricted",
+                        value = "$restrictedUsers",
+                        icon = painterResource(R.drawable.ic_user),
+                        color = Color(0xFFFF9800),
+                        modifier = Modifier.weight(1f),
+                        onClick = {
+                            val intent = Intent(context, AdminDashUser::class.java).apply {
+                                putExtra("target_tab", 2)
+                            }
+                            context.startActivity(intent)
+                        }
 
-
-
-            )
-        }
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            MetricCard(
-                title = "Unlisted",
-                value = "$unlistedProducts",
-                icon = painterResource(R.drawable.ic_items),
-                color = Color.Red,
-                modifier = Modifier.weight(1f),
-                onClick = {
-                    val intent = Intent(context, AdminDashItem::class.java).apply {
-                        putExtra("target_tab", 1)
-                    }
-                    context.startActivity(intent)
+                    )
+                    Spacer(modifier = Modifier.weight(1f))
                 }
-            )
-            MetricCard(
-                title = "Avg Price",
-                value = "$${String.format("%.2f", avgPrice)}",
-                icon = painterResource(R.drawable.ic_items),
-                color = Color(0xFF4CAF50),
-                modifier = Modifier.weight(1f)
-            )
-        }
 
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Admin Metrics Section
+                Text(
+                    text = "Admin Statistics",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Black
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    MetricCard(
+                        title = "Total Admins",
+                        value = "$totalAdmins",
+                        icon = painterResource(R.drawable.ic_user),
+                        color = Greenish,
+                        modifier = Modifier.weight(1f),
+                        onClick = { onRequireAdminAccess() }
+                    )
+                    MetricCard(
+                        title = "Blocked",
+                        value = "$blockedAdmins",
+                        icon = painterResource(R.drawable.ic_user),
+                        color = Color.Red,
+                        modifier = Modifier.weight(1f),
+                        onClick = { onRequireAdminAccess() }
+                    )
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    MetricCard(
+                        title = "Restricted",
+                        value = "$restrictedAdmins",
+                        icon = painterResource(R.drawable.ic_user),
+                        color = Color(0xFFFF9800),
+                        modifier = Modifier.weight(1f),
+                        onClick = { onRequireAdminAccess() }
+                    )
+                    Spacer(modifier = Modifier.weight(1f))
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Product Metrics Section
+                Text(
+                    text = "Product Statistics",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Black
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    MetricCard(
+                        title = "Total Products",
+                        value = "$totalProducts",
+                        icon = painterResource(R.drawable.ic_items),
+                        color = Greenish,
+                        modifier = Modifier.weight(1f),
+                        onClick = {
+                            val intent = Intent(context, AdminDashItem::class.java)
+                            context.startActivity(intent)
+                        }
+                    )
+                    MetricCard(
+                        title = "Listed",
+                        value = "$listedProducts",
+                        icon = painterResource(R.drawable.ic_items),
+                        color = DarkGreen,
+                        modifier = Modifier.weight(1f),
+                        onClick = {
+                            val intent = Intent(context, AdminDashItem::class.java).apply {
+                                putExtra("target_tab", 0)
+                            }
+                            context.startActivity(intent)
+                        }
+                    )
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    MetricCard(
+                        title = "Unlisted",
+                        value = "$unlistedProducts",
+                        icon = painterResource(R.drawable.ic_items),
+                        color = Color.Red,
+                        modifier = Modifier.weight(1f),
+                        onClick = {
+                            val intent = Intent(context, AdminDashItem::class.java).apply {
+                                putExtra("target_tab", 1)
+                            }
+                            context.startActivity(intent)
+                        }
+                    )
+                    MetricCard(
+                        title = "Avg Price",
+                        value = "$${String.format("%.2f", avgPrice)}",
+                        icon = painterResource(R.drawable.ic_items),
+                        color = Color(0xFF4CAF50),
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
         }
     }
 }
@@ -749,6 +792,9 @@ fun ItemsContent(searchText: String) {
     var showUnlistDialog by remember { mutableStateOf<ProductModel?>(null) }
     var showListDialog by remember { mutableStateOf<ProductModel?>(null) }
     var showDeleteDialog by remember { mutableStateOf<ProductModel?>(null) }
+    val listState = rememberLazyListState()
+    var isRefreshing by remember { mutableStateOf(false) }
+    val coroutineScope = rememberCoroutineScope()
 
     LaunchedEffect(Unit) {
         productViewModel.getAllProduct()
@@ -762,41 +808,55 @@ fun ItemsContent(searchText: String) {
             product.name.contains(searchText, ignoreCase = true)
         }
     }
-    if (!hasInternet) {
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
-        ) {
-            Image(
-                painter = painterResource(R.drawable.no_internet),
-                contentDescription = null
-            )
+
+    PullToRefreshLayout(
+        isRefreshing = isRefreshing,
+        onRefresh = {
+            isRefreshing = true
+            coroutineScope.launch {
+                productViewModel.getAllProduct()
+                delay(1000)
+                isRefreshing = false
+            }
         }
-    } else if (products.isEmpty()) {
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
-        ) {
-            Image(
-                painter = painterResource(R.drawable.no_data),
-                contentDescription = null
-            )
-        }
-    } else {
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            items(
-                items = products,
-                key = { it.productId }
-            ) { product ->
-                ItemCardExp(
-                    product = product,
-                    onListClick = { showListDialog = product },
-                    onUnlistClick = { showUnlistDialog = product },
-                    onDeleteClick = { showDeleteDialog = product }
+    ) {
+        if (!hasInternet) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Image(
+                    painter = painterResource(R.drawable.no_internet),
+                    contentDescription = null
                 )
+            }
+        } else if (products.isEmpty()) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Image(
+                    painter = painterResource(R.drawable.no_data),
+                    contentDescription = null
+                )
+            }
+        } else {
+            LazyColumn(
+                state = listState,
+                modifier = Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                items(
+                    items = products,
+                    key = { it.productId }
+                ) { product ->
+                    ItemCardExp(
+                        product = product,
+                        onListClick = { showListDialog = product },
+                        onUnlistClick = { showUnlistDialog = product },
+                        onDeleteClick = { showDeleteDialog = product }
+                    )
+                }
             }
         }
     }
@@ -950,6 +1010,10 @@ fun UsersContent(searchText: String) {
     }
 
     val hasInternet = isInternetAvailableExp(context)
+    val listState = rememberLazyListState()
+    var isRefreshing by remember { mutableStateOf(false) }
+    val coroutineScope = rememberCoroutineScope()
+    
     val users = if (searchText.isBlank()) {
         allUsers ?: emptyList()
     } else {
@@ -958,41 +1022,55 @@ fun UsersContent(searchText: String) {
                     user.name.contains(searchText, ignoreCase = true)
         }
     }
-    if (!hasInternet) {
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
-        ) {
-            Image(
-                painter = painterResource(R.drawable.no_internet),
-                contentDescription = null
-            )
+
+    PullToRefreshLayout(
+        isRefreshing = isRefreshing,
+        onRefresh = {
+            isRefreshing = true
+            coroutineScope.launch {
+                userViewModel.getAllUser()
+                delay(1000)
+                isRefreshing = false
+            }
         }
-    } else if (users.isEmpty()) {
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
-        ) {
-            Image(
-                painter = painterResource(R.drawable.no_data),
-                contentDescription = null
-            )
-        }
-    } else {
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            items(
-                items = users,
-                key = { it.userId }
-            ) { user ->
-                UserCardExp(
-                    user = user,
-                    onDeleteClick = { showDeleteDialog = user },
-                    onBlockClick = { showBlockDialog = user },
-                    onRestrictClick = { showRestrictDialog = user }
+    ) {
+        if (!hasInternet) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Image(
+                    painter = painterResource(R.drawable.no_internet),
+                    contentDescription = null
                 )
+            }
+        } else if (users.isEmpty()) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Image(
+                    painter = painterResource(R.drawable.no_data),
+                    contentDescription = null
+                )
+            }
+        } else {
+            LazyColumn(
+                state = listState,
+                modifier = Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                items(
+                    items = users,
+                    key = { it.userId }
+                ) { user ->
+                    UserCardExp(
+                        user = user,
+                        onDeleteClick = { showDeleteDialog = user },
+                        onBlockClick = { showBlockDialog = user },
+                        onRestrictClick = { showRestrictDialog = user }
+                    )
+                }
             }
         }
     }
@@ -1420,6 +1498,144 @@ fun BadgedNotificationIconExp(
                     fontWeight = FontWeight.Bold
                 )
             }
+        }
+    }
+}
+
+@Composable
+fun PullToRefreshLayout(
+    isRefreshing: Boolean,
+    onRefresh: () -> Unit,
+    content: @Composable () -> Unit
+) {
+    val density = LocalDensity.current
+    val triggerDistance = with(density) { 160.dp.toPx() }
+    val maxDragDistance = with(density) { 200.dp.toPx() }
+    
+    var pullOffset by remember { mutableFloatStateOf(0f) }
+    val mutatorMutex = remember { MutatorMutex() }
+    val coroutineScope = rememberCoroutineScope()
+    var animationJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
+    
+    val nestedScrollConnection = remember {
+        object : NestedScrollConnection {
+            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+                if (source == NestedScrollSource.Drag) {
+                    animationJob?.cancel()
+                }
+                if (available.y < 0 && pullOffset > 0) {
+                    val newOffset = (pullOffset + available.y).coerceAtLeast(0f)
+                    val consumed = newOffset - pullOffset
+                    pullOffset = newOffset
+                    return Offset(0f, consumed)
+                }
+                return Offset.Zero
+            }
+
+            override fun onPostScroll(
+                consumed: Offset,
+                available: Offset,
+                source: NestedScrollSource
+            ): Offset {
+                if (source == NestedScrollSource.Drag) {
+                    animationJob?.cancel()
+                }
+                if (available.y > 0) {
+                    val dragMultiplier = 0.25f
+                    val newOffset = (pullOffset + available.y * dragMultiplier).coerceAtMost(maxDragDistance)
+                    pullOffset = newOffset
+                    return Offset(0f, available.y) 
+                }
+                return Offset.Zero
+            }
+
+            override suspend fun onPreFling(available: Velocity): Velocity {
+                animationJob?.cancel()
+                val target = if (pullOffset >= triggerDistance) {
+                    onRefresh()
+                    triggerDistance
+                } else {
+                    0f
+                }
+                animationJob = coroutineScope.launch {
+                    mutatorMutex.mutate {
+                        val animSpec: AnimationSpec<Float> = if (target == 0f) {
+                            tween(durationMillis = 150)
+                        } else {
+                            spring()
+                        }
+                        animate(pullOffset, target, animationSpec = animSpec) { value, _ ->
+                            pullOffset = value
+                        }
+                    }
+                }
+                return Velocity.Zero
+            }
+        }
+    }
+
+    LaunchedEffect(isRefreshing) {
+        if (!isRefreshing) {
+            mutatorMutex.mutate {
+                 animate(pullOffset, 0f, animationSpec = tween(durationMillis = 200)) { value, _ ->
+                    pullOffset = value
+                }
+            }
+        }
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .nestedScroll(nestedScrollConnection)
+    ) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            content()
+        }
+
+        if (pullOffset > 0 || isRefreshing) {
+             val progress = (pullOffset / triggerDistance).coerceIn(0f, 1f)
+             // Scale and alpha animation to hide on slight scroll
+             val animatedScale = if (isRefreshing) 1f else progress.coerceIn(0f, 1f)
+             val animatedAlpha = if (isRefreshing) 1f else (progress * 2).coerceIn(0f, 1f)
+
+             Box(
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .offset { IntOffset(0, (pullOffset).roundToInt()) } 
+                    .padding(top = 16.dp)
+                    .graphicsLayer {
+                        scaleX = animatedScale
+                        scaleY = animatedScale
+                        alpha = animatedAlpha
+                    }
+             ) {
+                 Surface(
+                     shape = CircleShape,
+                     color = Color.White,
+                     shadowElevation = 4.dp,
+                     modifier = Modifier.size(40.dp)
+                 ) {
+                     Box(contentAlignment = Alignment.Center) {
+                         if (isRefreshing) {
+                             CircularProgressIndicator(
+                                 modifier = Modifier.size(24.dp),
+                                 color = DarkGreen,
+                                 strokeWidth = 2.dp
+                             )
+                         } else {
+                             Icon(
+                                 painter = painterResource(R.drawable.ic_refresh),
+                                 contentDescription = "Pull to refresh",
+                                 tint = DarkGreen,
+                                 modifier = Modifier
+                                     .size(24.dp)
+                                     .rotate(progress * 360f)
+                             )
+                         }
+                     }
+                 }
+             }
         }
     }
 }

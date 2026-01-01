@@ -43,6 +43,23 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.ui.draw.rotate
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.drag
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import kotlin.math.abs
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -335,46 +352,62 @@ fun NoneContent() {
     }
 
     val hasInternet = isInternetAvailable(context)
+    val listState = rememberLazyListState()
+    var isRefreshing by remember { mutableStateOf(false) }
+    val coroutineScope = rememberCoroutineScope()
     // Filter users with no restrictions and no blocks (normal users)
     val noneUsers = allUsers?.filter { 
         it.userId.isNotEmpty() && it.name.isNotEmpty() && !it.isBlocked && !it.isRestricted 
     } ?: emptyList()
 
-    if (!hasInternet) {
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
-        ) {
-            Image(
-                painter = painterResource(R.drawable.no_internet),
-                contentDescription = null
-            )
+    PullToRefreshLayout(
+        isRefreshing = isRefreshing,
+        onRefresh = {
+            isRefreshing = true
+            coroutineScope.launch {
+                userViewModel.getAllUser()
+                delay(800)
+                isRefreshing = false
+            }
         }
-    } else if (noneUsers.isEmpty()) {
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
-        ) {
-            Image(
-                painter = painterResource(R.drawable.no_data),
-                contentDescription = null
-            )
-        }
-    } else {
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            items(
-                items = noneUsers,
-                key = { it.userId }
-            ) { user ->
-                UserCardUser(
-                    user = user,
-                    onDeleteClick = { showDeleteDialog = user },
-                    onBlockClick = { showBlockDialog = user },
-                    onRestrictClick = { showRestrictDialog = user }
+    ) {
+        if (!hasInternet) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Image(
+                    painter = painterResource(R.drawable.no_internet),
+                    contentDescription = null
                 )
+            }
+        } else if (noneUsers.isEmpty()) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Image(
+                    painter = painterResource(R.drawable.no_data),
+                    contentDescription = null
+                )
+            }
+        } else {
+            LazyColumn(
+                state = listState,
+                modifier = Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                items(
+                    items = noneUsers,
+                    key = { it.userId }
+                ) { user ->
+                    UserCardUser(
+                        user = user,
+                        onDeleteClick = { showDeleteDialog = user },
+                        onBlockClick = { showBlockDialog = user },
+                        onRestrictClick = { showRestrictDialog = user }
+                    )
+                }
             }
         }
     }
@@ -396,7 +429,7 @@ fun NoneContent() {
 fun RestrictedContent() {
     val context = LocalContext.current
     val userViewModel = remember { UserViewModel(UserRepoImpl()) }
-    val notificationViewModel = remember { NotificationViewModel(NotificationRepoImpl()) }
+    val notificationViewModel = remember { NotificationRepoImpl() }.let { NotificationViewModel(it) }
     val allUsers by userViewModel.allUsers.collectAsState()
 
     var showDeleteDialog by remember { mutableStateOf<UserModel?>(null) }
@@ -408,46 +441,62 @@ fun RestrictedContent() {
     }
 
     val hasInternet = isInternetAvailable(context)
+    val listState = rememberLazyListState()
+    var isRefreshing by remember { mutableStateOf(false) }
+    val coroutineScope = rememberCoroutineScope()
     // Filter restricted users
     val restrictedUsers = allUsers?.filter { 
         it.userId.isNotEmpty() && it.name.isNotEmpty() && it.isRestricted 
     } ?: emptyList()
 
-    if (!hasInternet) {
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
-        ) {
-            Image(
-                painter = painterResource(R.drawable.no_internet),
-                contentDescription = null
-            )
+    PullToRefreshLayout(
+        isRefreshing = isRefreshing,
+        onRefresh = {
+            isRefreshing = true
+            coroutineScope.launch {
+                userViewModel.getAllUser()
+                delay(800)
+                isRefreshing = false
+            }
         }
-    } else if (restrictedUsers.isEmpty()) {
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
-        ) {
-            Image(
-                painter = painterResource(R.drawable.no_data),
-                contentDescription = null
-            )
-        }
-    } else {
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            items(
-                items = restrictedUsers,
-                key = { it.userId }
-            ) { user ->
-                UserCardUser(
-                    user = user,
-                    onDeleteClick = { showDeleteDialog = user },
-                    onBlockClick = { showBlockDialog = user },
-                    onRestrictClick = { showRestrictDialog = user }
+    ) {
+        if (!hasInternet) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Image(
+                    painter = painterResource(R.drawable.no_internet),
+                    contentDescription = null
                 )
+            }
+        } else if (restrictedUsers.isEmpty()) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Image(
+                    painter = painterResource(R.drawable.no_data),
+                    contentDescription = null
+                )
+            }
+        } else {
+            LazyColumn(
+                state = listState,
+                modifier = Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                items(
+                    items = restrictedUsers,
+                    key = { it.userId }
+                ) { user ->
+                    UserCardUser(
+                        user = user,
+                        onDeleteClick = { showDeleteDialog = user },
+                        onBlockClick = { showBlockDialog = user },
+                        onRestrictClick = { showRestrictDialog = user }
+                    )
+                }
             }
         }
     }
@@ -481,46 +530,62 @@ fun BlockedContent() {
     }
 
     val hasInternet = isInternetAvailable(context)
+    val listState = rememberLazyListState()
+    var isRefreshing by remember { mutableStateOf(false) }
+    val coroutineScope = rememberCoroutineScope()
     // Filter blocked users
     val blockedUsers = allUsers?.filter { 
         it.userId.isNotEmpty() && it.name.isNotEmpty() && it.isBlocked 
     } ?: emptyList()
 
-    if (!hasInternet) {
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
-        ) {
-            Image(
-                painter = painterResource(R.drawable.no_internet),
-                contentDescription = null
-            )
+    PullToRefreshLayout(
+        isRefreshing = isRefreshing,
+        onRefresh = {
+            isRefreshing = true
+            coroutineScope.launch {
+                userViewModel.getAllUser()
+                delay(800)
+                isRefreshing = false
+            }
         }
-    } else if (blockedUsers.isEmpty()) {
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
-        ) {
-            Image(
-                painter = painterResource(R.drawable.no_data),
-                contentDescription = null
-            )
-        }
-    } else {
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            items(
-                items = blockedUsers,
-                key = { it.userId }
-            ) { user ->
-                UserCardUser(
-                    user = user,
-                    onDeleteClick = { showDeleteDialog = user },
-                    onBlockClick = { showBlockDialog = user },
-                    onRestrictClick = { showRestrictDialog = user }
+    ) {
+        if (!hasInternet) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Image(
+                    painter = painterResource(R.drawable.no_internet),
+                    contentDescription = null
                 )
+            }
+        } else if (blockedUsers.isEmpty()) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Image(
+                    painter = painterResource(R.drawable.no_data),
+                    contentDescription = null
+                )
+            }
+        } else {
+            LazyColumn(
+                state = listState,
+                modifier = Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                items(
+                    items = blockedUsers,
+                    key = { it.userId }
+                ) { user ->
+                    UserCardUser(
+                        user = user,
+                        onDeleteClick = { showDeleteDialog = user },
+                        onBlockClick = { showBlockDialog = user },
+                        onRestrictClick = { showRestrictDialog = user }
+                    )
+                }
             }
         }
     }
@@ -545,6 +610,36 @@ fun isInternetAvailable(context: android.content.Context): Boolean {
     return capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) ||
             capabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) ||
             capabilities.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)
+}
+
+@Composable
+fun RefreshSpinnerUser() {
+    val transition = rememberInfiniteTransition(label = "refresh")
+    val rotation = transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(tween(900, easing = LinearEasing)),
+        label = "rotation"
+    )
+    Box(
+        modifier = Modifier
+            .fillMaxWidth(),
+        contentAlignment = Alignment.TopCenter
+    ) {
+        Box(
+            modifier = Modifier
+                .size(36.dp)
+                .background(Color.White, CircleShape),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                painter = painterResource(R.drawable.ic_refresh),
+                contentDescription = "Refreshing",
+                tint = DarkGreen,
+                modifier = Modifier.size(20.dp).rotate(rotation.value)
+            )
+        }
+    }
 }
 
 @Composable

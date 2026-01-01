@@ -42,6 +42,26 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.foundation.background
+import androidx.compose.ui.draw.rotate
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.drag
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import kotlin.math.abs
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -196,41 +216,57 @@ fun AdminListContent() {
     val context = LocalContext.current
     val viewModel = remember { AdminViewModel(AdminRepoImpl()) }
     val admins by viewModel.allAdmins.collectAsState()
+    val listState = rememberLazyListState()
+    var isRefreshing by remember { mutableStateOf(false) }
+    val coroutineScope = rememberCoroutineScope()
 
     LaunchedEffect(Unit) {
         viewModel.getAllAdmins()
     }
 
     val hasInternet = isInternetAvailableAdmin(context)
-    if (!hasInternet) {
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
-        ) {
-            Image(
-                painter = painterResource(R.drawable.no_internet),
-                contentDescription = null
-            )
+    PullToRefreshLayout(
+        isRefreshing = isRefreshing,
+        onRefresh = {
+            isRefreshing = true
+            coroutineScope.launch {
+                viewModel.getAllAdmins()
+                delay(800)
+                isRefreshing = false
+            }
         }
-    } else if (admins == null || admins!!.isEmpty()) {
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
-        ) {
-            Image(
-                painter = painterResource(R.drawable.no_data),
-                contentDescription = null
-            )
-        }
-    } else {
-        LazyColumn(
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            items(admins!!) { admin ->
-                AdminCard(
-                    admin = admin,
-                    viewModel = viewModel
+    ) {
+        if (!hasInternet) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Image(
+                    painter = painterResource(R.drawable.no_internet),
+                    contentDescription = null
                 )
+            }
+        } else if (admins == null || admins!!.isEmpty()) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Image(
+                    painter = painterResource(R.drawable.no_data),
+                    contentDescription = null
+                )
+            }
+        } else {
+            LazyColumn(
+                state = listState,
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                items(admins!!) { admin ->
+                    AdminCard(
+                        admin = admin,
+                        viewModel = viewModel
+                    )
+                }
             }
         }
     }
@@ -527,6 +563,35 @@ fun AdminCard(
                     Text("Delete", fontSize = 12.sp)
                 }
             }
+        }
+    }
+}
+@Composable
+fun RefreshSpinnerAdmin() {
+    val transition = rememberInfiniteTransition(label = "refresh")
+    val rotation = transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(tween(900, easing = LinearEasing)),
+        label = "rotation"
+    )
+    Box(
+        modifier = Modifier
+            .fillMaxWidth(),
+        contentAlignment = Alignment.TopCenter
+    ) {
+        Box(
+            modifier = Modifier
+                .size(36.dp)
+                .background(Color.White, CircleShape),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                painter = painterResource(R.drawable.ic_refresh),
+                contentDescription = "Refreshing",
+                tint = DarkGreen,
+                modifier = Modifier.size(20.dp).rotate(rotation.value)
+            )
         }
     }
 }

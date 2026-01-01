@@ -61,6 +61,23 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.ui.draw.rotate
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.drag
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import kotlin.math.abs
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
 import com.example.tradeflow.R
 import com.example.tradeflow.model.NotificationModel
 import com.example.tradeflow.model.ProductModel
@@ -314,50 +331,65 @@ fun ListedItemsContent() {
 
     var showUnlistDialog by remember { mutableStateOf<ProductModel?>(null) }
     var showDeleteDialog by remember { mutableStateOf<ProductModel?>(null) }
+    val listState = rememberLazyListState()
+    var isRefreshing by remember { mutableStateOf(false) }
+    val coroutineScope = rememberCoroutineScope()
 
     LaunchedEffect(Unit) {
         productViewModel.getAllProduct()
     }
 
     val hasInternet = isInternetAvailableItem(context)
-    // Filter only listed items (isListed = true)
     val listedProducts = allProducts?.filter { it.isListed } ?: emptyList()
 
-    if (!hasInternet) {
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
-        ) {
-            Image(
-                painter = painterResource(R.drawable.no_internet),
-                contentDescription = null
-            )
+    PullToRefreshLayout(
+        isRefreshing = isRefreshing,
+        onRefresh = {
+            isRefreshing = true
+            coroutineScope.launch {
+                productViewModel.getAllProduct()
+                delay(800)
+                isRefreshing = false
+            }
         }
-    } else if (listedProducts.isEmpty()) {
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
-        ) {
-            Image(
-                painter = painterResource(R.drawable.no_data),
-                contentDescription = null
-            )
-        }
-    } else {
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            items(
-                items = listedProducts,
-                key = { it.productId }
-            ) { product ->
-                ItemCardItem(
-                    product = product,
-                    onListClick = { },
-                    onUnlistClick = { showUnlistDialog = product },
-                    onDeleteClick = { showDeleteDialog = product }
+    ) {
+        if (!hasInternet) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Image(
+                    painter = painterResource(R.drawable.no_internet),
+                    contentDescription = null
                 )
+            }
+        } else if (listedProducts.isEmpty()) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Image(
+                    painter = painterResource(R.drawable.no_data),
+                    contentDescription = null
+                )
+            }
+        } else {
+            LazyColumn(
+                state = listState,
+                modifier = Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                items(
+                    items = listedProducts,
+                    key = { it.productId }
+                ) { product ->
+                    ItemCardItem(
+                        product = product,
+                        onListClick = { },
+                        onUnlistClick = { showUnlistDialog = product },
+                        onDeleteClick = { showDeleteDialog = product }
+                    )
+                }
             }
         }
     }
@@ -460,50 +492,65 @@ fun UnlistedItemsContent() {
 
     var showListDialog by remember { mutableStateOf<ProductModel?>(null) }
     var showDeleteDialog by remember { mutableStateOf<ProductModel?>(null) }
+    val listState = rememberLazyListState()
+    var isRefreshing by remember { mutableStateOf(false) }
+    val coroutineScope = rememberCoroutineScope()
 
     LaunchedEffect(Unit) {
         productViewModel.getAllProduct()
     }
 
     val hasInternet = isInternetAvailableItem(context)
-    // Filter only unlisted items (isListed = false)
     val unlistedProducts = allProducts?.filter { !it.isListed } ?: emptyList()
 
-    if (!hasInternet) {
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
-        ) {
-            Image(
-                painter = painterResource(R.drawable.no_internet),
-                contentDescription = null
-            )
+    PullToRefreshLayout(
+        isRefreshing = isRefreshing,
+        onRefresh = {
+            isRefreshing = true
+            coroutineScope.launch {
+                productViewModel.getAllProduct()
+                delay(800)
+                isRefreshing = false
+            }
         }
-    } else if (unlistedProducts.isEmpty()) {
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
-        ) {
-            Image(
-                painter = painterResource(R.drawable.no_data),
-                contentDescription = null
-            )
-        }
-    } else {
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            items(
-                items = unlistedProducts,
-                key = { it.productId }
-            ) { product ->
-                ItemCardItem(
-                    product = product,
-                    onListClick = { showListDialog = product },
-                    onUnlistClick = { },
-                    onDeleteClick = { showDeleteDialog = product }
+    ) {
+        if (!hasInternet) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Image(
+                    painter = painterResource(R.drawable.no_internet),
+                    contentDescription = null
                 )
+            }
+        } else if (unlistedProducts.isEmpty()) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Image(
+                    painter = painterResource(R.drawable.no_data),
+                    contentDescription = null
+                )
+            }
+        } else {
+            LazyColumn(
+                state = listState,
+                modifier = Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                items(
+                    items = unlistedProducts,
+                    key = { it.productId }
+                ) { product ->
+                    ItemCardItem(
+                        product = product,
+                        onListClick = { showListDialog = product },
+                        onUnlistClick = { },
+                        onDeleteClick = { showDeleteDialog = product }
+                    )
+                }
             }
         }
     }
@@ -740,6 +787,35 @@ fun BadgedNotificationIconItem(
                     fontWeight = FontWeight.Bold
                 )
             }
+        }
+    }
+}
+@Composable
+fun RefreshSpinnerItem() {
+    val transition = rememberInfiniteTransition(label = "refresh")
+    val rotation = transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(tween(900, easing = LinearEasing)),
+        label = "rotation"
+    )
+    Box(
+        modifier = Modifier
+            .fillMaxWidth(),
+        contentAlignment = Alignment.TopCenter
+    ) {
+        Box(
+            modifier = Modifier
+                .size(36.dp)
+                .background(Color.White, CircleShape),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                painter = painterResource(R.drawable.ic_refresh),
+                contentDescription = "Refreshing",
+                tint = DarkGreen,
+                modifier = Modifier.size(20.dp).rotate(rotation.value)
+            )
         }
     }
 }
