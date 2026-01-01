@@ -64,6 +64,7 @@ import com.example.tradeflow.repository.ProductRepoImpl
 import com.example.tradeflow.repository.UserRepoImpl
 import com.example.tradeflow.ui.theme.DarkGreen
 import com.example.tradeflow.ui.theme.Greenish
+import com.example.tradeflow.ui.theme.White
 import com.example.tradeflow.viewmodel.NotificationViewModel
 import com.example.tradeflow.viewmodel.ProductViewModel
 import com.example.tradeflow.viewmodel.UserViewModel
@@ -137,7 +138,7 @@ fun AdminNotificationScreen(onBackClick: () -> Unit = {}) {
                     ) {
                         Text(
                             text = "Notification",
-                            color = DarkGreen,
+                            color = White,
                             style = MaterialTheme.typography.titleLarge
                         )
                     }
