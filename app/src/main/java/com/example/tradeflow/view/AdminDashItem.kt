@@ -85,6 +85,7 @@ import com.example.tradeflow.repository.NotificationRepoImpl
 import com.example.tradeflow.repository.ProductRepoImpl
 import com.example.tradeflow.ui.theme.DarkGreen
 import com.example.tradeflow.ui.theme.Greenish
+import com.example.tradeflow.ui.theme.White
 import com.example.tradeflow.viewmodel.NotificationViewModel
 import com.example.tradeflow.viewmodel.ProductViewModel
 
@@ -155,7 +156,7 @@ fun AdminItemScreen(initialTab: Int = 0, onBackClick: () -> Unit = {}) {
                     ) {
                         Text(
                             text = "Items",
-                            color = DarkGreen,
+                            color = White,
                             style = MaterialTheme.typography.titleLarge
                         )
                     }
