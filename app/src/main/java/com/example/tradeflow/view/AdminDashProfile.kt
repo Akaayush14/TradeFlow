@@ -46,6 +46,7 @@ import androidx.activity.compose.BackHandler
 import com.example.tradeflow.R
 import com.example.tradeflow.repository.NotificationRepoImpl
 import com.example.tradeflow.ui.theme.Greenish
+import com.example.tradeflow.ui.theme.White
 import com.example.tradeflow.viewmodel.NotificationViewModel
 
 class AdminProfile : ComponentActivity() {
@@ -114,7 +115,7 @@ fun AdminProfileScreen(onBackClick: () -> Unit = {}) {
                     ) {
                         Text(
                             text = "Profile",
-                            color = DarkGreen,
+                            color = White,
                             style = MaterialTheme.typography.titleLarge
                         )
                     }
