@@ -47,6 +47,7 @@ import androidx.compose.ui.unit.sp
 import com.example.tradeflow.R
 import com.example.tradeflow.ui.theme.DarkGreen
 import com.example.tradeflow.ui.theme.Greenish
+import com.example.tradeflow.ui.theme.White
 
 
 class AdminSettings : ComponentActivity() {
@@ -163,7 +164,8 @@ fun AdminSettingsScreen(onBackClick: () -> Unit = {}) {
                     IconButton(onClick = onBackClick) {
                         Icon(
                             painter = painterResource(id = R.drawable.ic_back),
-                            contentDescription = "Back"
+                            contentDescription = "Back",
+                            tint = Color.White
                         )
                     }
                 },
@@ -176,7 +178,7 @@ fun AdminSettingsScreen(onBackClick: () -> Unit = {}) {
                     ) {
                         Text(
                             text = "Settings",
-                            color = DarkGreen,
+                            color = White,
                             style = MaterialTheme.typography.titleLarge
                         )
                     }
