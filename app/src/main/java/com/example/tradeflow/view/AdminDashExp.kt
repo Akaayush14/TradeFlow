@@ -660,6 +660,20 @@ fun MetricsContent(onRequireAdminAccess: () -> Unit) {
                     Spacer(modifier = Modifier.weight(1f))
                 }
 
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    AdminStatusPieChartCard(
+                        totalAdmins = totalAdmins,
+                        blockedAdmins = blockedAdmins,
+                        restrictedAdmins = restrictedAdmins,
+                        onRequireAdminAccess = onRequireAdminAccess,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Spacer(modifier = Modifier.weight(1f))
+                }
+
                 Spacer(modifier = Modifier.height(8.dp))
 
                 // Product Metrics Section
@@ -893,6 +907,62 @@ fun PieChart(
                 size = Size(canvasSize - strokeWidth, canvasSize - strokeWidth),
                 style = Stroke(width = strokeWidth, cap = StrokeCap.Butt)
             )
+        }
+    }
+}
+
+@Composable
+fun AdminStatusPieChartCard(
+    totalAdmins: Int,
+    blockedAdmins: Int,
+    restrictedAdmins: Int,
+    onRequireAdminAccess: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val normalAdmins = totalAdmins - blockedAdmins - restrictedAdmins
+    val total = totalAdmins
+    Card(
+        modifier = modifier.height(120.dp).clickable { onRequireAdminAccess() },
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(12.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = "Admin Status",
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Medium,
+                color = Color.Gray
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            if (total > 0) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    PieChart(
+                        normalUsers = normalAdmins,
+                        blockedUsers = blockedAdmins,
+                        restrictedUsers = restrictedAdmins,
+                        total = total,
+                        modifier = Modifier.size(50.dp)
+                    )
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        LegendItem(color = Greenish, label = "Normal", count = normalAdmins)
+                        LegendItem(color = Color.Red, label = "Blocked", count = blockedAdmins)
+                        LegendItem(color = Color(0xFFFF9800), label = "Restricted", count = restrictedAdmins)
+                    }
+                }
+            } else {
+                Text(text = "No data", fontSize = 14.sp, color = Color.Gray)
+            }
         }
     }
 }
