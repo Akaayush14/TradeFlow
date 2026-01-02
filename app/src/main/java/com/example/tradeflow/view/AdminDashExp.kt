@@ -598,7 +598,7 @@ fun MetricsContent(onRequireAdminAccess: () -> Unit) {
                         modifier = Modifier.weight(1f),
                         onClick = {
                             val intent = Intent(context, AdminDashUser::class.java).apply {
-                                putExtra("target_tab", 2)
+                                putExtra("target_tab", 1)
                             }
                             context.startActivity(intent)
                         }
