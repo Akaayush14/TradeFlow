@@ -30,6 +30,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.Canvas
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -98,6 +99,11 @@ import kotlinx.coroutines.launch
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Surface
 import kotlinx.coroutines.delay
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.drawscope.Stroke
+import kotlin.math.cos
+import kotlin.math.sin
+import androidx.compose.ui.graphics.StrokeCap
 
 import com.example.tradeflow.R
 import com.example.tradeflow.model.NotificationModel
@@ -458,7 +464,7 @@ fun MetricsContent(onRequireAdminAccess: () -> Unit) {
     val notifications by notificationViewModel.notifications.collectAsState()
     val unreadCount by notificationViewModel.unreadCount.collectAsState()
     val allAdmins by adminViewModel.allAdmins.collectAsState()
-    
+
     val coroutineScope = rememberCoroutineScope()
 
     LaunchedEffect(Unit) {
@@ -473,6 +479,7 @@ fun MetricsContent(onRequireAdminAccess: () -> Unit) {
     val totalUsers = allUsers?.size ?: 0
     val blockedUsers = allUsers?.count { it.isBlocked } ?: 0
     val restrictedUsers = allUsers?.count { it.isRestricted } ?: 0
+    val normalUsers = totalUsers - blockedUsers - restrictedUsers
 
     // Admin Metrics
     val totalAdmins = allAdmins?.size ?: 0
@@ -595,9 +602,15 @@ fun MetricsContent(onRequireAdminAccess: () -> Unit) {
                             }
                             context.startActivity(intent)
                         }
-
                     )
-                    Spacer(modifier = Modifier.weight(1f))
+
+                    // User Status Pie Chart Card
+                    UserStatusPieChartCard(
+                        normalUsers = normalUsers,
+                        blockedUsers = blockedUsers,
+                        restrictedUsers = restrictedUsers,
+                        modifier = Modifier.weight(1f)
+                    )
                 }
 
                 Spacer(modifier = Modifier.height(8.dp))
@@ -714,6 +727,151 @@ fun MetricsContent(onRequireAdminAccess: () -> Unit) {
                 }
             }
         }
+    }
+}
+
+@Composable
+fun UserStatusPieChartCard(
+    normalUsers: Int,
+    blockedUsers: Int,
+    restrictedUsers: Int,
+    modifier: Modifier = Modifier
+) {
+    val total = normalUsers + blockedUsers + restrictedUsers
+
+    Card(
+        modifier = modifier.height(120.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(12.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = "User Status",
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Medium,
+                color = Color.Gray
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+
+            if (total > 0) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Pie Chart
+                    PieChart(
+                        normalUsers = normalUsers,
+                        blockedUsers = blockedUsers,
+                        restrictedUsers = restrictedUsers,
+                        total = total,
+                        modifier = Modifier.size(50.dp)
+                    )
+
+                    // Legend
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        LegendItem(color = Greenish, label = "Normal", count = normalUsers)
+                        LegendItem(color = Color.Red, label = "Blocked", count = blockedUsers)
+                        LegendItem(color = Color(0xFFFF9800), label = "Restricted", count = restrictedUsers)
+                    }
+                }
+            } else {
+                Text(
+                    text = "No data",
+                    fontSize = 14.sp,
+                    color = Color.Gray
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun PieChart(
+    normalUsers: Int,
+    blockedUsers: Int,
+    restrictedUsers: Int,
+    total: Int,
+    modifier: Modifier = Modifier
+) {
+    Canvas(modifier = modifier) {
+        val canvasSize = size.minDimension
+        val radius = canvasSize / 2
+        val strokeWidth = 15f
+
+        var startAngle = -90f
+
+        // Normal users (Green)
+        if (normalUsers > 0) {
+            val sweepAngle = (normalUsers.toFloat() / total) * 360f
+            drawArc(
+                color = Greenish,
+                startAngle = startAngle,
+                sweepAngle = sweepAngle,
+                useCenter = false,
+                topLeft = Offset(strokeWidth / 2, strokeWidth / 2),
+                size = Size(canvasSize - strokeWidth, canvasSize - strokeWidth),
+                style = Stroke(width = strokeWidth, cap = StrokeCap.Butt)
+            )
+            startAngle += sweepAngle
+        }
+
+        // Blocked users (Red)
+        if (blockedUsers > 0) {
+            val sweepAngle = (blockedUsers.toFloat() / total) * 360f
+            drawArc(
+                color = Color.Red,
+                startAngle = startAngle,
+                sweepAngle = sweepAngle,
+                useCenter = false,
+                topLeft = Offset(strokeWidth / 2, strokeWidth / 2),
+                size = Size(canvasSize - strokeWidth, canvasSize - strokeWidth),
+                style = Stroke(width = strokeWidth, cap = StrokeCap.Butt)
+            )
+            startAngle += sweepAngle
+        }
+
+        // Restricted users (Orange)
+        if (restrictedUsers > 0) {
+            val sweepAngle = (restrictedUsers.toFloat() / total) * 360f
+            drawArc(
+                color = Color(0xFFFF9800),
+                startAngle = startAngle,
+                sweepAngle = sweepAngle,
+                useCenter = false,
+                topLeft = Offset(strokeWidth / 2, strokeWidth / 2),
+                size = Size(canvasSize - strokeWidth, canvasSize - strokeWidth),
+                style = Stroke(width = strokeWidth, cap = StrokeCap.Butt)
+            )
+        }
+    }
+}
+
+@Composable
+fun LegendItem(color: Color, label: String, count: Int) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(8.dp)
+                .background(color, CircleShape)
+        )
+        Text(
+            text = "$label: $count",
+            fontSize = 10.sp,
+            color = Color.Black
+        )
     }
 }
 
@@ -1013,7 +1171,7 @@ fun UsersContent(searchText: String) {
     val listState = rememberLazyListState()
     var isRefreshing by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
-    
+
     val users = if (searchText.isBlank()) {
         allUsers ?: emptyList()
     } else {
@@ -1131,7 +1289,7 @@ fun ItemCardExp(
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "Price: $${product.price}",
+                    text = "Price: ${product.price}",
                     fontSize = 14.sp,
                     color = Color.Gray
                 )
@@ -1511,12 +1669,12 @@ fun PullToRefreshLayout(
     val density = LocalDensity.current
     val triggerDistance = with(density) { 160.dp.toPx() }
     val maxDragDistance = with(density) { 200.dp.toPx() }
-    
+
     var pullOffset by remember { mutableFloatStateOf(0f) }
     val mutatorMutex = remember { MutatorMutex() }
     val coroutineScope = rememberCoroutineScope()
     var animationJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
-    
+
     val nestedScrollConnection = remember {
         object : NestedScrollConnection {
             override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
@@ -1544,7 +1702,7 @@ fun PullToRefreshLayout(
                     val dragMultiplier = 0.25f
                     val newOffset = (pullOffset + available.y * dragMultiplier).coerceAtMost(maxDragDistance)
                     pullOffset = newOffset
-                    return Offset(0f, available.y) 
+                    return Offset(0f, available.y)
                 }
                 return Offset.Zero
             }
@@ -1577,7 +1735,7 @@ fun PullToRefreshLayout(
     LaunchedEffect(isRefreshing) {
         if (!isRefreshing) {
             mutatorMutex.mutate {
-                 animate(pullOffset, 0f, animationSpec = tween(durationMillis = 200)) { value, _ ->
+                animate(pullOffset, 0f, animationSpec = tween(durationMillis = 200)) { value, _ ->
                     pullOffset = value
                 }
             }
@@ -1594,48 +1752,48 @@ fun PullToRefreshLayout(
         }
 
         if (pullOffset > 0 || isRefreshing) {
-             val progress = (pullOffset / triggerDistance).coerceIn(0f, 1f)
-             // Scale and alpha animation to hide on slight scroll
-             val animatedScale = if (isRefreshing) 1f else progress.coerceIn(0f, 1f)
-             val animatedAlpha = if (isRefreshing) 1f else (progress * 2).coerceIn(0f, 1f)
+            val progress = (pullOffset / triggerDistance).coerceIn(0f, 1f)
+            // Scale and alpha animation to hide on slight scroll
+            val animatedScale = if (isRefreshing) 1f else progress.coerceIn(0f, 1f)
+            val animatedAlpha = if (isRefreshing) 1f else (progress * 2).coerceIn(0f, 1f)
 
-             Box(
+            Box(
                 modifier = Modifier
                     .align(Alignment.TopCenter)
-                    .offset { IntOffset(0, (pullOffset).roundToInt()) } 
+                    .offset { IntOffset(0, (pullOffset).roundToInt()) }
                     .padding(top = 16.dp)
                     .graphicsLayer {
                         scaleX = animatedScale
                         scaleY = animatedScale
                         alpha = animatedAlpha
                     }
-             ) {
-                 Surface(
-                     shape = CircleShape,
-                     color = Color.White,
-                     shadowElevation = 4.dp,
-                     modifier = Modifier.size(40.dp)
-                 ) {
-                     Box(contentAlignment = Alignment.Center) {
-                         if (isRefreshing) {
-                             CircularProgressIndicator(
-                                 modifier = Modifier.size(24.dp),
-                                 color = DarkGreen,
-                                 strokeWidth = 2.dp
-                             )
-                         } else {
-                             Icon(
-                                 painter = painterResource(R.drawable.ic_refresh),
-                                 contentDescription = "Pull to refresh",
-                                 tint = DarkGreen,
-                                 modifier = Modifier
-                                     .size(24.dp)
-                                     .rotate(progress * 360f)
-                             )
-                         }
-                     }
-                 }
-             }
+            ) {
+                Surface(
+                    shape = CircleShape,
+                    color = Color.White,
+                    shadowElevation = 4.dp,
+                    modifier = Modifier.size(40.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        if (isRefreshing) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(24.dp),
+                                color = DarkGreen,
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            Icon(
+                                painter = painterResource(R.drawable.ic_refresh),
+                                contentDescription = "Pull to refresh",
+                                tint = DarkGreen,
+                                modifier = Modifier
+                                    .size(24.dp)
+                                    .rotate(progress * 360f)
+                            )
+                        }
+                    }
+                }
+            }
         }
     }
 }
