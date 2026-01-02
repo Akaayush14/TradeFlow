@@ -7,6 +7,8 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -130,7 +132,8 @@ fun AdminAdminMetricScreen(onBackClick: () -> Unit = {}) {
             modifier = Modifier
                 .padding(padding)
                 .fillMaxSize()
-                .padding(16.dp),
+                .padding(16.dp)
+                .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Card(
@@ -245,7 +248,7 @@ fun AdminAdminMetricScreen(onBackClick: () -> Unit = {}) {
                             }
                             AdminMetricsPoint(x = x, y = index.toFloat(), label = (index + 1).toString())
                         },
-                        modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
+                        modifier = Modifier.fillMaxWidth().height(160.dp)
                     )
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         LegendItem(color = Greenish, label = "Normal", count = normalAdmins)
@@ -255,7 +258,43 @@ fun AdminAdminMetricScreen(onBackClick: () -> Unit = {}) {
                 }
             }
 
-            
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 4.dp)
+                    .height(240.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = "Admin Status Line Graph",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.Black
+                    )
+                    AdminMetricsLineGraph(
+                        data = listOf(
+                            AdminMetricsBar("Normal", normalAdmins, Greenish),
+                            AdminMetricsBar("Restricted", restrictedAdmins, Color(0xFFFF9800)),
+                            AdminMetricsBar("Blocked", blockedAdmins, Color.Red)
+                        ),
+                        modifier = Modifier.fillMaxWidth().height(160.dp)
+                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        LegendItem(color = Greenish, label = "Normal", count = normalAdmins)
+                        LegendItem(color = Color(0xFFFF9800), label = "Restricted", count = restrictedAdmins)
+                        LegendItem(color = Color.Red, label = "Blocked", count = blockedAdmins)
+                    }
+                }
+            }
+
         }
     }
 }
@@ -342,41 +381,46 @@ fun AdminMetricsScatterPlot(points: List<AdminMetricsPoint>, modifier: Modifier 
 @Composable
 fun AdminMetricsLineGraph(data: List<AdminMetricsBar>, modifier: Modifier = Modifier) {
     Canvas(modifier = modifier) {
-        val padding = 24f
+        val padding = 40f
         val width = size.width - padding * 2
         val height = size.height - padding * 2
         val maxVal = (data.maxOfOrNull { it.value } ?: 1).coerceAtLeast(1)
         val yScale = if (maxVal == 0) 0f else height / maxVal
-        val xStep = if (data.isEmpty()) 0f else width / (data.size - 1).coerceAtLeast(1)
+        val steps = (data.size - 1).coerceAtLeast(1)
+        val xStep = if (data.isEmpty()) 0f else width / steps
+
         drawLine(
-            color = Color.Gray.copy(alpha = 0.4f),
+            color = Color.Gray.copy(alpha = 0.5f),
             start = Offset(padding, size.height - padding),
             end = Offset(size.width - padding, size.height - padding),
-            strokeWidth = 2f
+            strokeWidth = 3.5f
         )
         drawLine(
-            color = Color.Gray.copy(alpha = 0.4f),
+            color = Color.Gray.copy(alpha = 0.5f),
             start = Offset(padding, padding),
             end = Offset(padding, size.height - padding),
-            strokeWidth = 2f
+            strokeWidth = 3.5f
         )
+
         var prev: Offset? = null
         data.forEachIndexed { i, item ->
-            val x = padding + i * xStep
+            val x = if (data.size == 1) padding + width / 2f else padding + i * xStep
             val y = size.height - padding - item.value * yScale
             val point = Offset(x, y)
             prev?.let { p ->
-                drawLine(color = Color(0xFF1976D2), start = p, end = point, strokeWidth = 4f)
+                drawLine(color = Color(0xFF1976D2), start = p, end = point, strokeWidth = 8f)
             }
             prev = point
-            drawCircle(color = item.color, radius = 6f, center = point)
+            drawCircle(color = item.color, radius = 10f, center = point)
+
             drawIntoCanvas { canvas ->
                 val paint = android.graphics.Paint().apply {
                     isAntiAlias = true
                     setColor(android.graphics.Color.BLACK)
-                    textSize = 24f
+                    textSize = 32f
+                    textAlign = android.graphics.Paint.Align.CENTER
                 }
-                canvas.nativeCanvas.drawText(item.value.toString(), x + 8f, y - 8f, paint)
+                canvas.nativeCanvas.drawText(item.value.toString(), x, y - 16f, paint)
             }
         }
     }
