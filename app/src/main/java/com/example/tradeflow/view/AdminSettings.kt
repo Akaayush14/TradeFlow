@@ -218,6 +218,7 @@ fun SettingsContent(onLogoutClick: () -> Unit = {}) {
         ) {
             SettingsMenuItem(
                 title = "Notifications",
+                iconRes = R.drawable.notification,
                 onClick = {
                     val intent = Intent(context, AdminNotification::class.java)
                     context.startActivity(intent)
@@ -228,6 +229,7 @@ fun SettingsContent(onLogoutClick: () -> Unit = {}) {
 
             SettingsMenuItem(
                 title = "Edit Profile",
+                iconRes = R.drawable.ic_profile,
                 onClick = {
                     val intent = Intent(context, EditAdminProfile::class.java)
                     context.startActivity(intent)
@@ -238,6 +240,7 @@ fun SettingsContent(onLogoutClick: () -> Unit = {}) {
 
             SettingsMenuItem(
                 title = "About us",
+                iconRes = R.drawable.ic_termsandcondition,
                 onClick = {
                     val intent = Intent(context, AdminAboutUs::class.java)
                     context.startActivity(intent)
@@ -248,6 +251,7 @@ fun SettingsContent(onLogoutClick: () -> Unit = {}) {
 
             SettingsMenuItem(
                 title = "Privacy & Security",
+                iconRes = R.drawable.ic_termsandcondition,
                 onClick = {
                     val intent = Intent(context, AdminPrivacyPolicy::class.java)
                     context.startActivity(intent)
@@ -258,6 +262,7 @@ fun SettingsContent(onLogoutClick: () -> Unit = {}) {
 
             SettingsMenuItem(
                 title = "Terms and Conditions",
+                iconRes = R.drawable.ic_termsandcondition,
                 onClick = {
                     val intent = Intent(context, AdminTermsAndCondition::class.java)
                     context.startActivity(intent)
@@ -268,9 +273,9 @@ fun SettingsContent(onLogoutClick: () -> Unit = {}) {
 
             SettingsMenuItem(
                 title = "Logout",
+                iconRes = R.drawable.signout,
                 onClick = onLogoutClick,
-                showArrow = true
-
+                showArrow = false
             )
         }
     }
@@ -279,8 +284,9 @@ fun SettingsContent(onLogoutClick: () -> Unit = {}) {
 @Composable
 fun SettingsMenuItem(
     title: String,
+    iconRes: Int? = null,
     onClick: () -> Unit,
-    showArrow: Boolean = true
+    showArrow: Boolean = false
 ) {
     Row(
         modifier = Modifier
@@ -290,19 +296,23 @@ fun SettingsMenuItem(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(
-            text = title,
-            fontSize = 16.sp,
-            color = Color.Black
-        )
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            iconRes?.let {
+                Icon(
+                    painter = painterResource(id = it),
+                    contentDescription = title,
+                    tint = Color.Unspecified
+                )
+            }
+            Text(
+                text = title,
+                fontSize = 16.sp,
+                color = Color.Black
+            )
+        }
 
         if (showArrow) {
-            Icon(
-                painter = painterResource(id = android.R.drawable.ic_menu_more),
-                contentDescription = "Navigate",
-                tint = Color.Gray,
-                modifier = Modifier.padding(4.dp)
-            )
+            // No trailing arrow per spec
         }
     }
 }
