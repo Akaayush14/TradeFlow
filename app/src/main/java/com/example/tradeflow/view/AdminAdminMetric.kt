@@ -136,7 +136,8 @@ fun AdminAdminMetricScreen(onBackClick: () -> Unit = {}) {
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(bottom = 4.dp),
+                    .padding(bottom = 4.dp)
+                    .height(240.dp),
                 elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
                 colors = CardDefaults.cardColors(containerColor = Color.White),
                 shape = RoundedCornerShape(12.dp)
