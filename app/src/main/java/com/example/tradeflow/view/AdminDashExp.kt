@@ -725,6 +725,30 @@ fun MetricsContent(onRequireAdminAccess: () -> Unit) {
                         modifier = Modifier.weight(1f)
                     )
                 }
+                Spacer(modifier = Modifier.height(8.dp))
+
+                ProductListingPieChartCard(
+                    listed = listedProducts,
+                    unlisted = unlistedProducts,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                val bucketLt100 = allProducts?.count { it.price < 100.0 } ?: 0
+                val bucket100_499 = allProducts?.count { it.price >= 100.0 && it.price <= 499.0 } ?: 0
+                val bucket500_999 = allProducts?.count { it.price >= 500.0 && it.price <= 999.0 } ?: 0
+                val bucket1000_1499 = allProducts?.count { it.price >= 1000.0 && it.price <= 1499.0 } ?: 0
+                val bucket1500_2000 = allProducts?.count { it.price >= 1500.0 && it.price <= 2000.0 } ?: 0
+                val bucketGt2000 = allProducts?.count { it.price > 2000.0 } ?: 0
+
+                ProductPriceRangePieChartCard(
+                    lt100 = bucketLt100,
+                    r100_499 = bucket100_499,
+                    r500_999 = bucket500_999,
+                    r1000_1499 = bucket1000_1499,
+                    r1500_2000 = bucket1500_2000,
+                    gt2000 = bucketGt2000,
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
         }
     }
@@ -861,6 +885,152 @@ fun PieChart(
                 size = Size(canvasSize - strokeWidth, canvasSize - strokeWidth),
                 style = Stroke(width = strokeWidth, cap = StrokeCap.Butt)
             )
+        }
+    }
+}
+
+@Composable
+fun ProductListingPieChartCard(
+    listed: Int,
+    unlisted: Int,
+    modifier: Modifier = Modifier
+) {
+    val total = listed + unlisted
+    Card(
+        modifier = modifier.height(120.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(12.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = "Listing Status",
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Medium,
+                color = Color.Gray
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            if (total > 0) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    ProductPieChartSegments(
+                        segments = listOf(listed, unlisted),
+                        colors = listOf(DarkGreen, Color.Red),
+                        modifier = Modifier.size(50.dp)
+                    )
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        LegendItem(color = DarkGreen, label = "Listed", count = listed)
+                        LegendItem(color = Color.Red, label = "Unlisted", count = unlisted)
+                    }
+                }
+            } else {
+                Text(text = "No data", fontSize = 14.sp, color = Color.Gray)
+            }
+        }
+    }
+}
+
+@Composable
+fun ProductPriceRangePieChartCard(
+    lt100: Int,
+    r100_499: Int,
+    r500_999: Int,
+    r1000_1499: Int,
+    r1500_2000: Int,
+    gt2000: Int,
+    modifier: Modifier = Modifier
+) {
+    val total = lt100 + r100_499 + r500_999 + r1000_1499 + r1500_2000 + gt2000
+    val colors = listOf(
+        Color(0xFF4CAF50), // <100
+        Color(0xFFFFC107), // 100-499
+        Color(0xFF03A9F4), // 500-999
+        Color(0xFF9C27B0), // 1000-1499
+        Color(0xFFFF5722), // 1500-2000
+        Color(0xFF607D8B)  // >2000
+    )
+    Card(
+        modifier = modifier.height(120.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(12.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = "Price Range",
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Medium,
+                color = Color.Gray
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            if (total > 0) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    ProductPieChartSegments(
+                        segments = listOf(lt100, r100_499, r500_999, r1000_1499, r1500_2000, gt2000),
+                        colors = colors,
+                        modifier = Modifier.size(50.dp)
+                    )
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        LegendItem(color = colors[0], label = "<100", count = lt100)
+                        LegendItem(color = colors[1], label = "100-499", count = r100_499)
+                        LegendItem(color = colors[2], label = "500-999", count = r500_999)
+                        LegendItem(color = colors[3], label = "1000-1499", count = r1000_1499)
+                        LegendItem(color = colors[4], label = "1500-2000", count = r1500_2000)
+                        LegendItem(color = colors[5], label = ">2000", count = gt2000)
+                    }
+                }
+            } else {
+                Text(text = "No data", fontSize = 14.sp, color = Color.Gray)
+            }
+        }
+    }
+}
+
+@Composable
+fun ProductPieChartSegments(
+    segments: List<Int>,
+    colors: List<Color>,
+    modifier: Modifier = Modifier
+) {
+    Canvas(modifier = modifier) {
+        val canvasSize = size.minDimension
+        val strokeWidth = 15f
+        var startAngle = -90f
+        val total = segments.sum()
+        if (total <= 0) return@Canvas
+        segments.forEachIndexed { idx, value ->
+            if (value > 0) {
+                val sweepAngle = (value.toFloat() / total) * 360f
+                drawArc(
+                    color = colors[idx % colors.size],
+                    startAngle = startAngle,
+                    sweepAngle = sweepAngle,
+                    useCenter = false,
+                    topLeft = Offset(strokeWidth / 2, strokeWidth / 2),
+                    size = Size(canvasSize - strokeWidth, canvasSize - strokeWidth),
+                    style = Stroke(width = strokeWidth, cap = StrokeCap.Butt)
+                )
+                startAngle += sweepAngle
+            }
         }
     }
 }
