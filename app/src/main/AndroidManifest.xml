@@ -159,6 +159,11 @@
             android:theme="@style/Theme.TradeFlow" />
 
         <activity
+            android:name=".view.AdminAdminMetric"
+            android:exported="true"
+            android:theme="@style/Theme.TradeFlow" />
+
+        <activity
             android:name=".view.AdminProfile"
             android:exported="true"
             android:label="Admin Profile"

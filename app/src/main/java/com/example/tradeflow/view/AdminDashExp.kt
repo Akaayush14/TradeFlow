@@ -913,8 +913,12 @@ fun AdminStatusPieChartCard(
 ) {
     val normalAdmins = totalAdmins - blockedAdmins - restrictedAdmins
     val total = totalAdmins
+    val context = LocalContext.current
     Card(
-        modifier = modifier.height(120.dp).clickable { onRequireAdminAccess() },
+        modifier = modifier.height(120.dp).clickable {
+            val intent = Intent(context, AdminAdminMetric::class.java)
+            context.startActivity(intent)
+        },
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
         shape = RoundedCornerShape(12.dp)
