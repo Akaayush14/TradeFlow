@@ -727,12 +727,6 @@ fun MetricsContent(onRequireAdminAccess: () -> Unit) {
                 }
                 Spacer(modifier = Modifier.height(8.dp))
 
-                ProductListingPieChartCard(
-                    listed = listedProducts,
-                    unlisted = unlistedProducts,
-                    modifier = Modifier.fillMaxWidth()
-                )
-
                 val bucketLt100 = allProducts?.count { it.price < 100.0 } ?: 0
                 val bucket100_499 = allProducts?.count { it.price >= 100.0 && it.price <= 499.0 } ?: 0
                 val bucket500_999 = allProducts?.count { it.price >= 500.0 && it.price <= 999.0 } ?: 0
@@ -740,15 +734,25 @@ fun MetricsContent(onRequireAdminAccess: () -> Unit) {
                 val bucket1500_2000 = allProducts?.count { it.price >= 1500.0 && it.price <= 2000.0 } ?: 0
                 val bucketGt2000 = allProducts?.count { it.price > 2000.0 } ?: 0
 
-                ProductPriceRangePieChartCard(
-                    lt100 = bucketLt100,
-                    r100_499 = bucket100_499,
-                    r500_999 = bucket500_999,
-                    r1000_1499 = bucket1000_1499,
-                    r1500_2000 = bucket1500_2000,
-                    gt2000 = bucketGt2000,
-                    modifier = Modifier.fillMaxWidth()
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    ProductListingPieChartCard(
+                        listed = listedProducts,
+                        unlisted = unlistedProducts,
+                        modifier = Modifier.weight(1f)
+                    )
+                    ProductPriceRangePieChartCard(
+                        lt100 = bucketLt100,
+                        r100_499 = bucket100_499,
+                        r500_999 = bucket500_999,
+                        r1000_1499 = bucket1000_1499,
+                        r1500_2000 = bucket1500_2000,
+                        gt2000 = bucketGt2000,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
             }
         }
     }
