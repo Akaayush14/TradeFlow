@@ -57,6 +57,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import android.widget.Toast
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.size
 import com.example.tradeflow.R
 import com.example.tradeflow.model.NotificationModel
@@ -530,9 +531,17 @@ fun NotificationCard(
             ),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         colors = CardDefaults.cardColors(
-            containerColor = cardColor
+            containerColor = if (isSelected) Color(0xFFE3F2FD) else cardColor
         )
     ) {
+        if (isSelected) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(3.dp)
+                    .background(Greenish)
+            )
+        }
         Row(
             modifier = Modifier
                 .fillMaxWidth()
