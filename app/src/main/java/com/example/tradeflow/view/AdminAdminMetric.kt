@@ -255,43 +255,7 @@ fun AdminAdminMetricScreen(onBackClick: () -> Unit = {}) {
                 }
             }
 
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 4.dp),
-                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Text(
-                        text = "Admin Status Line Graph",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.Black
-                    )
-                    AdminMetricsLineGraph(
-                        data = listOf(
-                            AdminMetricsBar("Normal", normalAdmins, Greenish),
-                            AdminMetricsBar("Restricted", restrictedAdmins, Color(0xFFFF9800)),
-                            AdminMetricsBar("Blocked", blockedAdmins, Color.Red)
-                        ),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(160.dp)
-                    )
-                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        LegendItem(color = Greenish, label = "Normal", count = normalAdmins)
-                        LegendItem(color = Color(0xFFFF9800), label = "Restricted", count = restrictedAdmins)
-                        LegendItem(color = Color.Red, label = "Blocked", count = blockedAdmins)
-                    }
-                }
-            }
+            
         }
     }
 }
