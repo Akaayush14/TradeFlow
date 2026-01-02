@@ -6,12 +6,14 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
@@ -31,7 +33,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
+import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -169,6 +176,239 @@ fun AdminAdminMetricScreen(onBackClick: () -> Unit = {}) {
                         Text(text = "No data", fontSize = 14.sp, color = Color.Gray)
                     }
                 }
+            }
+
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 4.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = "Admin Status Bar Chart",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.Black
+                    )
+                    AdminMetricsBarChart(
+                        data = listOf(
+                            AdminMetricsBar("Normal", normalAdmins, Greenish),
+                            AdminMetricsBar("Restricted", restrictedAdmins, Color(0xFFFF9800)),
+                            AdminMetricsBar("Blocked", blockedAdmins, Color.Red)
+                        ),
+                        modifier = Modifier.fillMaxWidth().padding(top = 8.dp).fillMaxWidth()
+                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        LegendItem(color = Greenish, label = "Normal", count = normalAdmins)
+                        LegendItem(color = Color(0xFFFF9800), label = "Restricted", count = restrictedAdmins)
+                        LegendItem(color = Color.Red, label = "Blocked", count = blockedAdmins)
+                    }
+                }
+            }
+
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 4.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = "Admin Status Scatter Plot",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.Black
+                    )
+                    AdminMetricsScatterPlot(
+                        points = (allAdmins ?: emptyList()).mapIndexed { index, admin ->
+                            val x = when {
+                                admin.isBlocked -> 2f
+                                admin.isRestricted -> 1f
+                                else -> 0f
+                            }
+                            AdminMetricsPoint(x = x, y = index.toFloat(), label = (index + 1).toString())
+                        },
+                        modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
+                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        LegendItem(color = Greenish, label = "Normal", count = normalAdmins)
+                        LegendItem(color = Color(0xFFFF9800), label = "Restricted", count = restrictedAdmins)
+                        LegendItem(color = Color.Red, label = "Blocked", count = blockedAdmins)
+                    }
+                }
+            }
+
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 4.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = "Admin Status Line Graph",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.Black
+                    )
+                    AdminMetricsLineGraph(
+                        data = listOf(
+                            AdminMetricsBar("Normal", normalAdmins, Greenish),
+                            AdminMetricsBar("Restricted", restrictedAdmins, Color(0xFFFF9800)),
+                            AdminMetricsBar("Blocked", blockedAdmins, Color.Red)
+                        ),
+                        modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
+                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        LegendItem(color = Greenish, label = "Normal", count = normalAdmins)
+                        LegendItem(color = Color(0xFFFF9800), label = "Restricted", count = restrictedAdmins)
+                        LegendItem(color = Color.Red, label = "Blocked", count = blockedAdmins)
+                    }
+                }
+            }
+        }
+    }
+}
+
+data class AdminMetricsBar(val label: String, val value: Int, val color: Color)
+
+@Composable
+fun AdminMetricsBarChart(data: List<AdminMetricsBar>, modifier: Modifier = Modifier) {
+    Canvas(modifier = modifier.height(160.dp)) {
+        val maxVal = (data.maxOfOrNull { it.value } ?: 1).coerceAtLeast(1)
+        val barCount = data.size
+        val spacing = 16f
+        val barWidth = (size.width - spacing * (barCount + 1)) / barCount
+        val heightScale = if (maxVal == 0) 0f else (size.height - 24f) / maxVal
+        var x = spacing
+        data.forEach { bar ->
+            val h = bar.value * heightScale
+            drawRect(
+                color = bar.color,
+                topLeft = Offset(x, size.height - h),
+                size = Size(barWidth, h)
+            )
+            x += barWidth + spacing
+        }
+        drawLine(
+            color = Color.Gray.copy(alpha = 0.4f),
+            start = Offset(0f, size.height),
+            end = Offset(size.width, size.height),
+            strokeWidth = 2f
+        )
+        drawLine(
+            color = Color.Gray.copy(alpha = 0.4f),
+            start = Offset(0f, 0f),
+            end = Offset(0f, size.height),
+            strokeWidth = 2f
+        )
+    }
+}
+
+data class AdminMetricsPoint(val x: Float, val y: Float, val label: String)
+
+@Composable
+fun AdminMetricsScatterPlot(points: List<AdminMetricsPoint>, modifier: Modifier = Modifier) {
+    Canvas(modifier = modifier.height(180.dp)) {
+        val padding = 24f
+        val width = size.width - padding * 2
+        val height = size.height - padding * 2
+        val xStep = if (points.isEmpty()) 0f else width / 2f
+        val yMax = (points.maxOfOrNull { it.y } ?: 1f).coerceAtLeast(1f)
+        val yScale = height / yMax
+        drawLine(
+            color = Color.Gray.copy(alpha = 0.4f),
+            start = Offset(padding, size.height - padding),
+            end = Offset(size.width - padding, size.height - padding),
+            strokeWidth = 2f
+        )
+        drawLine(
+            color = Color.Gray.copy(alpha = 0.4f),
+            start = Offset(padding, padding),
+            end = Offset(padding, size.height - padding),
+            strokeWidth = 2f
+        )
+        points.forEach { p ->
+            val px = padding + p.x * xStep
+            val py = size.height - padding - p.y * yScale
+            val color = when (p.x.toInt()) {
+                2 -> Color.Red
+                1 -> Color(0xFFFF9800)
+                else -> Greenish
+            }
+            drawCircle(color = color, radius = 6f, center = Offset(px, py))
+            drawIntoCanvas { canvas ->
+                val paint = android.graphics.Paint().apply {
+                    isAntiAlias = true
+                    setColor(android.graphics.Color.BLACK)
+                    textSize = 24f
+                }
+                canvas.nativeCanvas.drawText(p.label, px + 8f, py - 8f, paint)
+            }
+        }
+    }
+}
+
+@Composable
+fun AdminMetricsLineGraph(data: List<AdminMetricsBar>, modifier: Modifier = Modifier) {
+    Canvas(modifier = modifier.height(160.dp)) {
+        val padding = 24f
+        val width = size.width - padding * 2
+        val height = size.height - padding * 2
+        val maxVal = (data.maxOfOrNull { it.value } ?: 1).coerceAtLeast(1)
+        val yScale = if (maxVal == 0) 0f else height / maxVal
+        val xStep = if (data.isEmpty()) 0f else width / (data.size - 1).coerceAtLeast(1)
+        drawLine(
+            color = Color.Gray.copy(alpha = 0.4f),
+            start = Offset(padding, size.height - padding),
+            end = Offset(size.width - padding, size.height - padding),
+            strokeWidth = 2f
+        )
+        drawLine(
+            color = Color.Gray.copy(alpha = 0.4f),
+            start = Offset(padding, padding),
+            end = Offset(padding, size.height - padding),
+            strokeWidth = 2f
+        )
+        var prev: Offset? = null
+        data.forEachIndexed { i, item ->
+            val x = padding + i * xStep
+            val y = size.height - padding - item.value * yScale
+            val point = Offset(x, y)
+            prev?.let { p ->
+                drawLine(color = Color(0xFF1976D2), start = p, end = point, strokeWidth = 4f)
+            }
+            prev = point
+            drawCircle(color = item.color, radius = 6f, center = point)
+            drawIntoCanvas { canvas ->
+                val paint = android.graphics.Paint().apply {
+                    isAntiAlias = true
+                    setColor(android.graphics.Color.BLACK)
+                    textSize = 24f
+                }
+                canvas.nativeCanvas.drawText(item.value.toString(), x + 8f, y - 8f, paint)
             }
         }
     }
