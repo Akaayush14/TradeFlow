@@ -700,33 +700,6 @@ fun MetricsContent(onRequireAdminAccess: () -> Unit) {
                     )
                 }
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    MetricCard(
-                        title = "Unlisted",
-                        value = "$unlistedProducts",
-                        icon = painterResource(R.drawable.ic_items),
-                        color = Color.Red,
-                        modifier = Modifier.weight(1f),
-                        onClick = {
-                            val intent = Intent(context, AdminDashItem::class.java).apply {
-                                putExtra("target_tab", 1)
-                            }
-                            context.startActivity(intent)
-                        }
-                    )
-                    MetricCard(
-                        title = "Avg Price",
-                        value = "$${String.format("%.2f", avgPrice)}",
-                        icon = painterResource(R.drawable.ic_items),
-                        color = Color(0xFF4CAF50),
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-                Spacer(modifier = Modifier.height(8.dp))
-
                 val bucketLt100 = allProducts?.count { it.price < 100.0 } ?: 0
                 val bucket100_499 = allProducts?.count { it.price >= 100.0 && it.price <= 499.0 } ?: 0
                 val bucket500_999 = allProducts?.count { it.price >= 500.0 && it.price <= 999.0 } ?: 0
@@ -734,24 +707,55 @@ fun MetricsContent(onRequireAdminAccess: () -> Unit) {
                 val bucket1500_2000 = allProducts?.count { it.price >= 1500.0 && it.price <= 2000.0 } ?: 0
                 val bucketGt2000 = allProducts?.count { it.price > 2000.0 } ?: 0
 
-                Row(
+                Column(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    ProductListingPieChartCard(
-                        listed = listedProducts,
-                        unlisted = unlistedProducts,
-                        modifier = Modifier.weight(1f)
-                    )
-                    ProductPriceRangePieChartCard(
-                        lt100 = bucketLt100,
-                        r100_499 = bucket100_499,
-                        r500_999 = bucket500_999,
-                        r1000_1499 = bucket1000_1499,
-                        r1500_2000 = bucket1500_2000,
-                        gt2000 = bucketGt2000,
-                        modifier = Modifier.weight(1f)
-                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        MetricCard(
+                            title = "Unlisted",
+                            value = "$unlistedProducts",
+                            icon = painterResource(R.drawable.ic_items),
+                            color = Color.Red,
+                            modifier = Modifier.weight(1f),
+                            onClick = {
+                                val intent = Intent(context, AdminDashItem::class.java).apply {
+                                    putExtra("target_tab", 1)
+                                }
+                                context.startActivity(intent)
+                            }
+                        )
+                        MetricCard(
+                            title = "Avg Price",
+                            value = "$${String.format("%.2f", avgPrice)}",
+                            icon = painterResource(R.drawable.ic_items),
+                            color = Color(0xFF4CAF50),
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        ProductListingPieChartCard(
+                            listed = listedProducts,
+                            unlisted = unlistedProducts,
+                            modifier = Modifier.weight(1f)
+                        )
+                        ProductPriceRangePieChartCard(
+                            lt100 = bucketLt100,
+                            r100_499 = bucket100_499,
+                            r500_999 = bucket500_999,
+                            r1000_1499 = bucket1000_1499,
+                            r1500_2000 = bucket1500_2000,
+                            gt2000 = bucketGt2000,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
                 }
             }
         }
