@@ -375,7 +375,7 @@ fun AdminMetricsScatterPlot(points: List<AdminMetricsPoint>, modifier: Modifier 
 
 @Composable
 fun AdminMetricsLineGraph(data: List<AdminMetricsBar>, modifier: Modifier = Modifier) {
-    Canvas(modifier = modifier.height(160.dp)) {
+    Canvas(modifier = modifier.height(160.dp).fillMaxWidth()) {
         val padding = 24f
         val width = size.width - padding * 2
         val height = size.height - padding * 2
