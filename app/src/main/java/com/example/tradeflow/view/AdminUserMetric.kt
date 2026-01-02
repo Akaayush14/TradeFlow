@@ -45,6 +45,9 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
+import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -248,7 +251,7 @@ fun AdminUserMetricScreen(onBackClick: () -> Unit = {}) {
                                 user.isRestricted -> 1f
                                 else -> 0f
                             }
-                            UserMetricsPoint(x = x, y = index.toFloat())
+                            UserMetricsPoint(x = x, y = index.toFloat(), label = (index + 1).toString())
                         },
                         modifier = Modifier
                             .fillMaxWidth()
@@ -261,6 +264,39 @@ fun AdminUserMetricScreen(onBackClick: () -> Unit = {}) {
                         LegendItem(color = Color(0xFFFF9800), label = "Restricted", count = restrictedUsers)
                         LegendItem(color = Color.Red, label = "Blocked", count = blockedUsers)
                     }
+                }
+            }
+
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(240.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = "User Status Line Graph",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.Black
+                    )
+                    UserMetricsLineGraph(
+                        data = listOf(
+                            UserMetricsBar("Normal", normalUsers, Greenish),
+                            UserMetricsBar("Restricted", restrictedUsers, Color(0xFFFF9800)),
+                            UserMetricsBar("Blocked", blockedUsers, Color.Red)
+                        ),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(160.dp)
+                    )
                 }
             }
         }
@@ -302,7 +338,7 @@ fun UserMetricsBarChart(data: List<UserMetricsBar>, modifier: Modifier = Modifie
     }
 }
 
-data class UserMetricsPoint(val x: Float, val y: Float)
+data class UserMetricsPoint(val x: Float, val y: Float, val label: String)
 
 @Composable
 fun UserMetricsScatterPlot(points: List<UserMetricsPoint>, modifier: Modifier = Modifier) {
@@ -335,6 +371,57 @@ fun UserMetricsScatterPlot(points: List<UserMetricsPoint>, modifier: Modifier = 
                 else -> Greenish
             }
             drawCircle(color = color, radius = 6f, center = Offset(px, py))
+            drawIntoCanvas { canvas ->
+                val paint = android.graphics.Paint().apply {
+                    isAntiAlias = true
+                    setColor(android.graphics.Color.BLACK)
+                    textSize = 24f
+                }
+                canvas.nativeCanvas.drawText(p.label, px + 8f, py - 8f, paint)
+            }
+        }
+    }
+}
+
+@Composable
+fun UserMetricsLineGraph(data: List<UserMetricsBar>, modifier: Modifier = Modifier) {
+    Canvas(modifier = modifier) {
+        val padding = 24f
+        val width = size.width - padding * 2
+        val height = size.height - padding * 2
+        val maxVal = (data.maxOfOrNull { it.value } ?: 1).coerceAtLeast(1)
+        val yScale = if (maxVal == 0) 0f else height / maxVal
+        val xStep = if (data.isEmpty()) 0f else width / (data.size - 1).coerceAtLeast(1)
+        drawLine(
+            color = Color.Gray.copy(alpha = 0.4f),
+            start = Offset(padding, size.height - padding),
+            end = Offset(size.width - padding, size.height - padding),
+            strokeWidth = 2f
+        )
+        drawLine(
+            color = Color.Gray.copy(alpha = 0.4f),
+            start = Offset(padding, padding),
+            end = Offset(padding, size.height - padding),
+            strokeWidth = 2f
+        )
+        var prev: Offset? = null
+        data.forEachIndexed { i, item ->
+            val x = padding + i * xStep
+            val y = size.height - padding - item.value * yScale
+            val point = Offset(x, y)
+            prev?.let { p ->
+                drawLine(color = Color(0xFF1976D2), start = p, end = point, strokeWidth = 4f)
+            }
+            prev = point
+            drawCircle(color = item.color, radius = 6f, center = point)
+            drawIntoCanvas { canvas ->
+                val paint = android.graphics.Paint().apply {
+                    isAntiAlias = true
+                    setColor(android.graphics.Color.BLACK)
+                    textSize = 24f
+                }
+                canvas.nativeCanvas.drawText(item.value.toString(), x + 8f, y - 8f, paint)
+            }
         }
     }
 }
