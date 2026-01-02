@@ -915,7 +915,7 @@ fun AdminStatusPieChartCard(
     val total = totalAdmins
     val context = LocalContext.current
     Card(
-        modifier = modifier.height(120.dp).clickable {
+        modifier = modifier.height(140.dp).clickable {
             val intent = Intent(context, AdminAdminMetric::class.java)
             context.startActivity(intent)
         },
@@ -948,7 +948,7 @@ fun AdminStatusPieChartCard(
                         blockedUsers = blockedAdmins,
                         restrictedUsers = restrictedAdmins,
                         total = total,
-                        modifier = Modifier.size(50.dp)
+                        modifier = Modifier.size(80.dp)
                     )
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         LegendItem(color = Greenish, label = "Normal", count = normalAdmins)

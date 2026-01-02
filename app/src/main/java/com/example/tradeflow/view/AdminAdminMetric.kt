@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -164,7 +165,7 @@ fun AdminAdminMetricScreen(onBackClick: () -> Unit = {}) {
                                 total = totalAdmins,
                                 modifier = Modifier
                                     .padding(8.dp)
-                                    .fillMaxWidth(0.4f)
+                                    .size(140.dp)
                             )
                             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                                 LegendItem(color = Greenish, label = "Normal", count = normalAdmins)
