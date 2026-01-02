@@ -10,6 +10,7 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -243,45 +244,47 @@ fun AdminNotificationScreen(onBackClick: () -> Unit = {}) {
                 .padding(padding)
                 .fillMaxSize()
         ) {
-            // Control Row
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                if (isSelectionMode) {
-                    TextButton(onClick = {
-                        val allIds = notifications?.map { it.notificationId } ?: emptyList()
-                        if (selectedIds.size == allIds.size && allIds.isNotEmpty()) {
-                            selectedIds.clear()
-                        } else {
-                            selectedIds.clear()
-                            selectedIds.addAll(allIds)
+            // Control Row - only show when there are notifications
+            if (!notifications.isNullOrEmpty()) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    if (isSelectionMode) {
+                        TextButton(onClick = {
+                            val allIds = notifications?.map { it.notificationId } ?: emptyList()
+                            if (selectedIds.size == allIds.size && allIds.isNotEmpty()) {
+                                selectedIds.clear()
+                            } else {
+                                selectedIds.clear()
+                                selectedIds.addAll(allIds)
+                            }
+                        }) {
+                            val allIds = notifications?.map { it.notificationId } ?: emptyList()
+                            Text(
+                                text = if (selectedIds.size == allIds.size && allIds.isNotEmpty()) "Deselect All" else "Select All",
+                                color = DarkGreen
+                            )
                         }
-                    }) {
-                        val allIds = notifications?.map { it.notificationId } ?: emptyList()
-                        Text(
-                            text = if (selectedIds.size == allIds.size && allIds.isNotEmpty()) "Deselect All" else "Select All",
-                            color = DarkGreen
-                        )
-                    }
 
-                    TextButton(onClick = {
-                        val idsToDelete = selectedIds.toList()
-                        idsToDelete.forEach { id ->
-                            notificationViewModel.deleteNotification(id) { _, _ -> }
+                        TextButton(onClick = {
+                            val idsToDelete = selectedIds.toList()
+                            idsToDelete.forEach { id ->
+                                notificationViewModel.deleteNotification(id) { _, _ -> }
+                            }
+                            selectedIds.clear()
+                            Toast.makeText(context, "${idsToDelete.size} notifications deleted", Toast.LENGTH_SHORT).show()
+                        }) {
+                            Text("Delete", color = Color.Red)
                         }
-                        selectedIds.clear()
-                        Toast.makeText(context, "${idsToDelete.size} notifications deleted", Toast.LENGTH_SHORT).show()
-                    }) {
-                        Text("Delete", color = Color.Red)
-                    }
-                } else {
-                    Spacer(modifier = Modifier.weight(1f))
-                    TextButton(onClick = { showDeleteAllDialog = true }) {
-                        Text("Delete all", color = Color.Red)
+                    } else {
+                        Spacer(modifier = Modifier.weight(1f))
+                        TextButton(onClick = { showDeleteAllDialog = true }) {
+                            Text("Delete all", color = Color.Red)
+                        }
                     }
                 }
             }
@@ -297,7 +300,7 @@ fun AdminNotificationScreen(onBackClick: () -> Unit = {}) {
                 }
             )
         }
-        
+
         // Delete All Confirmation Dialog
         if (showDeleteAllDialog) {
             AlertDialog(
@@ -356,10 +359,9 @@ fun NotificationContent(
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center
         ) {
-            Text(
-                text = "No notifications yet",
-                color = Color.Gray,
-                fontSize = 16.sp
+            Image(
+                painter = painterResource(R.drawable.no_notification),
+                contentDescription = "No notifications"
             )
         }
     } else {
@@ -400,7 +402,7 @@ fun NotificationCard(
     onLongClick: (String) -> Unit = {}
 ) {
     val context = LocalContext.current
-    
+
     // Format timestamp
     val dateFormat = SimpleDateFormat("MMM dd, yyyy HH:mm", Locale.getDefault())
     val formattedTime = dateFormat.format(Date(notification.timestamp))
@@ -416,7 +418,7 @@ fun NotificationCard(
     // Check if undo is possible (not for deletions, and must have valid ID)
     val canUndo = notification.type !in listOf("item_deleted", "user_deleted") &&
             ((notification.type.startsWith("item_") && notification.itemId.isNotEmpty()) ||
-             (notification.type.startsWith("user_") && notification.userId.isNotEmpty()))
+                    (notification.type.startsWith("user_") && notification.userId.isNotEmpty()))
 
     // Undo function
     val onUndoClick: () -> Unit = {
