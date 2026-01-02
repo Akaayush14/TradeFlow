@@ -739,7 +739,11 @@ fun MetricsContent(onRequireAdminAccess: () -> Unit) {
                             value = "$${String.format("%.2f", avgPrice)}",
                             icon = painterResource(R.drawable.ic_items),
                             color = Color(0xFF4CAF50),
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.weight(1f),
+                            onClick = {
+                                val intent = Intent(context, AdminProductPriceMetric::class.java)
+                                context.startActivity(intent)
+                            }
                         )
                     }
 
