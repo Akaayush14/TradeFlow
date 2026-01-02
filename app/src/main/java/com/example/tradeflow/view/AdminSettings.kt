@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -301,7 +302,8 @@ fun SettingsMenuItem(
                 Icon(
                     painter = painterResource(id = it),
                     contentDescription = title,
-                    tint = Color.Unspecified
+                    tint = Color.Unspecified,
+                    modifier = Modifier.size(24.dp)
                 )
             }
             Text(

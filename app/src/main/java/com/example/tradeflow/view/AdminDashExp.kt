@@ -969,12 +969,17 @@ fun ProductListingPieChartCard(
     unlisted: Int,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
     val total = listed + unlisted
     Card(
-        modifier = modifier.height(120.dp),
+        modifier = modifier.height(120.dp).clickable {
+            val intent = Intent(context, AdminProductMetric::class.java)
+            context.startActivity(intent)
+        },
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
-        shape = RoundedCornerShape(12.dp)
+        shape = RoundedCornerShape(12.dp),
+
     ) {
         Column(
             modifier = Modifier
