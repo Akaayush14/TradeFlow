@@ -657,13 +657,6 @@ fun MetricsContent(onRequireAdminAccess: () -> Unit) {
                         modifier = Modifier.weight(1f),
                         onClick = { onRequireAdminAccess() }
                     )
-                    Spacer(modifier = Modifier.weight(1f))
-                }
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
                     AdminStatusPieChartCard(
                         totalAdmins = totalAdmins,
                         blockedAdmins = blockedAdmins,
@@ -671,7 +664,6 @@ fun MetricsContent(onRequireAdminAccess: () -> Unit) {
                         onRequireAdminAccess = onRequireAdminAccess,
                         modifier = Modifier.weight(1f)
                     )
-                    Spacer(modifier = Modifier.weight(1f))
                 }
 
                 Spacer(modifier = Modifier.height(8.dp))
