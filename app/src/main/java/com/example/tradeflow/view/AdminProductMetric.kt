@@ -7,6 +7,8 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -128,7 +130,8 @@ fun AdminProductMetricScreen(onBackClick: () -> Unit = {}) {
             modifier = Modifier
                 .padding(padding)
                 .fillMaxSize()
-                .padding(16.dp),
+                .padding(16.dp)
+                .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Card(
@@ -160,7 +163,9 @@ fun AdminProductMetricScreen(onBackClick: () -> Unit = {}) {
                             ProductPieChartSegments(
                                 segments = listOf(listed, unlisted),
                                 colors = listOf(DarkGreen, Color.Red),
-                                modifier = Modifier.size(100.dp)
+                                modifier = Modifier
+                                    .size(100.dp)
+                                    .padding(top = 12.dp)
                             )
                             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                                 LegendItem(color = DarkGreen, label = "Listed", count = listed)
@@ -356,41 +361,46 @@ fun ProductMetricsScatterPlot(points: List<ProductMetricsPoint>, modifier: Modif
 @Composable
 fun ProductMetricsLineGraph(data: List<ProductMetricsBar>, modifier: Modifier = Modifier) {
     Canvas(modifier = modifier) {
-        val padding = 24f
+        val padding = 40f
         val width = size.width - padding * 2
         val height = size.height - padding * 2
         val maxVal = (data.maxOfOrNull { it.value } ?: 1).coerceAtLeast(1)
         val yScale = if (maxVal == 0) 0f else height / maxVal
-        val xStep = if (data.isEmpty()) 0f else width / (data.size - 1).coerceAtLeast(1)
+        val steps = (data.size - 1).coerceAtLeast(1)
+        val xStep = if (data.isEmpty()) 0f else width / steps
+
         drawLine(
-            color = Color.Gray.copy(alpha = 0.4f),
+            color = Color.Gray.copy(alpha = 0.5f),
             start = Offset(padding, size.height - padding),
             end = Offset(size.width - padding, size.height - padding),
-            strokeWidth = 2f
+            strokeWidth = 3.5f
         )
         drawLine(
-            color = Color.Gray.copy(alpha = 0.4f),
+            color = Color.Gray.copy(alpha = 0.5f),
             start = Offset(padding, padding),
             end = Offset(padding, size.height - padding),
-            strokeWidth = 2f
+            strokeWidth = 3.5f
         )
+
         var prev: Offset? = null
         data.forEachIndexed { i, item ->
-            val x = padding + i * xStep
+            val x = if (data.size == 1) padding + width / 2f else padding + i * xStep
             val y = size.height - padding - item.value * yScale
             val point = Offset(x, y)
             prev?.let { p ->
-                drawLine(color = Color(0xFF1976D2), start = p, end = point, strokeWidth = 4f)
+                drawLine(color = Color(0xFF1976D2), start = p, end = point, strokeWidth = 8f)
             }
             prev = point
-            drawCircle(color = item.color, radius = 6f, center = point)
+            drawCircle(color = item.color, radius = 10f, center = point)
+
             drawIntoCanvas { canvas ->
                 val paint = android.graphics.Paint().apply {
                     isAntiAlias = true
                     setColor(android.graphics.Color.BLACK)
-                    textSize = 24f
+                    textSize = 32f
+                    textAlign = android.graphics.Paint.Align.CENTER
                 }
-                canvas.nativeCanvas.drawText(item.value.toString(), x + 8f, y - 8f, paint)
+                canvas.nativeCanvas.drawText(item.value.toString(), x, y - 16f, paint)
             }
         }
     }
