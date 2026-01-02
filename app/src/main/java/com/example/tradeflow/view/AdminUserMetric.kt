@@ -221,6 +221,13 @@ fun AdminUserMetricScreen(onBackClick: () -> Unit = {}) {
                             .fillMaxWidth()
                             .height(160.dp)
                     )
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        LegendItem(color = Greenish, label = "Normal", count = normalUsers)
+                        LegendItem(color = Color(0xFFFF9800), label = "Restricted", count = restrictedUsers)
+                        LegendItem(color = Color.Red, label = "Blocked", count = blockedUsers)
+                    }
                 }
             }
 
@@ -297,6 +304,13 @@ fun AdminUserMetricScreen(onBackClick: () -> Unit = {}) {
                             .fillMaxWidth()
                             .height(160.dp)
                     )
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        LegendItem(color = Greenish, label = "Normal", count = normalUsers)
+                        LegendItem(color = Color(0xFFFF9800), label = "Restricted", count = restrictedUsers)
+                        LegendItem(color = Color.Red, label = "Blocked", count = blockedUsers)
+                    }
                 }
             }
         }
