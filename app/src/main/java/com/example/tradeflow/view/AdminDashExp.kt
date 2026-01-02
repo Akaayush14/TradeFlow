@@ -1028,6 +1028,7 @@ fun ProductPriceRangePieChartCard(
     gt2000: Int,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
     val total = lt100 + r100_499 + r500_999 + r1000_1499 + r1500_2000 + gt2000
     val colors = listOf(
         Color(0xFF4CAF50), // <100
@@ -1038,7 +1039,10 @@ fun ProductPriceRangePieChartCard(
         Color(0xFF607D8B)  // >2000
     )
     Card(
-        modifier = modifier.height(120.dp),
+        modifier = modifier.height(120.dp).clickable {
+            val intent = Intent(context, AdminProductPriceMetric::class.java)
+            context.startActivity(intent)
+        },
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
         shape = RoundedCornerShape(12.dp)
