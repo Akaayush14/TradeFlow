@@ -281,7 +281,9 @@ fun AdminAdminMetricScreen(onBackClick: () -> Unit = {}) {
                             AdminMetricsBar("Restricted", restrictedAdmins, Color(0xFFFF9800)),
                             AdminMetricsBar("Blocked", blockedAdmins, Color.Red)
                         ),
-                        modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(160.dp)
                     )
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         LegendItem(color = Greenish, label = "Normal", count = normalAdmins)
@@ -375,7 +377,7 @@ fun AdminMetricsScatterPlot(points: List<AdminMetricsPoint>, modifier: Modifier 
 
 @Composable
 fun AdminMetricsLineGraph(data: List<AdminMetricsBar>, modifier: Modifier = Modifier) {
-    Canvas(modifier = modifier.height(160.dp).fillMaxWidth()) {
+    Canvas(modifier = modifier) {
         val padding = 24f
         val width = size.width - padding * 2
         val height = size.height - padding * 2
