@@ -36,6 +36,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+ 
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material.icons.Icons
@@ -1233,6 +1234,8 @@ fun ItemsContent(searchText: String) {
         }
     }
 
+    
+
     PullToRefreshLayout(
         isRefreshing = isRefreshing,
         onRefresh = {
@@ -1244,6 +1247,7 @@ fun ItemsContent(searchText: String) {
             }
         }
     ) {
+        
         if (!hasInternet) {
             Box(
                 modifier = Modifier.fillMaxSize(),
@@ -1447,6 +1451,8 @@ fun UsersContent(searchText: String) {
         }
     }
 
+    
+
     PullToRefreshLayout(
         isRefreshing = isRefreshing,
         onRefresh = {
@@ -1458,6 +1464,7 @@ fun UsersContent(searchText: String) {
             }
         }
     ) {
+        
         if (!hasInternet) {
             Box(
                 modifier = Modifier.fillMaxSize(),
