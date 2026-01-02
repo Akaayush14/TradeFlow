@@ -657,8 +657,16 @@ fun MetricsContent(onRequireAdminAccess: () -> Unit) {
                         modifier = Modifier.weight(1f),
                         onClick = { onRequireAdminAccess() }
                     )
-                    Spacer(modifier = Modifier.weight(1f))
+                    // Admin Status Pie Chart Card
+                    AdminStatusPieChartCard(
+                        normalAdmins = totalAdmins - blockedAdmins - restrictedAdmins,
+                        blockedAdmins = blockedAdmins,
+                        restrictedAdmins = restrictedAdmins,
+                        modifier = Modifier.weight(1f)
+                    )
                 }
+
+
 
                 Spacer(modifier = Modifier.height(8.dp))
 
@@ -782,6 +790,71 @@ fun UserStatusPieChartCard(
                         LegendItem(color = Greenish, label = "Normal", count = normalUsers)
                         LegendItem(color = Color.Red, label = "Blocked", count = blockedUsers)
                         LegendItem(color = Color(0xFFFF9800), label = "Restricted", count = restrictedUsers)
+                    }
+                }
+            } else {
+                Text(
+                    text = "No data",
+                    fontSize = 14.sp,
+                    color = Color.Gray
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun AdminStatusPieChartCard(
+    normalAdmins: Int,
+    blockedAdmins: Int,
+    restrictedAdmins: Int,
+    modifier: Modifier = Modifier
+) {
+    val total = normalAdmins + blockedAdmins + restrictedAdmins
+
+    Card(
+        modifier = modifier.height(120.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(12.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = "Admin Status",
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Medium,
+                color = Color.Gray
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+
+            if (total > 0) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Pie Chart
+                    PieChart(
+                        normalUsers = normalAdmins,
+                        blockedUsers = blockedAdmins,
+                        restrictedUsers = restrictedAdmins,
+                        total = total,
+                        modifier = Modifier.size(50.dp)
+                    )
+
+                    // Legend
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        LegendItem(color = Greenish, label = "Normal", count = normalAdmins)
+                        LegendItem(color = Color.Red, label = "Blocked", count = blockedAdmins)
+                        LegendItem(color = Color(0xFFFF9800), label = "Restricted", count = restrictedAdmins)
                     }
                 }
             } else {
