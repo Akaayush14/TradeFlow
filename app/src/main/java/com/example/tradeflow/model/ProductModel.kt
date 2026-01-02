@@ -13,7 +13,9 @@ data class ProductModel(
     var ownerId: String = "", // User ID who created this product
     var createdAt: Long = System.currentTimeMillis(),
     var isDeleted: Boolean = false,
-    var completedAt: Long? = null
+    var completedAt: Long? = null,
+    var image:String=""
+
 ){
     fun toMap(): Map<String, Any?>{
         return mapOf(

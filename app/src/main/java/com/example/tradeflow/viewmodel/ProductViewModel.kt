@@ -2,6 +2,7 @@ package com.example.tradeflow.viewmodel
 
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
+import android.net.Uri
 import com.example.tradeflow.model.ProductModel
 import com.example.tradeflow.repository.ProductRepo
 
@@ -88,4 +89,8 @@ class ProductViewModel(val repo: ProductRepo) : ViewModel() {
             }
         }
     }
+    fun uploadImage(context: android.content.Context, uri: Uri, callback: (String?) -> Unit) {
+        repo.uploadImage(context, uri, callback)
+    }
+
 }

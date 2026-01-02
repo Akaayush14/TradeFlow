@@ -27,7 +27,7 @@ fun NotificationScreen(onBackClick: () -> Unit = {}) {
 
     Scaffold(
         topBar = {
-            CenterAlignedTopAppBar(
+            TradeFlowTopBar(
                 title = {
                     Text(
                         "Notification",
@@ -35,20 +35,7 @@ fun NotificationScreen(onBackClick: () -> Unit = {}) {
                         fontWeight = FontWeight.Bold
                     )
                 },
-                navigationIcon = {
-                    IconButton(onClick = onBackClick) {
-                        Icon(
-                            painter = painterResource(R.drawable.outline_arrow_back_ios_new_24),
-                            contentDescription = "Back",
-                            tint = White
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Greenish,
-                    titleContentColor = White,
-                    navigationIconContentColor = White
-                )
+                onBackClick = onBackClick
             )
         },
         containerColor = White

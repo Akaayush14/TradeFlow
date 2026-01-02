@@ -125,8 +125,8 @@ fun InboxScreen(onBackClick: () -> Unit = {}) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun InboxTopAppBar(onBackClick: () -> Unit = {}) {
-    // Use TopAppBar for a left-aligned title
-    CenterAlignedTopAppBar(
+    // Use TradeFlowTopBar for consistent styling
+    TradeFlowTopBar(
         title = {
             Text(
                 "Inbox",
@@ -134,21 +134,7 @@ fun InboxTopAppBar(onBackClick: () -> Unit = {}) {
                 fontWeight = FontWeight.Bold
             )
         },
-        navigationIcon = {
-            IconButton(onClick = onBackClick) {
-                Icon(
-                    painter = painterResource(R.drawable.outline_arrow_back_ios_new_24),
-                    contentDescription = "Back",
-                    tint = White
-                )
-            }
-        },
-        // Use the appropriate TopAppBarDefaults colors function
-        colors = TopAppBarDefaults.topAppBarColors(
-            containerColor = Greenish,
-            titleContentColor = White,
-            navigationIconContentColor = White
-        )
+        onBackClick = onBackClick
     )
 }
 

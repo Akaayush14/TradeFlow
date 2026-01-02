@@ -93,13 +93,7 @@ fun ExploreScreen() {
 
     Scaffold(
         topBar = {
-            CenterAlignedTopAppBar(
-                colors = TopAppBarDefaults.topAppBarColors(
-                    titleContentColor = White,
-                    actionIconContentColor = White,
-                    containerColor =Greenish,
-                    navigationIconContentColor = White
-                ),
+            TradeFlowTopBar(
                 title = {
                     TextField(
                         value = searchQuery,
@@ -149,7 +143,6 @@ fun ExploreScreen() {
                         shape = RoundedCornerShape(24.dp),
                         singleLine = true)
                 },
-
                 actions = {
                     IconButton(onClick = {
                         val intent = Intent(activity, SettingScreenActivity::class.java)

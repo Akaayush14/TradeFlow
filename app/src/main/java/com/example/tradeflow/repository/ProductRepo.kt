@@ -1,4 +1,5 @@
 package com.example.tradeflow.repository
+
 import com.example.tradeflow.model.ProductModel
 
 interface ProductRepo {
@@ -34,4 +35,6 @@ interface ProductRepo {
         type: String,
         callback:(Boolean,String,List<ProductModel>?)->Unit
     )
+    fun uploadImage(context: android.content.Context, uri: android.net.Uri, callback: (String?) -> Unit)
+    fun getFileNameFromUri(context: android.content.Context, uri: android.net.Uri): String?
 }

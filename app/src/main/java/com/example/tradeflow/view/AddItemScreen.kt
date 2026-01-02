@@ -1,5 +1,9 @@
 package com.example.tradeflow.view
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -18,6 +22,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
@@ -28,6 +34,7 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
 import com.example.tradeflow.R
 import com.example.tradeflow.model.ProductModel
 import com.example.tradeflow.repository.ProductRepoImpl
@@ -47,6 +54,7 @@ fun AddItemScreen(
     onBackClick: () -> Unit = {},
     onSaved: () -> Unit = {}
 ) {
+    val context = LocalContext.current
     val viewModel = remember {
         ProductViewModel(ProductRepoImpl())
     }
@@ -60,6 +68,13 @@ fun AddItemScreen(
     var status by remember { mutableStateOf(initialProduct?.status ?: "Available") }
     var agreedToTerms by remember { mutableStateOf(false) }
     var isDropdownExpanded by remember { mutableStateOf(false) }
+    
+    var imageUri by remember { mutableStateOf<Uri?>(null) }
+    val launcher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        imageUri = uri
+    }
 
     var showSuccessDialog by remember { mutableStateOf(false) }
     var showErrorDialog by remember { mutableStateOf(false) }
@@ -131,59 +146,65 @@ fun AddItemScreen(
             return
         }
 
-        if (mode == AddItemMode.ADD) {
+        fun proceedToSave(finalImageUrl: String) {
             val product = ProductModel(
+                productId = if (mode == AddItemMode.EDIT) initialProduct?.productId ?: "" else "",
                 name = name.trim(),
                 price = priceValue,
                 category = category.trim(),
                 location = location.trim(),
                 description = description.trim(),
                 type = selectedPurpose,
-                ownerId = ownerId,
+                ownerId = if (mode == AddItemMode.EDIT) initialProduct?.ownerId ?: ownerId else ownerId,
                 status = status,
-                imageUrl = ""
+                imageUrl = finalImageUrl
             )
-            viewModel.addProduct(product) { success, message ->
+
+            val callback: (Boolean, String) -> Unit = { success, message ->
                 isLoading = false
                 if (success) {
-                    showSuccessDialog = true
-                    resetForm()
+                    if (mode == AddItemMode.EDIT) {
+                        coroutineScope.launch {
+                            snackbarHostState.showSnackbar("Item updated successfully")
+                        }
+                        onSaved()
+                    } else {
+                        showSuccessDialog = true
+                        resetForm()
+                        imageUri = null
+                    }
                 } else {
                     errorMessage = message
+                    showErrorDialog = true
+                }
+            }
+
+            if (mode == AddItemMode.ADD) {
+                viewModel.addProduct(product, callback)
+            } else {
+                viewModel.updateProduct(product, callback)
+            }
+        }
+
+        if (imageUri != null) {
+            viewModel.uploadImage(context, imageUri!!) { url ->
+                if (url != null) {
+                    proceedToSave(url)
+                } else {
+                    isLoading = false
+                    errorMessage = "Failed to upload image"
                     showErrorDialog = true
                 }
             }
         } else {
-            val product = ProductModel(
-                productId = initialProduct?.productId ?: "",
-                name = name.trim(),
-                price = priceValue,
-                category = category.trim(),
-                location = location.trim(),
-                description = description.trim(),
-                type = selectedPurpose,
-                ownerId = initialProduct?.ownerId ?: ownerId,
-                status = status,
-                imageUrl = initialProduct?.imageUrl ?: ""
-            )
-            viewModel.updateProduct(product) { success, message ->
-                isLoading = false
-                if (success) {
-                    coroutineScope.launch {
-                        snackbarHostState.showSnackbar("Item updated successfully")
-                    }
-                    onSaved()
-                } else {
-                    errorMessage = message
-                    showErrorDialog = true
-                }
-            }
+            val currentUrl = initialProduct?.imageUrl ?: ""
+            proceedToSave(currentUrl)
         }
     }
 
     Scaffold(
         topBar = {
-            TopAppBar(
+            TradeFlowTopBar(
                 title = {
                     Text(
                         text = if (mode == AddItemMode.ADD) "Add New Item" else "Edit Item",
@@ -191,20 +212,7 @@ fun AddItemScreen(
                         fontWeight = FontWeight.Bold
                     )
                 },
-                navigationIcon = {
-                    IconButton(onClick = onBackClick) {
-                        Icon(
-                            painter = painterResource(R.drawable.outline_arrow_back_ios_new_24),
-                            contentDescription = "back",
-                            tint = Color.White
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Greenish,
-                    titleContentColor = White,
-                    navigationIconContentColor = White
-                )
+                onBackClick = onBackClick
             )
         },
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
@@ -401,15 +409,30 @@ fun AddItemScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(150.dp)
-                        .border(1.dp, Greenish, RoundedCornerShape(12.dp)),
+                        .border(1.dp, Greenish, RoundedCornerShape(12.dp))
+                        .clickable { launcher.launch("image/*") },
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(
-                        painter = painterResource(R.drawable.additem),
-                        contentDescription = "Add Image",
-                        modifier = Modifier.size(48.dp),
-                        tint = Greenish
-                    )
+                    val currentImage = imageUri ?: (if (mode == AddItemMode.EDIT && !initialProduct?.imageUrl.isNullOrEmpty()) initialProduct?.imageUrl else null)
+
+                    if (currentImage != null) {
+                        AsyncImage(
+                            model = currentImage,
+                            contentDescription = "Selected Image",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                    } else {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(
+                                painter = painterResource(R.drawable.additem),
+                                contentDescription = "Add Image",
+                                modifier = Modifier.size(48.dp),
+                                tint = Greenish
+                            )
+                            Text("Tap to select image", color = Greenish)
+                        }
+                    }
                 }
             }
             item {
