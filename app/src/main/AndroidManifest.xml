@@ -154,6 +154,11 @@
         </activity>
 
         <activity
+            android:name=".view.AdminUserMetric"
+            android:exported="true"
+            android:theme="@style/Theme.TradeFlow" />
+
+        <activity
             android:name=".view.AdminProfile"
             android:exported="true"
             android:label="Admin Profile"
@@ -202,6 +207,8 @@
             android:name=".view.AdminDashItem"
             android:exported="false"
             android:theme="@style/Theme.TradeFlow" />
+
+
     </application>
 
 </manifest>
