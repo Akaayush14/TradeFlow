@@ -34,7 +34,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.navigation.compose.NavHost
-import com.example.tradeflow.view.AboutUsScreen
 import com.example.tradeflow.R
 
 class SettingScreenActivity : ComponentActivity() {
