@@ -262,9 +262,9 @@ fun ProfileScreen(onBackClick: () -> Unit = {}, onEditProduct: (ProductModel) ->
                     ProductItemCard(
                         product = product,
                         onClick = {
-                             val intent = Intent(context, ItemDetailsActivity::class.java)
-                             intent.putExtra("productId", product.productId)
-                             context.startActivity(intent)
+                            val intent = Intent(context, ItemDetailsActivity::class.java)
+                            intent.putExtra("productId", product.productId)
+                            context.startActivity(intent)
                         },
                         onEdit = { onEditProduct(it) },
                         isOwner = isOwner,
@@ -635,19 +635,19 @@ fun ProductItemCard(
                         fontWeight = FontWeight.Bold
                     )
                 }
-                
+
                 Spacer(modifier = Modifier.height(4.dp))
-                
+
                 // Title
                 Text(product.name, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.Black)
-                
+
                 Spacer(modifier = Modifier.height(2.dp))
-                
+
                 // Description
                 Text(product.description, fontSize = 14.sp, color = Color.Gray)
-                
+
                 Spacer(modifier = Modifier.height(8.dp))
-                
+
                 // Transaction Details Row
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -668,7 +668,7 @@ fun ProductItemCard(
                             fontWeight = FontWeight.Bold
                         )
                     }
-                    
+
                     // Price (Right)
                     Text(
                         text = "Rs ${String.format("%.2f", product.price)}",
@@ -677,9 +677,9 @@ fun ProductItemCard(
                         color = Color.Black
                     )
                 }
-                
+
                 Spacer(modifier = Modifier.height(4.dp))
-                
+
                 // Location Display
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -699,9 +699,9 @@ fun ProductItemCard(
                         maxLines = 1
                     )
                 }
-                
+
                 Spacer(modifier = Modifier.height(4.dp))
-                
+
                 // Gray divider line below location
                 Box(
                     modifier = Modifier
@@ -709,9 +709,9 @@ fun ProductItemCard(
                         .height(1.dp)
                         .background(Color.LightGray)
                 )
-                
+
                 Spacer(modifier = Modifier.height(12.dp))
-                
+
                 // Action Buttons (Bottom Row)
                 if (isOwner) {
                     var showDeleteConfirm by remember { mutableStateOf(false) }
@@ -754,7 +754,7 @@ fun ProductItemCard(
                                 )
                             }
                         }
-                        
+
                         // Mark as Traded Button
                         if (product.status != "Completed") Card(
                             modifier = Modifier
@@ -790,7 +790,7 @@ fun ProductItemCard(
                                 )
                             }
                         }
-                        
+
                         // Delete Button
                         if (product.status != "Completed") Card(
                             modifier = Modifier
@@ -827,7 +827,7 @@ fun ProductItemCard(
                             }
                         }
                     }
-                    
+
                     if (product.status == "Completed") {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -846,7 +846,7 @@ fun ProductItemCard(
                             )
                         }
                     }
-                    
+
                     if (showDeleteConfirm) {
                         AlertDialog(
                             onDismissRequest = { showDeleteConfirm = false },
@@ -867,7 +867,7 @@ fun ProductItemCard(
                             }
                         )
                     }
-                    
+
                     if (showMarkConfirm) {
                         AlertDialog(
                             onDismissRequest = { showMarkConfirm = false },
@@ -888,7 +888,7 @@ fun ProductItemCard(
                             }
                         )
                     }
-                    
+
                     if (showMarkBlocked) {
                         AlertDialog(
                             onDismissRequest = { showMarkBlocked = false },
@@ -901,7 +901,7 @@ fun ProductItemCard(
                             }
                         )
                     }
-                    
+
                     if (showDeleteBlocked) {
                         AlertDialog(
                             onDismissRequest = { showDeleteBlocked = false },

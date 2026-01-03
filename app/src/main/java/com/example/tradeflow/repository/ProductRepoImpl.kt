@@ -6,15 +6,15 @@ import android.os.Handler
 import android.os.Looper
 import android.provider.OpenableColumns
 import android.net.Uri
-import com.cloudinary.Cloudinary
-import com.cloudinary.utils.ObjectUtils
 import com.example.tradeflow.model.ProductModel
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
+import com.google.firebase.storage.FirebaseStorage
 import java.io.InputStream
+import java.util.UUID
 import java.util.concurrent.Executors
 import kotlin.collections.toMap
 
@@ -22,13 +22,7 @@ import kotlin.collections.toMap
 class ProductRepoImpl: ProductRepo {
     val database: FirebaseDatabase = FirebaseDatabase.getInstance()
     val ref: DatabaseReference = database.getReference("products")
-    private val cloudinary = Cloudinary(
-        mapOf(
-            "cloud_name" to "dpi7b9iam",
-            "api_key" to "561879326562495",
-            "api_secret" to "iteXJaLRqFgpuMwmVcw0gw9fjgE"
-        )
-    )
+    val storageRef = FirebaseStorage.getInstance().reference
 
     override fun addProduct(
         model: ProductModel,
@@ -200,36 +194,20 @@ class ProductRepoImpl: ProductRepo {
     }
 
     override fun uploadImage(context: Context, uri: Uri, callback: (String?) -> Unit) {
-        val executor = Executors.newSingleThreadExecutor()
-        executor.execute {
-            try {
-                val inputStream: InputStream? = context.contentResolver.openInputStream(uri)
-                var fileName = getFileNameFromUri(context, uri)
+        val fileName = UUID.randomUUID().toString() + ".jpg"
+        val imageRef = storageRef.child("product_images/$fileName")
 
-                fileName = fileName?.substringBeforeLast(".") ?: "uploaded_image"
-
-                val response = cloudinary.uploader().upload(
-                    inputStream, ObjectUtils.asMap(
-                        "public_id", fileName,
-                        "resource_type", "image"
-                    )
-                )
-
-                var imageUrl = response["url"] as String?
-
-                imageUrl = imageUrl?.replace("http://", "https://")
-
-                Handler(Looper.getMainLooper()).post {
-                    callback(imageUrl)
-                }
-
-            } catch (e: Exception) {
-                e.printStackTrace()
-                Handler(Looper.getMainLooper()).post {
+        imageRef.putFile(uri)
+            .addOnSuccessListener {
+                imageRef.downloadUrl.addOnSuccessListener { downloadUri ->
+                    callback(downloadUri.toString())
+                }.addOnFailureListener {
                     callback(null)
                 }
             }
-        }
+            .addOnFailureListener {
+                callback(null)
+            }
     }
 
 

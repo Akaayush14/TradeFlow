@@ -61,6 +61,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.foundation.Image
 import androidx.compose.material3.TopAppBar
 import androidx.compose.ui.text.font.FontWeight
+import coil.compose.AsyncImage
 import com.example.tradeflow.R
 
 // Add this annotation to use experimental Material 3 APIs
@@ -231,7 +232,7 @@ fun ExploreItemCard(product: ProductModel, onClick: () -> Unit) {
             .padding(8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Placeholder Image
+        // Product Image
         Box(
             modifier = Modifier
                 .size(100.dp)
@@ -239,11 +240,23 @@ fun ExploreItemCard(product: ProductModel, onClick: () -> Unit) {
                 .background(Color.LightGray),
             contentAlignment = Alignment.Center
         ) {
-             Icon(
-                imageVector = Icons.Default.Search, // Placeholder icon
-                contentDescription = null,
-                tint = Color.Gray
-            )
+            if (product.imageUrl.isNotEmpty()) {
+                AsyncImage(
+                    model = product.imageUrl,
+                    contentDescription = product.name,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop,
+                    placeholder = painterResource(R.drawable.placeholderimage),
+                    error = painterResource(R.drawable.placeholderimage)
+                )
+            } else {
+                Image(
+                    painter = painterResource(R.drawable.placeholderimage),
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
+            }
         }
 
         Spacer(modifier = Modifier.width(16.dp))
