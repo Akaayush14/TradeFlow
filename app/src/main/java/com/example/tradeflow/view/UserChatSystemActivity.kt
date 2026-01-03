@@ -32,12 +32,13 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import com.google.firebase.firestore.FirebaseFirestore
 import java.text.SimpleDateFormat
 import java.util.*
 
 
 
-class ChatSystemActivity : ComponentActivity() {
+class UserChatSystemActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
@@ -58,34 +59,68 @@ data class ChatMessage(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ChatScreen() {
+fun ChatScreen(
+    receiverId: String
+) {
     val context = LocalContext.current
+    val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return
+    val db = FirebaseFirestore.getInstance()
+
+    val chatId = listOf(currentUserId, receiverId).sorted().joinToString("_")
+
     var messageText by remember { mutableStateOf("") }
     var replyMessage by remember { mutableStateOf<ChatMessage?>(null) }
-    val messages = remember { mutableStateListOf<ChatMessage>() }
     var showOptionsDialog by remember { mutableStateOf<ChatMessage?>(null) }
-
+    val messages = remember { mutableStateListOf<ChatMessage>() }
     val listState = rememberLazyListState()
 
-    fun sendMessage(text: String) {
-        if (text.isNotBlank()) {
-            val newMsg = ChatMessage(text = text, isMe = true, replyTo = replyMessage)
-            messages.add(newMsg)
-            replyMessage = null
-            messageText = ""
-
-
-        }
+    // 🔄 Listen for real-time updates
+    LaunchedEffect(chatId) {
+        db.collection("chats")
+            .document(chatId)
+            .collection("messages")
+            .orderBy("timestamp")
+            .addSnapshotListener { snapshot, _ ->
+                snapshot?.let {
+                    messages.clear()
+                    it.documents.forEach { doc ->
+                        messages.add(
+                            ChatMessage(
+                                id = doc.id,
+                                text = doc.getString("text") ?: "",
+                                isMe = doc.getString("senderId") == currentUserId,
+                                time = doc.getLong("timestamp") ?: 0
+                            )
+                        )
+                    }
+                }
+            }
     }
 
+    fun sendMessage(text: String) {
+        if (text.isBlank()) return
+        val msgMap = hashMapOf(
+            "senderId" to currentUserId,
+            "text" to text,
+            "timestamp" to System.currentTimeMillis(),
+            "replyTo" to replyMessage?.id // optional for reply feature
+        )
+        db.collection("chats")
+            .document(chatId)
+            .collection("messages")
+            .add(msgMap)
+        replyMessage = null
+        messageText = ""
+    }
 
     Column(modifier = Modifier.fillMaxSize()) {
-
+        // Top bar with Call / Video
         ChatTopBar(
             onCall = { makePhoneCall(context, "9800000000") },
             onVideoCall = { openVideoCall(context) }
         )
 
+        // Chat messages
         Box(
             modifier = Modifier
                 .weight(1f)
@@ -109,7 +144,8 @@ fun ChatScreen() {
             }
         }
 
-        replyMessage?.let {
+        // Reply indicator
+        replyMessage?.let { msg ->
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -117,24 +153,24 @@ fun ChatScreen() {
                     .padding(6.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("Replying to: ${it.text}", modifier = Modifier.weight(1f))
-                TextButton(onClick = { replyMessage = null }) {
-                    Text("Cancel")
-                }
+                Text("Replying to: ${msg.text}", modifier = Modifier.weight(1f))
+                TextButton(onClick = { replyMessage = null }) { Text("Cancel") }
             }
         }
 
+        // Input bar
         ChatInputBar(
             text = messageText,
             onTextChange = { messageText = it },
             onSend = { sendMessage(messageText) },
             onAttachClick = {
-                // TODO: open attachment picker
+                // Optional: attachment picker
             }
         )
-}
+    }
 
-        showOptionsDialog?.let { msg ->
+    // Options dialog (Delete / Reply)
+    showOptionsDialog?.let { msg ->
         Dialog(onDismissRequest = { showOptionsDialog = null }) {
             Column(
                 modifier = Modifier
@@ -142,7 +178,12 @@ fun ChatScreen() {
                     .padding(16.dp)
             ) {
                 TextButton(onClick = {
-                    messages.remove(msg)
+                    // Delete message in Firestore
+                    db.collection("chats")
+                        .document(chatId)
+                        .collection("messages")
+                        .document(msg.id)
+                        .delete()
                     showOptionsDialog = null
                 }) { Text("Delete") }
 
@@ -156,6 +197,7 @@ fun ChatScreen() {
         }
     }
 }
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -366,3 +408,4 @@ fun ChatPreview() {
         ChatScreen()
     }
 }
+

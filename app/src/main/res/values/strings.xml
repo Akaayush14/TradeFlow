@@ -25,4 +25,5 @@
     <string name="title_activity_notification_screen">NotificationScreen</string>
     <string name="title_activity_profile_screen">ProfileScreen</string>
     <string name="title_activity_splash">SplashActivity</string>
+    <string name="title_activity_user_chat_bot">UserChatBotActivity</string>
 </resources>

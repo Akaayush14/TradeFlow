@@ -33,6 +33,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
+import androidx.navigation.compose.NavHost
 import com.example.tradeflow.view.AboutUsScreen
 import com.example.tradeflow.R
 
@@ -311,20 +312,22 @@ fun IOSStyleLogoutDialog(onCancel: () -> Unit, onConfirm: () -> Unit) {
                 .fillMaxWidth(),
             colors = CardDefaults.cardColors(containerColor = Color.White)
         ) {
-            Box(
+            Column(
                 modifier = Modifier
-                    .size(120.dp)
-                    .background(Color(0xFF009688)), // change color if needed
-                contentAlignment = Alignment.Center
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp, vertical = 16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Image(
                     painter = painterResource(R.drawable.house_rent_logo),
                     contentDescription = null,
-                    modifier = Modifier.size(80.dp),
-                    contentScale = ContentScale.Fit
+                    modifier = Modifier
+                        .size(120.dp)
+                        .aspectRatio(1f)
+                        .clip(RoundedCornerShape(12.dp)),
+                    contentScale = ContentScale.Crop
                 )
-            }
-            Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
                 Text(
                     text = "Comeback Soon!",
@@ -374,9 +377,7 @@ fun IOSStyleLogoutDialog(onCancel: () -> Unit, onConfirm: () -> Unit) {
             }
         }
     }
-
-
-
+}
 /* ---------------- LANGUAGE DIALOG ---------------- */
 @Composable
 fun LanguageDialog(
