@@ -87,7 +87,7 @@
         </activity>
 
         <activity
-            android:name=".view.SettingScreenActivity"
+            android:name=".view.UserSetting"
             android:exported="true"
             android:theme="@style/Theme.TradeFlow">
             <intent-filter>

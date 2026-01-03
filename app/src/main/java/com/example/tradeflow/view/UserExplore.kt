@@ -121,7 +121,7 @@ fun UserExploreScreen() {
 
                 actions = {
                     IconButton(onClick = {
-                        val intent = Intent(activity, SettingScreenActivity::class.java)
+                        val intent = Intent(activity, UserSetting::class.java)
                         activity.startActivity(intent)
                     }) {
                         // Use Icons.Default.Menu or your custom resource
