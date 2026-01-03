@@ -4,12 +4,14 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -71,10 +73,23 @@ fun AddItemScreen(
     var isDropdownExpanded by remember { mutableStateOf(false) }
     
     var imageUri by remember { mutableStateOf<Uri?>(null) }
+    var imageUri2 by remember { mutableStateOf<Uri?>(null) }
+    var imageUri3 by remember { mutableStateOf<Uri?>(null) }
+    var imageUri4 by remember { mutableStateOf<Uri?>(null) }
+    
+    var activeImageIndex by remember { mutableStateOf(0) }
+
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
-        imageUri = uri
+        if (uri != null) {
+            when (activeImageIndex) {
+                0 -> imageUri = uri
+                1 -> imageUri2 = uri
+                2 -> imageUri3 = uri
+                3 -> imageUri4 = uri
+            }
+        }
     }
 
     var showSuccessDialog by remember { mutableStateOf(false) }
@@ -147,7 +162,7 @@ fun AddItemScreen(
             return
         }
 
-        fun proceedToSave(finalImageUrl: String) {
+        fun proceedToSave(url1: String, url2: String, url3: String, url4: String) {
             val product = ProductModel(
                 productId = if (mode == AddItemMode.EDIT) initialProduct?.productId ?: "" else "",
                 name = name.trim(),
@@ -158,7 +173,10 @@ fun AddItemScreen(
                 type = selectedPurpose,
                 ownerId = if (mode == AddItemMode.EDIT) initialProduct?.ownerId ?: ownerId else ownerId,
                 status = status,
-                imageUrl = finalImageUrl
+                imageUrl = url1,
+                imageUrl2 = url2,
+                imageUrl3 = url3,
+                imageUrl4 = url4
             )
 
             val callback: (Boolean, String) -> Unit = { success, message ->
@@ -173,6 +191,9 @@ fun AddItemScreen(
                         showSuccessDialog = true
                         resetForm()
                         imageUri = null
+                        imageUri2 = null
+                        imageUri3 = null
+                        imageUri4 = null
                     }
                 } else {
                     errorMessage = message
@@ -187,19 +208,14 @@ fun AddItemScreen(
             }
         }
 
-        if (imageUri != null) {
-            viewModel.uploadImage(context, imageUri!!) { url ->
-                if (url != null) {
-                    proceedToSave(url)
-                } else {
-                    isLoading = false
-                    errorMessage = "Failed to upload image"
-                    showErrorDialog = true
-                }
-            }
-        } else {
-            val currentUrl = initialProduct?.imageUrl ?: ""
-            proceedToSave(currentUrl)
+        val imagesToUpload = listOf(imageUri, imageUri2, imageUri3, imageUri4)
+        viewModel.uploadMultipleImages(context, imagesToUpload) { newUrls ->
+            val finalUrl1 = if (newUrls[0].isNotEmpty()) newUrls[0] else (initialProduct?.imageUrl ?: "")
+            val finalUrl2 = if (newUrls[1].isNotEmpty()) newUrls[1] else (initialProduct?.imageUrl2 ?: "")
+            val finalUrl3 = if (newUrls[2].isNotEmpty()) newUrls[2] else (initialProduct?.imageUrl3 ?: "")
+            val finalUrl4 = if (newUrls[3].isNotEmpty()) newUrls[3] else (initialProduct?.imageUrl4 ?: "")
+
+            proceedToSave(finalUrl1, finalUrl2, finalUrl3, finalUrl4)
         }
     }
 
@@ -402,16 +418,21 @@ fun AddItemScreen(
             }
             item {
                 Text(
-                    "Add Image",
+                    "Add Images (Main + 3 Sub-images)",
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(bottom = 8.dp)
                 )
+                
+                // Main Image
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(150.dp)
+                        .height(200.dp)
                         .border(1.dp, Greenish, RoundedCornerShape(12.dp))
-                        .clickable { launcher.launch("image/*") },
+                        .clickable { 
+                            activeImageIndex = 0
+                            launcher.launch("image/*") 
+                        },
                     contentAlignment = Alignment.Center
                 ) {
                     val currentImage = imageUri ?: (if (mode == AddItemMode.EDIT && !initialProduct?.imageUrl.isNullOrEmpty()) initialProduct?.imageUrl else null)
@@ -419,7 +440,7 @@ fun AddItemScreen(
                     if (currentImage != null) {
                         AsyncImage(
                             model = currentImage,
-                            contentDescription = "Selected Image",
+                            contentDescription = "Main Image",
                             modifier = Modifier.fillMaxSize(),
                             contentScale = ContentScale.Crop,
                             placeholder = painterResource(R.drawable.placeholderimage),
@@ -432,6 +453,65 @@ fun AddItemScreen(
                             modifier = Modifier.fillMaxSize(),
                             contentScale = ContentScale.Crop
                         )
+                    }
+                    
+                    // Label for Main Image
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .padding(8.dp)
+                            .background(Color.Black.copy(alpha = 0.6f), RoundedCornerShape(4.dp))
+                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                    ) {
+                        Text("Main", color = White, fontSize = 12.sp)
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                // Sub Images
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    val subImages = listOf(
+                        Triple(imageUri2, initialProduct?.imageUrl2, 1),
+                        Triple(imageUri3, initialProduct?.imageUrl3, 2),
+                        Triple(imageUri4, initialProduct?.imageUrl4, 3)
+                    )
+                    
+                    subImages.forEach { (uri, existingUrl, index) ->
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(100.dp)
+                                .border(1.dp, Greenish, RoundedCornerShape(8.dp))
+                                .clickable { 
+                                    activeImageIndex = index
+                                    launcher.launch("image/*") 
+                                },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            val currentSubImage = uri ?: (if (mode == AddItemMode.EDIT && !existingUrl.isNullOrEmpty()) existingUrl else null)
+                            
+                            if (currentSubImage != null) {
+                                AsyncImage(
+                                    model = currentSubImage,
+                                    contentDescription = "Sub Image $index",
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = ContentScale.Crop,
+                                    placeholder = painterResource(R.drawable.placeholderimage),
+                                    error = painterResource(R.drawable.placeholderimage)
+                                )
+                            } else {
+                                Image(
+                                    painter = painterResource(R.drawable.placeholderimage),
+                                    contentDescription = "Placeholder",
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = ContentScale.Crop
+                                )
+                            }
+                        }
                     }
                 }
             }

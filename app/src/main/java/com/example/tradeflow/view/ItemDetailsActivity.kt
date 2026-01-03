@@ -8,6 +8,8 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -106,6 +108,14 @@ fun ItemDetailsScreen() {
                 Text("Product not found")
             }
         } else {
+            var selectedImageUrl by remember { mutableStateOf("") }
+            
+            LaunchedEffect(product) {
+                if (product != null) {
+                    selectedImageUrl = product!!.imageUrl
+                }
+            }
+
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -113,17 +123,17 @@ fun ItemDetailsScreen() {
                     .background(White)
                     .verticalScroll(rememberScrollState())
             ) {
-                // 1. Item Image
+                // 1. Item Image (Main Display)
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(250.dp)
+                        .height(300.dp) // Increased height for better view
                         .background(Color.LightGray),
                     contentAlignment = Alignment.Center
                 ) {
-                    if (product!!.imageUrl.isNotEmpty()) {
+                    if (selectedImageUrl.isNotEmpty()) {
                         AsyncImage(
-                            model = product!!.imageUrl,
+                            model = selectedImageUrl,
                             contentDescription = "Item Image",
                             modifier = Modifier.fillMaxSize(),
                             contentScale = ContentScale.Crop,
@@ -137,6 +147,49 @@ fun ItemDetailsScreen() {
                             modifier = Modifier.fillMaxSize(),
                             contentScale = ContentScale.Crop
                         )
+                    }
+                }
+                
+                // Image Gallery (Thumbnails)
+                if (product != null) {
+                    val images = listOf(
+                        product!!.imageUrl,
+                        product!!.imageUrl2,
+                        product!!.imageUrl3,
+                        product!!.imageUrl4
+                    ).filter { it.isNotEmpty() }
+                    
+                    if (images.size > 1) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(8.dp)
+                                .horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            images.forEach { url ->
+                                Box(
+                                    modifier = Modifier
+                                        .size(70.dp)
+                                        .border(
+                                            width = if (selectedImageUrl == url) 2.dp else 1.dp,
+                                            color = if (selectedImageUrl == url) Greenish else Color.Gray,
+                                            shape = RoundedCornerShape(8.dp)
+                                        )
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .clickable { selectedImageUrl = url }
+                                ) {
+                                    AsyncImage(
+                                        model = url,
+                                        contentDescription = "Thumbnail",
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentScale = ContentScale.Crop,
+                                        placeholder = painterResource(R.drawable.placeholderimage),
+                                        error = painterResource(R.drawable.placeholderimage)
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
 

@@ -93,4 +93,28 @@ class ProductViewModel(val repo: ProductRepo) : ViewModel() {
         repo.uploadImage(context, uri, callback)
     }
 
+    fun uploadMultipleImages(
+        context: android.content.Context,
+        images: List<Uri?>,
+        callback: (List<String>) -> Unit
+    ) {
+        val results = MutableList(images.size) { "" }
+        var completed = 0
+        val targets = images.mapIndexedNotNull { index, uri -> uri?.let { index to it } }
+
+        if (targets.isEmpty()) {
+            callback(results)
+            return
+        }
+
+        targets.forEach { (index, uri) ->
+            repo.uploadImage(context, uri) { url ->
+                results[index] = url ?: ""
+                completed++
+                if (completed == targets.size) {
+                    callback(results)
+                }
+            }
+        }
+    }
 }
