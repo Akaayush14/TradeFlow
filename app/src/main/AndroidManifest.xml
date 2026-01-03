@@ -194,6 +194,8 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+
         <activity
             android:name=".view.AdminAdmin"
             android:exported="false"
@@ -222,6 +224,17 @@
             android:name=".view.AdminDashItem"
             android:exported="false"
             android:theme="@style/Theme.TradeFlow" />
+        <activity
+            android:name=".view.ChatBotActivity"
+            android:exported="true"
+            android:theme="@style/Theme.TradeFlow">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+        
+
 
 
     </application>
