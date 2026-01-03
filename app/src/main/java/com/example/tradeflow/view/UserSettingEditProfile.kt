@@ -58,7 +58,6 @@ class UserSettingEditProfile : ComponentActivity() {
     }
 }
 
-
 @Composable
 fun UserSettingEditProfileScreen(navController: NavController) {
     var name by remember { mutableStateOf("") }
@@ -99,13 +98,11 @@ fun UserSettingEditProfileScreen(navController: NavController) {
         ) {
 
             IconButton(
-                onClick = { navController.popBackStack() },
-                modifier = Modifier.padding(16.dp)
+                onClick = { (context as? UserSetting)?.finish() },
+                modifier = Modifier.padding(20.dp)
             ) {
                 Icon(Icons.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
             }
-
-
 
             Text(
                 text = "Edit Profile",

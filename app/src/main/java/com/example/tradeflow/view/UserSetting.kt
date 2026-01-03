@@ -29,18 +29,20 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.Outline
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
+import androidx.navigation.compose.NavHost
 import com.example.tradeflow.R
 import com.example.tradeflow.UserSettingAboutUsScreen
 
-class UserSetting : ComponentActivity() {
+class UserSetting: ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            AppNav()
+           AppNav()
         }
     }
 }
@@ -51,11 +53,12 @@ fun AppNav() {
     NavHost(navController, startDestination = "settings") {
         composable("settings") { UserSettingsScreen(navController) }
         composable("notifications") { UserSettingNotificationScreen(navController) }
-        composable("edit_profile") { UserSettingEditProfileScreen(navController) }
+        composable("edit_profile") { UserSettingNotificationScreen(navController) }
         composable("privacy") { UserSettingPrivacyScreen(navController) }
         composable("aboutus") { UserSettingAboutUsScreen(navController) }
     }
 }
+
 
 
 class CurvedBottomShape: Shape {
@@ -81,7 +84,7 @@ class CurvedBottomShape: Shape {
 
 /* ---------------- SETTINGS SCREEN ---------------- */
 @Composable
-fun UserSettingsScreen(navController: NavController) {
+fun UserSettingsScreen (navController: NavController) {
     var showLogoutDialog by remember { mutableStateOf(false) }
     var selectedLanguage by remember { mutableStateOf("English") }
     var showLanguageDialog by remember { mutableStateOf(false) }
@@ -155,6 +158,7 @@ fun UserSettingsScreen(navController: NavController) {
         SettingsItem("Edit Profile", R.drawable.profile_filled) {
             navController.navigate("edit_profile")
         }
+
         SettingsItemWithValue("Language", selectedLanguage, R.drawable.language) {
             showLanguageDialog = true
         }
@@ -314,15 +318,15 @@ fun IOSStyleLogoutDialog(onCancel: () -> Unit, onConfirm: () -> Unit) {
                     .padding(horizontal = 24.dp, vertical = 16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-
                 Image(
                     painter = painterResource(R.drawable.house_rent_logo),
                     contentDescription = null,
                     modifier = Modifier
                         .size(120.dp)
-                        .padding(top = 8.dp)
+                        .aspectRatio(1f)
+                        .clip(RoundedCornerShape(12.dp)),
+                    contentScale = ContentScale.Crop
                 )
-
                 Spacer(modifier = Modifier.height(16.dp))
 
                 Text(
@@ -342,6 +346,7 @@ fun IOSStyleLogoutDialog(onCancel: () -> Unit, onConfirm: () -> Unit) {
                 )
 
                 Spacer(modifier = Modifier.height(24.dp))
+
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -355,13 +360,11 @@ fun IOSStyleLogoutDialog(onCancel: () -> Unit, onConfirm: () -> Unit) {
                     ) {
                         Text("Cancel", color = Color.Gray, fontWeight = FontWeight.Medium)
                     }
-
                     Spacer(
                         modifier = Modifier
                             .width(1.dp)
                             .background(Color.LightGray)
                     )
-
                     Box(
                         modifier = Modifier
                             .weight(1f)
@@ -375,7 +378,6 @@ fun IOSStyleLogoutDialog(onCancel: () -> Unit, onConfirm: () -> Unit) {
         }
     }
 }
-
 /* ---------------- LANGUAGE DIALOG ---------------- */
 @Composable
 fun LanguageDialog(
@@ -415,3 +417,4 @@ fun PreviewApp() {
         AppNav()
     }
 }
+
