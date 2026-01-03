@@ -1,6 +1,5 @@
 package com.example.tradeflow.view
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -14,31 +13,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CenterAlignedTopAppBar
-import androidx.compose.material3.Checkbox
-import androidx.compose.material3.CheckboxDefaults
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextFieldDefaults
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
@@ -57,20 +35,29 @@ import com.example.tradeflow.ui.theme.Greenish
 import com.example.tradeflow.ui.theme.White
 import com.example.tradeflow.viewmodel.ProductViewModel
 import com.google.firebase.auth.FirebaseAuth
+import kotlinx.coroutines.launch
+
+enum class AddItemMode { ADD, EDIT }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AddItemScreen(onBackClick: () -> Unit = {}) {
+fun UserAddItemScreen(
+    mode: AddItemMode = AddItemMode.ADD,
+    initialProduct: ProductModel? = null,
+    onBackClick: () -> Unit = {},
+    onSaved: () -> Unit = {}
+) {
     val viewModel = remember {
         ProductViewModel(ProductRepoImpl())
     }
 
-    var name by remember { mutableStateOf("") }
-    var price by remember { mutableStateOf("") }
-    var location by remember { mutableStateOf("") }
-    var description by remember { mutableStateOf("") }
-    var selectedPurpose by remember { mutableStateOf("Select purpose") }
-    var category by remember { mutableStateOf("") }
+    var name by remember { mutableStateOf(initialProduct?.name ?: "") }
+    var price by remember { mutableStateOf(if (initialProduct != null) initialProduct.price.toString() else "") }
+    var location by remember { mutableStateOf(initialProduct?.location ?: "") }
+    var description by remember { mutableStateOf(initialProduct?.description ?: "") }
+    var selectedPurpose by remember { mutableStateOf(initialProduct?.type ?: "Select purpose") }
+    var category by remember { mutableStateOf(initialProduct?.category ?: "") }
+    var status by remember { mutableStateOf(initialProduct?.status ?: "Available") }
     var agreedToTerms by remember { mutableStateOf(false) }
     var isDropdownExpanded by remember { mutableStateOf(false) }
 
@@ -82,8 +69,22 @@ fun AddItemScreen(onBackClick: () -> Unit = {}) {
     val currentUser = FirebaseAuth.getInstance().currentUser
     val ownerId = currentUser?.uid ?: ""
 
-    val typeOptions = listOf("Barter", "Rent")
+    val typeOptions = listOf("Barter", "Rent", "Both")
     val isPlaceholder = selectedPurpose == "Select purpose"
+    val snackbarHostState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
+
+    LaunchedEffect(initialProduct?.productId, mode) {
+        if (mode == AddItemMode.EDIT && initialProduct != null) {
+            name = initialProduct.name
+            price = initialProduct.price.toString()
+            location = initialProduct.location
+            description = initialProduct.description
+            selectedPurpose = initialProduct.type
+            category = initialProduct.category
+            status = initialProduct.status
+        }
+    }
 
     fun validateForm(): Boolean {
         return name.isNotBlank() &&
@@ -103,6 +104,7 @@ fun AddItemScreen(onBackClick: () -> Unit = {}) {
         selectedPurpose = "Select purpose"
         category = ""
         agreedToTerms = false
+        status = "Available"
     }
 
     fun saveProduct() {
@@ -112,7 +114,7 @@ fun AddItemScreen(onBackClick: () -> Unit = {}) {
             return
         }
 
-        if (ownerId.isEmpty()) {
+        if (ownerId.isEmpty() && mode == AddItemMode.ADD) {
             errorMessage = "Please login to add products"
             showErrorDialog = true
             return
@@ -129,25 +131,52 @@ fun AddItemScreen(onBackClick: () -> Unit = {}) {
             return
         }
 
-        val product = ProductModel(
-            name = name.trim(),
-            price = priceValue,
-            category = category.trim(),
-            location = location.trim(),
-            description = description.trim(),
-            type = selectedPurpose,
-            ownerId = ownerId,
-            imageUrl = "" // TODO: Add image upload functionality later
-        )
-
-        viewModel.addProduct(product) { success, message ->
-            isLoading = false
-            if (success) {
-                showSuccessDialog = true
-                resetForm()
-            } else {
-                errorMessage = message
-                showErrorDialog = true
+        if (mode == AddItemMode.ADD) {
+            val product = ProductModel(
+                name = name.trim(),
+                price = priceValue,
+                category = category.trim(),
+                location = location.trim(),
+                description = description.trim(),
+                type = selectedPurpose,
+                ownerId = ownerId,
+                status = status,
+                imageUrl = ""
+            )
+            viewModel.addProduct(product) { success, message ->
+                isLoading = false
+                if (success) {
+                    showSuccessDialog = true
+                    resetForm()
+                } else {
+                    errorMessage = message
+                    showErrorDialog = true
+                }
+            }
+        } else {
+            val product = ProductModel(
+                productId = initialProduct?.productId ?: "",
+                name = name.trim(),
+                price = priceValue,
+                category = category.trim(),
+                location = location.trim(),
+                description = description.trim(),
+                type = selectedPurpose,
+                ownerId = initialProduct?.ownerId ?: ownerId,
+                status = status,
+                imageUrl = initialProduct?.imageUrl ?: ""
+            )
+            viewModel.updateProduct(product) { success, message ->
+                isLoading = false
+                if (success) {
+                    coroutineScope.launch {
+                        snackbarHostState.showSnackbar("Item updated successfully")
+                    }
+                    onSaved()
+                } else {
+                    errorMessage = message
+                    showErrorDialog = true
+                }
             }
         }
     }
@@ -157,7 +186,7 @@ fun AddItemScreen(onBackClick: () -> Unit = {}) {
             CenterAlignedTopAppBar(
                 title = {
                     Text(
-                        text = "Add Items",
+                        text = if (mode == AddItemMode.ADD) "Add New Item" else "Edit Item",
                         color = White,
                         fontWeight = FontWeight.Bold
                     )
@@ -176,6 +205,7 @@ fun AddItemScreen(onBackClick: () -> Unit = {}) {
                 )
             )
         },
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         containerColor = White
     ) { innerPadding ->
         LazyColumn(
@@ -269,84 +299,75 @@ fun AddItemScreen(onBackClick: () -> Unit = {}) {
                 ) {
                     // Location Column
                     Box(modifier = Modifier.weight(1f)) {
-                        Column {
+                        OutlinedTextField(
+                            value = location,
+                            onValueChange = { location = it },
+                            label = { Text("Location", fontSize = 14.sp) },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            textStyle = TextStyle(fontSize = 14.sp),
+                            keyboardOptions = KeyboardOptions.Default.copy(
+                                imeAction = ImeAction.Next
+                            ),
+                            colors = TextFieldDefaults.colors(
+                                focusedContainerColor = White,
+                                unfocusedContainerColor = White,
+                                focusedIndicatorColor = Greenish,
+                                unfocusedIndicatorColor = Color.LightGray,
+                                cursorColor = Greenish,
+                                focusedLabelColor = Greenish,
+                                unfocusedLabelColor = Color.Gray
+                            ),
+                            shape = RoundedCornerShape(12.dp)
+                        )
+                    }
+                    Box(modifier = Modifier.weight(1f)) {
+                        ExposedDropdownMenuBox(
+                            expanded = isDropdownExpanded,
+                            onExpandedChange = { isDropdownExpanded = !isDropdownExpanded },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
                             OutlinedTextField(
-                                value = location,
-                                onValueChange = { location = it },
-                                label = { Text("Location", fontSize = 14.sp) },
-                                modifier = Modifier.fillMaxWidth(),
-                                singleLine = true,
+                                value = selectedPurpose,
+                                onValueChange = {},
+                                readOnly = true,
                                 textStyle = TextStyle(fontSize = 14.sp),
-                                keyboardOptions = KeyboardOptions.Default.copy(
-                                    imeAction = ImeAction.Next
-                                ),
+                                trailingIcon = {
+                                    ExposedDropdownMenuDefaults.TrailingIcon(expanded = isDropdownExpanded)
+                                },
+                                modifier = Modifier.menuAnchor(),
                                 colors = TextFieldDefaults.colors(
                                     focusedContainerColor = White,
                                     unfocusedContainerColor = White,
+                                    disabledContainerColor = White,
                                     focusedIndicatorColor = Greenish,
                                     unfocusedIndicatorColor = Color.LightGray,
-                                    cursorColor = Greenish,
+                                    disabledIndicatorColor = Color.LightGray,
+                                    focusedTextColor = if (isPlaceholder) Color.Gray else Color.Black,
+                                    unfocusedTextColor = if (isPlaceholder) Color.Gray else Color.Black,
                                     focusedLabelColor = Greenish,
                                     unfocusedLabelColor = Color.Gray
-                                ),
-                                shape = RoundedCornerShape(12.dp)
-                            )
-                        }
-                    }
-
-                    // Type Column
-                    Box(modifier = Modifier.weight(1f)) {
-                        Column {
-                            ExposedDropdownMenuBox(
-                                expanded = isDropdownExpanded,
-                                onExpandedChange = { isDropdownExpanded = !isDropdownExpanded },
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                OutlinedTextField(
-                                    value = selectedPurpose,
-                                    onValueChange = {},
-                                    readOnly = true,
-                                    textStyle = TextStyle(fontSize = 14.sp),
-                                    trailingIcon = {
-                                        ExposedDropdownMenuDefaults.TrailingIcon(expanded = isDropdownExpanded)
-                                    },
-                                    modifier = Modifier.menuAnchor(),
-                                    colors = TextFieldDefaults.colors(
-                                        focusedContainerColor = White,
-                                        unfocusedContainerColor = White,
-                                        disabledContainerColor = White,
-                                        focusedIndicatorColor = Greenish,
-                                        unfocusedIndicatorColor = Color.LightGray,
-                                        disabledIndicatorColor = Color.LightGray,
-                                        focusedTextColor = if (isPlaceholder) Color.Gray else Color.Black,
-                                        unfocusedTextColor = if (isPlaceholder) Color.Gray else Color.Black,
-                                        focusedLabelColor = Greenish,
-                                        unfocusedLabelColor = Color.Gray
-                                    ),
-                                    shape = RoundedCornerShape(12.dp)
                                 )
-
-                                ExposedDropdownMenu(
-                                    expanded = isDropdownExpanded,
-                                    onDismissRequest = { isDropdownExpanded = false }
-                                ) {
-                                    typeOptions.forEach { selectionOption ->
-                                        DropdownMenuItem(
-                                            text = { Text(selectionOption) },
-                                            onClick = {
-                                                selectedPurpose = selectionOption
-                                                isDropdownExpanded = false
-                                            },
-                                            contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding
-                                        )
-                                    }
+                            )
+                            ExposedDropdownMenu(
+                                expanded = isDropdownExpanded,
+                                onDismissRequest = { isDropdownExpanded = false }
+                            ) {
+                                typeOptions.forEach { selectionOption ->
+                                    DropdownMenuItem(
+                                        text = { Text(selectionOption) },
+                                        onClick = {
+                                            selectedPurpose = selectionOption
+                                            isDropdownExpanded = false
+                                        },
+                                        contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding
+                                    )
                                 }
                             }
                         }
                     }
                 }
             }
-
             item {
                 OutlinedTextField(
                     value = description,
@@ -365,11 +386,9 @@ fun AddItemScreen(onBackClick: () -> Unit = {}) {
                         focusedLabelColor = Greenish,
                         unfocusedLabelColor = Color.Gray
                     ),
-                    shape = RoundedCornerShape(12.dp),
-                    singleLine = false
+                    shape = RoundedCornerShape(12.dp)
                 )
             }
-
             item {
                 Text(
                     "Add Image",
@@ -380,8 +399,6 @@ fun AddItemScreen(onBackClick: () -> Unit = {}) {
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(150.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(Color(0xFFE3F2FD))
                         .border(1.dp, Greenish, RoundedCornerShape(12.dp)),
                     contentAlignment = Alignment.Center
                 ) {
@@ -393,7 +410,6 @@ fun AddItemScreen(onBackClick: () -> Unit = {}) {
                     )
                 }
             }
-
             item {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Checkbox(
@@ -427,17 +443,14 @@ fun AddItemScreen(onBackClick: () -> Unit = {}) {
                     )
                 }
             }
-
             item {
                 Button(
                     onClick = { saveProduct() },
                     enabled = !isLoading,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(50.dp)
-                        .padding(bottom = 16.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Greenish),
-                    shape = RoundedCornerShape(12.dp)
+                        .height(50.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Greenish)
                 ) {
                     if (isLoading) {
                         Text("Saving...", color = White, fontSize = 18.sp)
@@ -448,8 +461,6 @@ fun AddItemScreen(onBackClick: () -> Unit = {}) {
             }
         }
     }
-
-    // Success Dialog
     if (showSuccessDialog) {
         AlertDialog(
             onDismissRequest = { showSuccessDialog = false },
@@ -459,7 +470,7 @@ fun AddItemScreen(onBackClick: () -> Unit = {}) {
                 Button(
                     onClick = {
                         showSuccessDialog = false
-                        onBackClick() // Navigate back after success
+                        onBackClick()
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = Greenish)
                 ) {
@@ -468,8 +479,6 @@ fun AddItemScreen(onBackClick: () -> Unit = {}) {
             }
         )
     }
-
-    // Error Dialog
     if (showErrorDialog) {
         AlertDialog(
             onDismissRequest = { showErrorDialog = false },

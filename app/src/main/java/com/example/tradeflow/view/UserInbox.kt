@@ -56,7 +56,7 @@ data class MessagePreview(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun InboxScreen(onBackClick: () -> Unit = {}) {
+fun UserInboxScreen(onBackClick: () -> Unit = {}) {
     var searchQuery by remember { mutableStateOf("") }
     val messages = remember { getMockMessages() }
 

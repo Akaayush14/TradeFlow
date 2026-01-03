@@ -32,10 +32,10 @@ import androidx.compose.ui.graphics.Outline
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
-import com.example.tradeflow.AboutUsScreen
 import com.example.tradeflow.R
+import com.example.tradeflow.UserSettingAboutUsScreen
 
-class SettingScreenActivity : ComponentActivity() {
+class UserSetting : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -49,11 +49,11 @@ class SettingScreenActivity : ComponentActivity() {
 fun AppNav() {
     val navController = rememberNavController()
     NavHost(navController, startDestination = "settings") {
-        composable("settings") { SettingsScreen(navController) }
-        composable("notifications") { NotificationsScreen(navController) }
-        composable("edit_profile") { EditProfileScreen(navController) }
-        composable("privacy") { PrivacySecurityScreen(navController) }
-        composable("aboutus") { AboutUsScreen(navController) }
+        composable("settings") { UserSettingsScreen(navController) }
+        composable("notifications") { UserSettingNotificationScreen(navController) }
+        composable("edit_profile") { UserSettingEditProfileScreen(navController) }
+        composable("privacy") { UserSettingPrivacyScreen(navController) }
+        composable("aboutus") { UserSettingAboutUsScreen(navController) }
     }
 }
 
@@ -81,7 +81,7 @@ class CurvedBottomShape: Shape {
 
 /* ---------------- SETTINGS SCREEN ---------------- */
 @Composable
-fun SettingsScreen(navController: NavController) {
+fun UserSettingsScreen(navController: NavController) {
     var showLogoutDialog by remember { mutableStateOf(false) }
     var selectedLanguage by remember { mutableStateOf("English") }
     var showLanguageDialog by remember { mutableStateOf(false) }
@@ -247,7 +247,7 @@ fun SettingsItemWithValue(title: String, value: String, iconRes: Int? = null, on
 /* ---------------- PRIVACY & SECURITY SCREEN ---------------- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PrivacySecurityScreen(navController: NavController) {
+fun UserSettingPrivacyScreen(navController: NavController) {
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
@@ -415,4 +415,3 @@ fun PreviewApp() {
         AppNav()
     }
 }
-

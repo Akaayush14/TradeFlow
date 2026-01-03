@@ -86,7 +86,7 @@ fun LoginScreen() {
             isLoading = false
             if (success) {
                 // Navigate to DashboardPage on successful login
-                val intent = Intent(context, DashboardPage::class.java)
+                val intent = Intent(context, UserDashboard::class.java)
                 intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
                 context.startActivity(intent)
                 // Finish LoginActivity so user can't go back
