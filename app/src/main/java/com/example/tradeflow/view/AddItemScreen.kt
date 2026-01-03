@@ -3,6 +3,7 @@ package com.example.tradeflow.view
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -420,18 +421,17 @@ fun AddItemScreen(
                             model = currentImage,
                             contentDescription = "Selected Image",
                             modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Crop
+                            contentScale = ContentScale.Crop,
+                            placeholder = painterResource(R.drawable.placeholderimage),
+                            error = painterResource(R.drawable.placeholderimage)
                         )
                     } else {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Icon(
-                                painter = painterResource(R.drawable.additem),
-                                contentDescription = "Add Image",
-                                modifier = Modifier.size(48.dp),
-                                tint = Greenish
-                            )
-                            Text("Tap to select image", color = Greenish)
-                        }
+                        Image(
+                            painter = painterResource(R.drawable.placeholderimage),
+                            contentDescription = "Placeholder Image",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
                     }
                 }
             }

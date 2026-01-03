@@ -126,14 +126,16 @@ fun ItemDetailsScreen() {
                             model = product!!.imageUrl,
                             contentDescription = "Item Image",
                             modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Crop
+                            contentScale = ContentScale.Crop,
+                            placeholder = painterResource(R.drawable.placeholderimage),
+                            error = painterResource(R.drawable.placeholderimage)
                         )
                     } else {
                         Image(
-                            painter = painterResource(id = R.drawable.ic_launcher_foreground),
+                            painter = painterResource(id = R.drawable.placeholderimage),
                             contentDescription = "Placeholder",
                             modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Fit
+                            contentScale = ContentScale.Crop
                         )
                     }
                 }
