@@ -1,25 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
-  <component name="deploymentTargetSelector">
-    <selectionStates>
-      <SelectionState runConfigName="app">
-        <option name="selectionMode" value="DROPDOWN" />
-      </SelectionState>
-      <SelectionState runConfigName="UserChatSystemActivity">
-        <option name="selectionMode" value="DROPDOWN" />
-      </SelectionState>
-      <SelectionState runConfigName="UserChatSystemActivity (1)">
-        <option name="selectionMode" value="DROPDOWN" />
-      </SelectionState>
-      <SelectionState runConfigName="ChatSystemActivity">
-        <option name="selectionMode" value="DROPDOWN" />
-      </SelectionState>
-      <SelectionState runConfigName="UserChatSystemActivity (2)">
-        <option name="selectionMode" value="DROPDOWN" />
-      </SelectionState>
-      <SelectionState runConfigName="UserChatSystemActivity (3)">
-        <option name="selectionMode" value="DROPDOWN" />
-      </SelectionState>
-    </selectionStates>
-  </component>
+    <component name="deploymentTargetSelector">
+        <selectionStates>
+            <SelectionState runConfigName="app">
+                <option name="selectionMode" value="DROPDOWN" />
+                <DropdownSelection timestamp="2025-12-10T05:17:41.599764500Z">
+                    <Target type="DEFAULT_BOOT">
+                        <handle>
+                            <DeviceId pluginId="LocalEmulator" identifier="path=C:\Users\Aayush Kharel\.android\avd\Pixel_9.avd" />
+                        </handle>
+                    </Target>
+                </DropdownSelection>
+                <DialogSelection />
+            </SelectionState>
+        </selectionStates>
+    </component>
 </project>

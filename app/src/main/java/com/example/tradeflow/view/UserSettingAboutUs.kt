@@ -1,6 +1,7 @@
 
 package com.example.tradeflow
 import android.os.Bundle
+import android.util.Size
 import androidx.activity.ComponentActivity
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.compose.setContent
@@ -10,8 +11,13 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
@@ -27,14 +33,15 @@ import androidx.compose.ui.unit.*
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.example.tradeflow.view.CurvedBottomShape
+import kotlinx.coroutines.launch
 
-class AboutUsActivity : ComponentActivity() {
+class UserSettingAboutUs : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
             val navController = rememberNavController()
-            AboutUsScreen(navController)
+            UserSettingAboutUsScreen(navController)
         }
     }
 }
@@ -44,7 +51,7 @@ class AboutUsActivity : ComponentActivity() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AboutUsScreen(navController: NavController) {
+fun UserSettingAboutUsScreen(navController: NavController) {
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
 
@@ -213,5 +220,5 @@ fun FeatureCard(title: String, description: String) {
 @Preview(showBackground = true)
 @Composable
 fun PreviewAboutUs() {
-    AboutUsScreen(rememberNavController())
+    UserSettingAboutUsScreen(rememberNavController())
 }

@@ -43,6 +43,7 @@ android {
 }
 
 dependencies {
+    implementation("androidx.compose.runtime:runtime-livedata:1.6.8")
     implementation("com.hbb20:ccp:2.7.3")
     implementation("androidx.media3:media3-exoplayer:1.2.0")
     implementation("androidx.media3:media3-ui:1.2.0")
@@ -57,7 +58,6 @@ dependencies {
     implementation(libs.firebase.auth)
     implementation(libs.firebase.database)
     implementation(libs.androidx.navigation.compose)
-    implementation(libs.firebase.firestore.ktx)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -68,7 +68,6 @@ dependencies {
     //use for videocam//
     implementation(libs.androidx.compose.material)
     implementation(libs.androidx.compose.material.icons.extended)
-
 
 
 }

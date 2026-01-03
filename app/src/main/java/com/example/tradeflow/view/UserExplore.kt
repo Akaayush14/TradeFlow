@@ -1,6 +1,7 @@
 package com.example.tradeflow.view
 
 import android.app.Activity
+import android.content.Intent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -17,6 +18,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -45,7 +47,7 @@ import androidx.compose.ui.unit.sp
 // Add this annotation to use experimental Material 3 APIs
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ExploreScreen() {
+fun UserExploreScreen() {
     val context = LocalContext.current
     val activity = context as Activity
 
@@ -118,10 +120,13 @@ fun ExploreScreen() {
                 },
 
                 actions = {
-                    IconButton(onClick = {}) {
+                    IconButton(onClick = {
+                        val intent = Intent(activity, UserSetting::class.java)
+                        activity.startActivity(intent)
+                    }) {
                         // Use Icons.Default.Menu or your custom resource
                         Icon(
-                            imageVector = Icons.Default.Menu,
+                            imageVector = Icons.Default.Settings,
                             contentDescription = null
                         )
                     }
