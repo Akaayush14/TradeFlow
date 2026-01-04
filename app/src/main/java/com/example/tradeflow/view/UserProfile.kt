@@ -64,7 +64,7 @@ data class ListingItem(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ProfileScreen(onBackClick: () -> Unit = {}, onEditProduct: (ProductModel) -> Unit = {}, showEditSuccess: Boolean = false, onSnackbarShown: () -> Unit = {}) {
+fun UserProfileScreen(onBackClick: () -> Unit = {}, onEditProduct: (ProductModel) -> Unit = {}, showEditSuccess: Boolean = false, onSnackbarShown: () -> Unit = {}) {
     val userViewModel: UserViewModel = remember { UserViewModel(UserRepoImpl()) }
     val productViewModel: ProductViewModel = remember { ProductViewModel(ProductRepoImpl()) }
     val context = LocalContext.current

@@ -63,7 +63,7 @@ import com.example.tradeflow.R
 // Add this annotation to use experimental Material 3 APIs
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ExploreScreen() {
+fun UserExploreScreen() {
     val context = LocalContext.current
     val activity = context as Activity
 
@@ -71,7 +71,7 @@ fun ExploreScreen() {
     var searchQuery by remember { mutableStateOf("") }
 
     val productViewModel: ProductViewModel = remember { ProductViewModel(ProductRepoImpl()) }
-    
+
     LaunchedEffect(Unit) {
         productViewModel.getAllProduct()
     }

@@ -49,7 +49,7 @@ enum class AddItemMode { ADD, EDIT }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AddItemScreen(
+fun UserAddItemScreen(
     mode: AddItemMode = AddItemMode.ADD,
     initialProduct: ProductModel? = null,
     onBackClick: () -> Unit = {},
@@ -69,12 +69,12 @@ fun AddItemScreen(
     var status by remember { mutableStateOf(initialProduct?.status ?: "Available") }
     var agreedToTerms by remember { mutableStateOf(false) }
     var isDropdownExpanded by remember { mutableStateOf(false) }
-    
+
     var imageUri by remember { mutableStateOf<Uri?>(null) }
     var imageUri2 by remember { mutableStateOf<Uri?>(null) }
     var imageUri3 by remember { mutableStateOf<Uri?>(null) }
     var imageUri4 by remember { mutableStateOf<Uri?>(null) }
-    
+
     var activeImageIndex by remember { mutableStateOf(0) }
 
     val launcher = rememberLauncherForActivityResult(
@@ -420,16 +420,16 @@ fun AddItemScreen(
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(bottom = 8.dp)
                 )
-                
+
                 // Main Image
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(200.dp)
                         .border(1.dp, Greenish, RoundedCornerShape(12.dp))
-                        .clickable { 
+                        .clickable {
                             activeImageIndex = 0
-                            launcher.launch("image/*") 
+                            launcher.launch("image/*")
                         },
                     contentAlignment = Alignment.Center
                 ) {
@@ -452,7 +452,7 @@ fun AddItemScreen(
                             contentScale = ContentScale.Crop
                         )
                     }
-                    
+
                     // Label for Main Image
                     Box(
                         modifier = Modifier
@@ -466,7 +466,7 @@ fun AddItemScreen(
                 }
 
                 Spacer(modifier = Modifier.height(8.dp))
-                
+
                 // Sub Images
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -477,21 +477,21 @@ fun AddItemScreen(
                         Triple(imageUri3, initialProduct?.imageUrl3, 2),
                         Triple(imageUri4, initialProduct?.imageUrl4, 3)
                     )
-                    
+
                     subImages.forEach { (uri, existingUrl, index) ->
                         Box(
                             modifier = Modifier
                                 .weight(1f)
                                 .height(100.dp)
                                 .border(1.dp, Greenish, RoundedCornerShape(8.dp))
-                                .clickable { 
+                                .clickable {
                                     activeImageIndex = index
-                                    launcher.launch("image/*") 
+                                    launcher.launch("image/*")
                                 },
                             contentAlignment = Alignment.Center
                         ) {
                             val currentSubImage = uri ?: (if (mode == AddItemMode.EDIT && !existingUrl.isNullOrEmpty()) existingUrl else null)
-                            
+
                             if (currentSubImage != null) {
                                 AsyncImage(
                                     model = currentSubImage,

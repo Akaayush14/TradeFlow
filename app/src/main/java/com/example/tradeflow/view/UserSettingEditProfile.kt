@@ -48,19 +48,18 @@ val countries = listOf(
     Country("Bangladesh", "+880", "🇧🇩"),
     Country("New Zealand", "+64", "🇳🇿")
 )
-class EditProfileActivity : ComponentActivity() {
+class UserSettingEditProfile : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            EditProfileScreen(rememberNavController())
+            UserSettingEditProfileScreen(rememberNavController())
         }
     }
 }
 
-
 @Composable
-fun EditProfileScreen(navController: NavController) {
+fun UserSettingEditProfileScreen(navController: NavController) {
     var name by remember { mutableStateOf("") }
     var phone by remember { mutableStateOf("") }
     var gender by remember { mutableStateOf("") }
@@ -99,13 +98,11 @@ fun EditProfileScreen(navController: NavController) {
         ) {
 
             IconButton(
-                onClick = { navController.popBackStack() },
-                modifier = Modifier.padding(16.dp)
+                onClick = { (context as? UserSetting)?.finish() },
+                modifier = Modifier.padding(20.dp)
             ) {
                 Icon(Icons.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
             }
-
-
 
             Text(
                 text = "Edit Profile",
@@ -305,7 +302,5 @@ fun LocationField(onLocationSelected: (String) -> Unit) {
 @Composable
 fun EditProfilePreview() {
     val navController = rememberNavController()
-    EditProfileScreen(navController)
+    UserSettingEditProfileScreen(navController)
 }
-
-

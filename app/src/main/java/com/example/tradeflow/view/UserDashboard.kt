@@ -126,9 +126,9 @@ fun DashboardPageBody() {
                 .padding(padding)
         ) {
             when (selectedIndex) {
-                0 -> ExploreScreen()
-                1 -> InboxScreen(onBackClick = { selectedIndex = 0 })
-                2 -> AddItemScreen(
+                0 -> UserExploreScreen()
+                1 -> UserInboxScreen(onBackClick = { selectedIndex = 0 })
+                2 -> UserAddItemScreen(
                     mode = addItemMode,
                     initialProduct = editingProduct,
                     onBackClick = {
@@ -143,8 +143,8 @@ fun DashboardPageBody() {
                         showEditSuccess = true
                     }
                 )
-                3 -> NotificationScreen(onBackClick = { selectedIndex = 0 })
-                4 -> ProfileScreen(
+                3 -> UserNotificationScreen(onBackClick = { selectedIndex = 0 })
+                4 -> UserProfileScreen(
                     onBackClick = { selectedIndex = 0 },
                     onEditProduct = { product ->
                         addItemMode = AddItemMode.EDIT
@@ -154,7 +154,7 @@ fun DashboardPageBody() {
                     showEditSuccess = showEditSuccess,
                     onSnackbarShown = { showEditSuccess = false }
                 )
-                else -> ExploreScreen()
+                else -> UserExploreScreen()
             }
         }
     }

@@ -43,14 +43,14 @@ class UserSettingNotification : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             val navController = rememberNavController()
-            NotificationsScreen(navController)
+            UserSettingNotificationScreen(navController)
         }
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun NotificationsScreen(navController: NavController) {
+fun UserSettingNotificationScreen(navController: NavController) {
     var selectedTab by remember { mutableStateOf(0) }
     val tabs = listOf("All", "Unread", "Mentions")
     Scaffold(
@@ -134,5 +134,5 @@ fun Avatar() {
 @Composable
 fun NotificationsPreview() {
     val navController = rememberNavController()
-    NotificationsScreen(navController)
+    UserSettingNotificationScreen(navController)
 }
