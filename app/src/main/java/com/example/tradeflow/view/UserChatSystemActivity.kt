@@ -32,11 +32,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
-import com.google.firebase.firestore.FirebaseFirestore
 import java.text.SimpleDateFormat
 import java.util.*
-
-
 
 class UserChatSystemActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -54,213 +51,130 @@ data class ChatMessage(
     val text: String,
     val isMe: Boolean,
     val time: Long = System.currentTimeMillis(),
-    var replyTo: ChatMessage? = null
+    val replyTo: ChatMessage? = null
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ChatScreen(
-    receiverId: String
-) {
+fun ChatScreen() {
+
     val context = LocalContext.current
-    val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return
-    val db = FirebaseFirestore.getInstance()
-
-    val chatId = listOf(currentUserId, receiverId).sorted().joinToString("_")
-
     var messageText by remember { mutableStateOf("") }
     var replyMessage by remember { mutableStateOf<ChatMessage?>(null) }
-    var showOptionsDialog by remember { mutableStateOf<ChatMessage?>(null) }
+    var showOptions by remember { mutableStateOf<ChatMessage?>(null) }
     val messages = remember { mutableStateListOf<ChatMessage>() }
     val listState = rememberLazyListState()
 
-    // 🔄 Listen for real-time updates
-    LaunchedEffect(chatId) {
-        db.collection("chats")
-            .document(chatId)
-            .collection("messages")
-            .orderBy("timestamp")
-            .addSnapshotListener { snapshot, _ ->
-                snapshot?.let {
-                    messages.clear()
-                    it.documents.forEach { doc ->
-                        messages.add(
-                            ChatMessage(
-                                id = doc.id,
-                                text = doc.getString("text") ?: "",
-                                isMe = doc.getString("senderId") == currentUserId,
-                                time = doc.getLong("timestamp") ?: 0
-                            )
-                        )
-                    }
-                }
-            }
-    }
-
-    fun sendMessage(text: String) {
-        if (text.isBlank()) return
-        val msgMap = hashMapOf(
-            "senderId" to currentUserId,
-            "text" to text,
-            "timestamp" to System.currentTimeMillis(),
-            "replyTo" to replyMessage?.id // optional for reply feature
+    fun sendMessage() {
+        if (messageText.isBlank()) return
+        messages.add(
+            0,
+            ChatMessage(
+                text = messageText,
+                isMe = true,
+                replyTo = replyMessage
+            )
         )
-        db.collection("chats")
-            .document(chatId)
-            .collection("messages")
-            .add(msgMap)
-        replyMessage = null
         messageText = ""
+        replyMessage = null
     }
 
     Column(modifier = Modifier.fillMaxSize()) {
-        // Top bar with Call / Video
+
         ChatTopBar(
             onCall = { makePhoneCall(context, "9800000000") },
             onVideoCall = { openVideoCall(context) }
         )
 
-        // Chat messages
         Box(
             modifier = Modifier
                 .weight(1f)
                 .background(Color(0xFFECE5DD))
         ) {
             LazyColumn(
+                reverseLayout = true,
                 state = listState,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(8.dp),
-                reverseLayout = true
+                modifier = Modifier.padding(8.dp)
             ) {
-                items(messages) { message ->
+                items(messages) { msg ->
                     MessageBubble(
-                        message = message,
-                        onLongPress = { showOptionsDialog = message },
-                        onReply = { replyMessage = message }
+                        message = msg,
+                        onLongPress = { showOptions = msg }
                     )
                     Spacer(modifier = Modifier.height(6.dp))
                 }
             }
         }
 
-        // Reply indicator
-        replyMessage?.let { msg ->
+        replyMessage?.let {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(Color.LightGray)
-                    .padding(6.dp),
-                verticalAlignment = Alignment.CenterVertically
+                    .padding(6.dp)
             ) {
-                Text("Replying to: ${msg.text}", modifier = Modifier.weight(1f))
-                TextButton(onClick = { replyMessage = null }) { Text("Cancel") }
+                Text("Replying: ${it.text}", modifier = Modifier.weight(1f))
+                TextButton(onClick = { replyMessage = null }) {
+                    Text("Cancel")
+                }
             }
         }
 
-        // Input bar
         ChatInputBar(
             text = messageText,
             onTextChange = { messageText = it },
-            onSend = { sendMessage(messageText) },
-            onAttachClick = {
-                // Optional: attachment picker
-            }
+            onSend = { sendMessage() }
         )
     }
 
-    // Options dialog (Delete / Reply)
-    showOptionsDialog?.let { msg ->
-        Dialog(onDismissRequest = { showOptionsDialog = null }) {
+    showOptions?.let { msg ->
+        Dialog(onDismissRequest = { showOptions = null }) {
             Column(
                 modifier = Modifier
                     .background(Color.White, RoundedCornerShape(12.dp))
                     .padding(16.dp)
             ) {
                 TextButton(onClick = {
-                    // Delete message in Firestore
-                    db.collection("chats")
-                        .document(chatId)
-                        .collection("messages")
-                        .document(msg.id)
-                        .delete()
-                    showOptionsDialog = null
+                    messages.remove(msg)
+                    showOptions = null
                 }) { Text("Delete") }
 
                 TextButton(onClick = {
                     replyMessage = msg
-                    showOptionsDialog = null
+                    showOptions = null
                 }) { Text("Reply") }
 
-                TextButton(onClick = { showOptionsDialog = null }) { Text("Cancel") }
+                TextButton(onClick = { showOptions = null }) { Text("Cancel") }
             }
         }
     }
 }
 
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ChatTopBar(
-    onCall: () -> Unit,
-    onVideoCall: () -> Unit
-) {
+fun ChatTopBar(onCall: () -> Unit, onVideoCall: () -> Unit) {
     var expanded by remember { mutableStateOf(false) }
 
     TopAppBar(
         title = {
             Column {
-                Text("TradeFlow", color = Color.White, fontSize = 16.sp)
+                Text("TradeFlow", color = Color.White)
                 Text("online", color = Color.White.copy(0.7f), fontSize = 12.sp)
             }
         },
         actions = {
-
             IconButton(onClick = onCall) {
-                Icon(Icons.Default.Call, contentDescription = "Call", tint = Color.White)
+                Icon(Icons.Default.Call, null, tint = Color.White)
             }
-
             IconButton(onClick = onVideoCall) {
-                Icon(Icons.Default.Videocam, contentDescription = "Video Call", tint = Color.White)
+                Icon(Icons.Default.Videocam, null, tint = Color.White)
             }
-
-            // 🔽 MORE MENU
             Box {
                 IconButton(onClick = { expanded = true }) {
-                    Icon(
-                        Icons.Default.MoreVert,
-                        contentDescription = "More",
-                        tint = Color.White
-                    )
+                    Icon(Icons.Default.MoreVert, null, tint = Color.White)
                 }
-
-                DropdownMenu(
-                    expanded = expanded,
-                    onDismissRequest = { expanded = false }
-                ) {
-
-                    DropdownMenuItem(
-                        text = { Text("Clear chat") },
-                        onClick = {
-                            expanded = false
-                            // TODO: clear messages
-                        }
-                    )
-
-                    DropdownMenuItem(
-                        text = { Text("Block user") },
-                        onClick = {
-                            expanded = false
-                            // TODO: block user
-                        }
-                    )
-                    DropdownMenuItem(
-                        text = { Text("Report") },
-                        onClick = {
-                            expanded = false
-                            // TODO: report user
-                        }
-                    )
+                DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                    DropdownMenuItem(text = { Text("Clear chat") }, onClick = { expanded = false })
                 }
             }
         },
@@ -270,51 +184,30 @@ fun ChatTopBar(
     )
 }
 
-
 @Composable
-fun MessageBubble(
-    message: ChatMessage,
-    onLongPress: () -> Unit,
-    onReply: () -> Unit
-) {
-    val bubbleColor = if (message.isMe) Color(0xFF25D366) else Color.White
-    val textColor = if (message.isMe) Color.White else Color.Black
-    val alignment = if (message.isMe) Arrangement.End else Arrangement.Start
+fun MessageBubble(message: ChatMessage, onLongPress: () -> Unit) {
+    val bg = if (message.isMe) Color(0xFF25D366) else Color.White
+    val txt = if (message.isMe) Color.White else Color.Black
+    val align = if (message.isMe) Arrangement.End else Arrangement.Start
 
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 8.dp, vertical = 2.dp),
-        horizontalArrangement = alignment
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = align
     ) {
         Column(
             modifier = Modifier
-                .background(bubbleColor, RoundedCornerShape(16.dp))
-                .padding(horizontal = 12.dp, vertical = 8.dp)
-                .combinedClickable(
-                    onClick = { /* do nothing */ },
-                    onLongClick = onLongPress
-                )
+                .background(bg, RoundedCornerShape(16.dp))
+                .combinedClickable(onClick = {}, onLongClick = onLongPress)
+                .padding(10.dp)
                 .widthIn(max = 250.dp)
         ) {
             message.replyTo?.let {
-                Text(
-                    text = "Reply: ${it.text}",
-                    fontSize = 12.sp,
-                    color = Color.DarkGray,
-                    maxLines = 1
-                )
+                Text("Reply: ${it.text}", fontSize = 12.sp, color = Color.DarkGray)
                 Spacer(modifier = Modifier.height(4.dp))
             }
-
+            Text(message.text, color = txt)
             Text(
-                text = message.text,
-                color = textColor,
-                fontSize = 16.sp
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = formatTime(message.time),
+                formatTime(message.time),
                 fontSize = 10.sp,
                 color = Color.Gray,
                 modifier = Modifier.align(Alignment.End)
@@ -323,14 +216,11 @@ fun MessageBubble(
     }
 }
 
-
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChatInputBar(
     text: String,
     onTextChange: (String) -> Unit,
-    onSend: () -> Unit,
-    onAttachClick: () -> Unit // New callback for plus button
+    onSend: () -> Unit
 ) {
     Row(
         modifier = Modifier
@@ -338,64 +228,36 @@ fun ChatInputBar(
             .padding(8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Plus button for attachments
-        IconButton(
-            onClick = onAttachClick,
-            modifier = Modifier
-                .size(48.dp)
-                .background(Color(0xFF075E54), CircleShape)
-        ) {
-            Text("+", color = Color.White, fontSize = 24.sp)
-        }
-
-        Spacer(modifier = Modifier.width(8.dp))
-
-        // Message input field
         TextField(
             value = text,
             onValueChange = onTextChange,
-            placeholder = { Text("Message", color = Color.Gray) },
-            modifier = Modifier
-                .weight(1f)
-                .background(Color(0xFFF0F0F0), RoundedCornerShape(24.dp)), // light gray background
+            placeholder = { Text("Message") },
+            modifier = Modifier.weight(1f),
             singleLine = true,
-            shape = RoundedCornerShape(24.dp),
             keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Send),
             keyboardActions = KeyboardActions(onSend = { onSend() }),
-            textStyle = TextStyle(fontSize = 16.sp, color = Color.Black),
-            colors = TextFieldDefaults.colors(
-                focusedContainerColor = Color.Transparent,
-                unfocusedContainerColor = Color.Transparent,
-                focusedIndicatorColor = Color.Transparent,
-                unfocusedIndicatorColor = Color.Transparent
-            )
+            shape = RoundedCornerShape(24.dp)
         )
-
 
         Spacer(modifier = Modifier.width(8.dp))
 
-        // Send button
         IconButton(
             onClick = onSend,
             modifier = Modifier
                 .size(48.dp)
                 .background(Color(0xFF25D366), CircleShape)
         ) {
-            Text("➤", color = Color.White, fontSize = 18.sp)
+            Text("➤", color = Color.White)
         }
     }
 }
 
-
-
 fun makePhoneCall(context: Context, number: String) {
-    val intent = Intent(Intent.ACTION_DIAL).apply { data = Uri.parse("tel:$number") }
-    context.startActivity(intent)
+    context.startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:$number")))
 }
 
 fun openVideoCall(context: Context) {
-    val intent = Intent(Intent.ACTION_VIEW).apply { data = Uri.parse("https://meet.google.com") }
-    context.startActivity(intent)
+    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://meet.google.com")))
 }
 
 fun formatTime(time: Long): String =
@@ -403,11 +265,8 @@ fun formatTime(time: Long): String =
 
 @Preview(showBackground = true)
 @Composable
-fun ChatPreview() {
+fun PreviewChat() {
     MaterialTheme {
         ChatScreen()
     }
 }
-
-
-
