@@ -42,7 +42,7 @@ class UserSetting: ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-           AppNav()
+            AppNav()
         }
     }
 }
@@ -417,4 +417,3 @@ fun PreviewApp() {
         AppNav()
     }
 }
-
