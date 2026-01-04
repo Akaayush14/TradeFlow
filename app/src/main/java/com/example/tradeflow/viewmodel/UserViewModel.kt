@@ -1,4 +1,4 @@
-package com.example.classwork.viewmodel
+package com.example.tradeflow.viewmodel
 
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
@@ -6,7 +6,7 @@ import com.google.firebase.auth.FirebaseUser
 import com.example.tradeflow.model.UserModel
 import com.example.tradeflow.repository.UserRepo
 
-class UserViewModel(val repo: UserRepo): ViewModel(){
+class UserViewModel( val repo: UserRepo): ViewModel(){
     fun login(
         email:String, password:String,
         callback:(Boolean, String) -> Unit

@@ -41,6 +41,36 @@ class UserDashboard : ComponentActivity() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
+fun TradeFlowTopBar(
+    title: @Composable () -> Unit,
+    onBackClick: (() -> Unit)? = null,
+    actions: @Composable (androidx.compose.foundation.layout.RowScope.() -> Unit) = {}
+) {
+    androidx.compose.material3.CenterAlignedTopAppBar(
+        title = title,
+        navigationIcon = {
+            if (onBackClick != null) {
+                androidx.compose.material3.IconButton(onClick = onBackClick) {
+                    Icon(
+                        painter = painterResource(R.drawable.outline_arrow_back_ios_new_24),
+                        contentDescription = "Back",
+                        tint = com.example.tradeflow.ui.theme.White
+                    )
+                }
+            }
+        },
+        actions = actions,
+        colors = androidx.compose.material3.TopAppBarDefaults.centerAlignedTopAppBarColors(
+            containerColor = com.example.tradeflow.ui.theme.Greenish,
+            titleContentColor = com.example.tradeflow.ui.theme.White,
+            navigationIconContentColor = com.example.tradeflow.ui.theme.White,
+            actionIconContentColor = com.example.tradeflow.ui.theme.White
+        )
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
 fun DashboardPageBody() {
     val context = LocalContext.current
     val activity = context as Activity

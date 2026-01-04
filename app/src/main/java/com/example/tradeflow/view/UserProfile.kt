@@ -1,6 +1,7 @@
 
 package com.example.tradeflow.view
 
+import android.content.Intent
 import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -15,23 +16,23 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Create
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.classwork.viewmodel.UserViewModel
 import com.example.tradeflow.R
 import com.example.tradeflow.model.ProductModel
 import com.example.tradeflow.model.UserModel
@@ -40,12 +41,17 @@ import com.example.tradeflow.repository.UserRepoImpl
 import com.example.tradeflow.ui.theme.Greenish
 import com.example.tradeflow.ui.theme.White
 import com.example.tradeflow.viewmodel.ProductViewModel
+import com.example.tradeflow.viewmodel.UserViewModel
 import com.google.firebase.auth.FirebaseAuth
+import kotlinx.coroutines.launch
 
 
 // Enums to manage the state of the tabs
 enum class ListingType { BARTER, RENTAL, BOTH }
 enum class ListingStatus { ALL, AVAILABLE, PENDING, COMPLETED }
+
+
+
 
 data class ListingItem(
     val id: Int,
@@ -61,6 +67,7 @@ data class ListingItem(
 fun UserProfileScreen(onBackClick: () -> Unit = {}, onEditProduct: (ProductModel) -> Unit = {}, showEditSuccess: Boolean = false, onSnackbarShown: () -> Unit = {}) {
     val userViewModel: UserViewModel = remember { UserViewModel(UserRepoImpl()) }
     val productViewModel: ProductViewModel = remember { ProductViewModel(ProductRepoImpl()) }
+    val context = LocalContext.current
 
     val currentUser = FirebaseAuth.getInstance().currentUser
     val userId = currentUser?.uid ?: ""
@@ -122,6 +129,7 @@ fun UserProfileScreen(onBackClick: () -> Unit = {}, onEditProduct: (ProductModel
     // Show loading state while user data is being fetched
     val isLoading = userData == null
     val snackbarHostState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
     LaunchedEffect(showEditSuccess) {
         if (showEditSuccess) {
             snackbarHostState.showSnackbar("Item updated successfully")
@@ -131,7 +139,7 @@ fun UserProfileScreen(onBackClick: () -> Unit = {}, onEditProduct: (ProductModel
 
     Scaffold(
         topBar = {
-            CenterAlignedTopAppBar(
+            TradeFlowTopBar(
                 title = {
                     Text(
                         "Profile",
@@ -139,20 +147,7 @@ fun UserProfileScreen(onBackClick: () -> Unit = {}, onEditProduct: (ProductModel
                         fontWeight = FontWeight.Bold
                     )
                 },
-                navigationIcon = {
-                    IconButton(onClick = onBackClick) {
-                        Icon(
-                            painter = painterResource(R.drawable.outline_arrow_back_ios_new_24),
-                            contentDescription = "Back",
-                            tint = White
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = Greenish,
-                    titleContentColor = White,
-                    navigationIconContentColor = White
-                )
+                onBackClick = onBackClick
             )
         },
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
@@ -264,15 +259,43 @@ fun UserProfileScreen(onBackClick: () -> Unit = {}, onEditProduct: (ProductModel
                     val isOwner = product.ownerId == userId
                     ProductItemCard(
                         product = product,
-                        onClick = { },
+                        onClick = {
+                            val intent = Intent(context, UserItemDetails::class.java)
+                            intent.putExtra("productId", product.productId)
+                            context.startActivity(intent)
+                        },
                         onEdit = { onEditProduct(it) },
                         isOwner = isOwner,
                         onDeleteRequest = { toDelete ->
                             if (toDelete.status != "Available") return@ProductItemCard
-                            val updated = toDelete.copy(isDeleted = true)
-                            productViewModel.updateProduct(updated) { success, _ ->
+                            val id = toDelete.productId
+                            if (id.isNotEmpty()) {
+                                productViewModel.deleteProduct(id) { success, message ->
+                                    if (success) {
+                                        coroutineScope.launch {
+                                            snackbarHostState.showSnackbar("Item deleted successfully")
+                                        }
+                                    } else {
+                                        coroutineScope.launch {
+                                            snackbarHostState.showSnackbar(message)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        ,
+                        onMarkTradedRequest = { toComplete ->
+                            if (toComplete.status != "Available") return@ProductItemCard
+                            val updated = toComplete.copy(status = "Completed", completedAt = System.currentTimeMillis())
+                            productViewModel.updateProduct(updated) { success, message ->
                                 if (success) {
-                                    // Snackbar handled by parent if needed; list refresh comes from Firebase listener
+                                    coroutineScope.launch {
+                                        snackbarHostState.showSnackbar("Traded successfully")
+                                    }
+                                } else {
+                                    coroutineScope.launch {
+                                        snackbarHostState.showSnackbar(message)
+                                    }
                                 }
                             }
                         }
@@ -538,7 +561,8 @@ fun ProductItemCard(
     onClick: () -> Unit,
     onEdit: (ProductModel) -> Unit,
     isOwner: Boolean,
-    onDeleteRequest: (ProductModel) -> Unit
+    onDeleteRequest: (ProductModel) -> Unit,
+    onMarkTradedRequest: (ProductModel) -> Unit
 ) {
     Card(
         modifier = Modifier
@@ -690,12 +714,14 @@ fun ProductItemCard(
                 if (isOwner) {
                     var showDeleteConfirm by remember { mutableStateOf(false) }
                     var showDeleteBlocked by remember { mutableStateOf(false) }
+                    var showMarkConfirm by remember { mutableStateOf(false) }
+                    var showMarkBlocked by remember { mutableStateOf(false) }
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         // Edit Button
-                        Card(
+                        if (product.status != "Completed") Card(
                             modifier = Modifier
                                 .weight(1f)
                                 .height(32.dp),
@@ -719,17 +745,16 @@ fun ProductItemCard(
                                     color = Color.Black
                                 )
                                 Spacer(modifier = Modifier.width(6.dp))
-                                Icon(
-                                    painter = painterResource(R.drawable.outline_arrow_forward_ios_24),
+                                Image(
+                                    painter = painterResource(R.drawable.edit),
                                     contentDescription = "Edit",
-                                    tint = Color.Black,
                                     modifier = Modifier.size(14.dp)
                                 )
                             }
                         }
 
                         // Mark as Traded Button
-                        Card(
+                        if (product.status != "Completed") Card(
                             modifier = Modifier
                                 .weight(1f)
                                 .height(32.dp),
@@ -742,21 +767,30 @@ fun ProductItemCard(
                             Row(
                                 modifier = Modifier
                                     .fillMaxSize()
-                                    .clickable { /* TODO: Mark as traded logic */ },
+                                    .clickable {
+                                        showMarkConfirm = product.status == "Available"
+                                        showMarkBlocked = product.status == "Pending" || product.status == "Completed"
+                                    },
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.Center
                             ) {
                                 Text(
-                                    text = "Mark as Traded",
+                                    text = " Traded",
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.Medium,
                                     color = Color.Black
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Image(
+                                    painter = painterResource(R.drawable.traded),
+                                    contentDescription = "Traded",
+                                    modifier = Modifier.size(14.dp)
                                 )
                             }
                         }
 
                         // Delete Button
-                        Card(
+                        if (product.status != "Completed") Card(
                             modifier = Modifier
                                 .weight(1f)
                                 .height(32.dp),
@@ -782,7 +816,32 @@ fun ProductItemCard(
                                     fontWeight = FontWeight.Medium,
                                     color = Color.Black
                                 )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Image(
+                                    painter = painterResource(R.drawable.delete),
+                                    contentDescription = "Delete",
+                                    modifier = Modifier.size(14.dp)
+                                )
                             }
+                        }
+                    }
+
+                    if (product.status == "Completed") {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.Start
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.CheckCircle,
+                                contentDescription = null,
+                                tint = Color(0xFF4CAF50)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "Traded successfully",
+                                fontSize = 12.sp,
+                                color = Color.Black
+                            )
                         }
                     }
 
@@ -802,6 +861,40 @@ fun ProductItemCard(
                             dismissButton = {
                                 TextButton(onClick = { showDeleteConfirm = false }) {
                                     Text("Cancel")
+                                }
+                            }
+                        )
+                    }
+
+                    if (showMarkConfirm) {
+                        AlertDialog(
+                            onDismissRequest = { showMarkConfirm = false },
+                            title = { Text("Mark item as traded?") },
+                            text = { Text("This will move the item to completed and remove it from active listings.") },
+                            confirmButton = {
+                                TextButton(onClick = {
+                                    showMarkConfirm = false
+                                    onMarkTradedRequest(product)
+                                }) {
+                                    Text("Mark as Traded")
+                                }
+                            },
+                            dismissButton = {
+                                TextButton(onClick = { showMarkConfirm = false }) {
+                                    Text("Cancel")
+                                }
+                            }
+                        )
+                    }
+
+                    if (showMarkBlocked) {
+                        AlertDialog(
+                            onDismissRequest = { showMarkBlocked = false },
+                            title = { Text("Not allowed") },
+                            text = { Text("You can mark this item as traded only after completion.") },
+                            confirmButton = {
+                                TextButton(onClick = { showMarkBlocked = false }) {
+                                    Text("OK")
                                 }
                             }
                         )
