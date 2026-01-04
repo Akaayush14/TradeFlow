@@ -117,17 +117,6 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity
-            android:name=".view.UserChatBotActivity"
-            android:exported="true"
-            android:label="@string/title_activity_user_chat_bot"
-            android:theme="@style/Theme.TradeFlow">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity>
 
         <activity
             android:name=".view.AdminDashExp"
