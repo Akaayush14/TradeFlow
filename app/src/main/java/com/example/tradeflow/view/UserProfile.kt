@@ -1,7 +1,6 @@
 
 package com.example.tradeflow.view
 
-import android.app.Activity
 import android.content.Intent
 import android.util.Log
 import androidx.compose.foundation.Image
@@ -17,7 +16,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Create
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -262,7 +260,7 @@ fun ProfileScreen(onBackClick: () -> Unit = {}, onEditProduct: (ProductModel) ->
                     ProductItemCard(
                         product = product,
                         onClick = {
-                            val intent = Intent(context, ItemDetailsActivity::class.java)
+                            val intent = Intent(context, UserItemDetails::class.java)
                             intent.putExtra("productId", product.productId)
                             context.startActivity(intent)
                         },

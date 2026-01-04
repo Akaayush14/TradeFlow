@@ -16,10 +16,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -27,7 +25,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -59,7 +56,6 @@ import androidx.compose.material.icons.filled.Star
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.foundation.Image
-import androidx.compose.material3.TopAppBar
 import androidx.compose.ui.text.font.FontWeight
 import coil.compose.AsyncImage
 import com.example.tradeflow.R
@@ -146,7 +142,7 @@ fun ExploreScreen() {
                 },
                 actions = {
                     IconButton(onClick = {
-                        val intent = Intent(activity, SettingScreenActivity::class.java)
+                        val intent = Intent(activity, UserSetting::class.java)
                         activity.startActivity(intent)
                     }) {
                         // Use Icons.Default.Menu or your custom resource
@@ -207,7 +203,7 @@ fun ExploreScreen() {
                     ExploreItemCard(
                         product = product,
                         onClick = {
-                            val intent = Intent(context, ItemDetailsActivity::class.java)
+                            val intent = Intent(context, UserItemDetails::class.java)
                             intent.putExtra("productId", product.productId)
                             context.startActivity(intent)
                         }

@@ -38,7 +38,7 @@ val sampleNotifications = listOf(
     NotificationItem(5, "Robert Fox", "Please ensure feedback is constructive.", "2 min ago", NotificationType.UNREAD)
 )
 
-class NotificationsActivity : ComponentActivity() {
+class UserSettingNotification : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {

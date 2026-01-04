@@ -44,7 +44,7 @@
 
 
         <activity
-            android:name=".view.ItemDetailsActivity"
+            android:name=".view.UserItemDetails"
             android:exported="true"
             android:theme="@style/Theme.TradeFlow">
             <intent-filter>
@@ -54,19 +54,9 @@
             </intent-filter>
         </activity>
 
-        <activity
-            android:name=".view.ItemDetailsActivity"
-            android:exported="true"
-            android:theme="@style/Theme.TradeFlow">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity>
 
         <activity
-            android:name=".view.DashboardPage"
+            android:name=".view.UserDashboard"
             android:exported="true"
             android:theme="@style/Theme.TradeFlow">
             <intent-filter>
@@ -109,7 +99,7 @@
             </intent-filter>
         </activity>
         <activity
-            android:name=".view.NotificationsActivity"
+            android:name=".view.UserSettingNotification"
             android:exported="true"
             android:theme="@style/Theme.TradeFlow">
             <intent-filter>
@@ -120,7 +110,7 @@
         </activity>
 
         <activity
-            android:name=".view.SettingScreenActivity"
+            android:name=".view.UserSetting"
             android:exported="true"
             android:theme="@style/Theme.TradeFlow">
             <intent-filter>

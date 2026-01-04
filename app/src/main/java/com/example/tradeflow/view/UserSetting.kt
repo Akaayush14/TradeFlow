@@ -32,10 +32,9 @@ import androidx.compose.ui.graphics.Outline
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
-import com.example.tradeflow.AboutUsScreen
 import com.example.tradeflow.R
 
-class SettingScreenActivity : ComponentActivity() {
+class UserSetting : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -53,7 +52,7 @@ fun AppNav() {
         composable("notifications") { NotificationsScreen(navController) }
         composable("edit_profile") { EditProfileScreen(navController) }
         composable("privacy") { PrivacySecurityScreen(navController) }
-        composable("aboutus") { AboutUsScreen(navController) }
+//        composable("aboutus") { AboutUsScreen(navController) }
     }
 }
 
