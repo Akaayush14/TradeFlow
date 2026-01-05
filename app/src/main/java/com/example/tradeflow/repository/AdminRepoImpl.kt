@@ -1,5 +1,6 @@
 package com.example.tradeflow.repository
 
+import com.example.tradeflow.model.AdminModel
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.database.DataSnapshot
@@ -7,14 +8,11 @@ import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
-import com.example.tradeflow.model.UserModel
-import kotlin.collections.toMap
 
-class UserRepoImpl: UserRepo{
+class AdminRepoImpl : AdminRepo {
     val auth: FirebaseAuth = FirebaseAuth.getInstance()
     val database: FirebaseDatabase = FirebaseDatabase.getInstance()
-    //table haru ma kaam garnu paro vane ref ma garnu paryo
-    val ref: DatabaseReference = database.getReference("Users")
+    val ref: DatabaseReference = database.getReference("Admins")
 
     override fun login(
         email: String,
@@ -48,14 +46,14 @@ class UserRepoImpl: UserRepo{
             }
     }
 
-    override fun addUserToDatabase(
+    override fun addAdminToDatabase(
         userId: String,
-        model: UserModel,
+        model: AdminModel,
         callback: (Boolean, String) -> Unit
     ) {
         ref.child(userId).setValue(model).addOnCompleteListener {
             if (it.isSuccessful){
-                callback(true, "Registration successful")
+                callback(true, "Admin registered successfully")
             }else{
                 callback(true, "${it.exception?.message}")
             }
@@ -80,21 +78,17 @@ class UserRepoImpl: UserRepo{
         return auth.currentUser
     }
 
-    override fun getUserById(
+    override fun getAdminById(
         userId: String,
-        callback: (Boolean, String, UserModel?) -> Unit
+        callback: (Boolean, String, AdminModel?) -> Unit
     ) {
         ref.child(userId).addValueEventListener(object: ValueEventListener{
             override fun onDataChange(snapshot: DataSnapshot) {
                 if (snapshot.exists()) {
-                    val user=snapshot.getValue(UserModel::class.java)
-                    if (user != null){
-                        callback(true, "Profile Fetched ",user)
-                    } else {
-                        callback(false, "User data is null", null)
+                    val admin = snapshot.getValue(AdminModel::class.java)
+                    if (admin != null){
+                        callback(true, "Profile Fetched ", admin)
                     }
-                } else {
-                    callback(false, "User not found", null)
                 }
             }
             override fun onCancelled(error: DatabaseError) {
@@ -103,57 +97,50 @@ class UserRepoImpl: UserRepo{
         })
     }
 
-    override fun getAllUser(callback: (Boolean, String, List<UserModel>?) -> Unit) {
+    override fun getAllAdmins(callback: (Boolean, String, List<AdminModel>?) -> Unit) {
         ref.addValueEventListener(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 try {
                     if(snapshot.exists()){
-                        var allUsers = mutableListOf<UserModel>()
+                        var allAdmins = mutableListOf<AdminModel>()
                         for (data in snapshot.children){
                             try {
-                                var user = data.getValue(UserModel::class.java)
-                                if(user != null){
-                                    // Ensure userId is set from the snapshot key
+                                var admin = data.getValue(AdminModel::class.java)
+                                if(admin != null){
                                     val userId = data.key ?: ""
                                     if (userId.isEmpty()) continue
                                     
-                                    user.userId = userId
+                                    admin.userId = userId
+                                    admin.name = data.child("name").getValue(String::class.java) ?: ""
+                                    admin.email = data.child("email").getValue(String::class.java) ?: ""
+                                    admin.phone = data.child("phone").getValue(String::class.java) ?: ""
+                                    admin.dateOfBirth = data.child("dateOfBirth").getValue(String::class.java) ?: ""
                                     
-                                    // Ensure name and email are not null
-                                    user.name = data.child("name").getValue(String::class.java) ?: ""
-                                    user.email = data.child("email").getValue(String::class.java) ?: ""
-                                    user.phone = data.child("phone").getValue(String::class.java) ?: ""
-                                    
-                                    // Read isBlocked value from Firebase, default to false if field doesn't exist
                                     if (data.hasChild("isBlocked")) {
                                         val isBlockedValue = data.child("isBlocked").getValue(Boolean::class.java)
-                                        user.isBlocked = isBlockedValue ?: false
+                                        admin.isBlocked = isBlockedValue ?: false
                                     } else {
-                                        // Field doesn't exist in database, default to false
-                                        user.isBlocked = false
-                                    }
-                                    // Read isRestricted value from Firebase, default to false if field doesn't exist
-                                    if (data.hasChild("isRestricted")) {
-                                        val isRestrictedValue = data.child("isRestricted").getValue(Boolean::class.java)
-                                        user.isRestricted = isRestrictedValue ?: false
-                                    } else {
-                                        // Field doesn't exist in database, default to false
-                                        user.isRestricted = false
+                                        admin.isBlocked = false
                                     }
                                     
-                                    // Only add user if userId is not empty
-                                    if (user.userId.isNotEmpty()) {
-                                        allUsers.add(user)
+                                    if (data.hasChild("isRestricted")) {
+                                        val isRestrictedValue = data.child("isRestricted").getValue(Boolean::class.java)
+                                        admin.isRestricted = isRestrictedValue ?: false
+                                    } else {
+                                        admin.isRestricted = false
+                                    }
+                                    
+                                    if (admin.userId.isNotEmpty()) {
+                                        allAdmins.add(admin)
                                     }
                                 }
                             } catch (e: Exception) {
-                                // Skip this user if there's an error reading it
                                 continue
                             }
                         }
-                        callback(true, "User fetched", allUsers)
+                        callback(true, "Admins fetched", allAdmins)
                     } else {
-                        callback(true, "No users found", emptyList())
+                        callback(true, "No admins found", emptyList())
                     }
                 } catch (e: Exception) {
                     callback(false, "Error: ${e.message}", null)
@@ -166,44 +153,33 @@ class UserRepoImpl: UserRepo{
         })
     }
 
-    override fun deleteUser(
+    override fun deleteAdmin(
         userId: String,
         callback: (Boolean, String) -> Unit
     ) {
         ref.child(userId).removeValue().addOnCompleteListener {
             if(it.isSuccessful){
-                callback(true, "User deleted successfully")
+                callback(true, "Admin deleted successfully")
             }else{
                 callback(false, "${it.exception?.message}")
             }
         }
     }
 
-    override fun blockUser(
+    override fun updateAdminStatus(
         userId: String,
         isBlocked: Boolean,
-        callback: (Boolean, String) -> Unit
-    ) {
-        ref.child(userId).child("isBlocked").setValue(isBlocked).addOnCompleteListener {
-            if(it.isSuccessful){
-                val message = if(isBlocked) "User blocked successfully" else "User unblocked successfully"
-                callback(true, message)
-            }else{
-                callback(false, "${it.exception?.message}")
-            }
-        }
-    }
-
-    override fun restrictUser(
-        userId: String,
         isRestricted: Boolean,
         callback: (Boolean, String) -> Unit
     ) {
-        ref.child(userId).child("isRestricted").setValue(isRestricted).addOnCompleteListener {
-            if(it.isSuccessful){
-                val message = if(isRestricted) "User restricted successfully" else "User unrestricted successfully"
-                callback(true, message)
-            }else{
+        val updates = mapOf(
+            "isBlocked" to isBlocked,
+            "isRestricted" to isRestricted
+        )
+        ref.child(userId).updateChildren(updates).addOnCompleteListener {
+            if (it.isSuccessful) {
+                callback(true, "Admin status updated")
+            } else {
                 callback(false, "${it.exception?.message}")
             }
         }
