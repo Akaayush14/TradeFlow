@@ -40,7 +40,10 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.platform.LocalContext
+import com.example.tradeflow.viewmodel.UserViewModel
 import com.example.tradeflow.R
+import com.example.tradeflow.RegisterActivity
+import com.example.tradeflow.repository.UserRepoImpl
 import com.example.tradeflow.ui.theme.Greenish
 
 class LoginActivity : ComponentActivity() {
@@ -63,9 +66,36 @@ fun LoginScreen() {
     val BlueButton = Color(0xFF006CFF)
     val Teal = Color(0xFF00897B)
 
+    var isLoading by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf("") }
+
     //For navigating a var is declared
     val context = LocalContext.current
+    val userViewModel = remember { UserViewModel(UserRepoImpl()) }
 
+    fun handleLogin() {
+        if (email.isBlank() || password.isBlank()) {
+            errorMessage = "Please enter email and password"
+            return
+        }
+
+        isLoading = true
+        errorMessage = ""
+
+        userViewModel.login(email.trim(), password) { success, message ->
+            isLoading = false
+            if (success) {
+                // Navigate to DashboardPage on successful login
+                val intent = Intent(context, UserDashboard::class.java)
+                intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                context.startActivity(intent)
+                // Finish LoginActivity so user can't go back
+                (context as? android.app.Activity)?.finish()
+            } else {
+                errorMessage = message
+            }
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -157,11 +187,23 @@ fun LoginScreen() {
                 fontWeight = FontWeight.SemiBold
             )
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // ERROR MESSAGE
+            if (errorMessage.isNotEmpty()) {
+                Text(
+                    text = errorMessage,
+                    color = Color.Red,
+                    fontSize = 14.sp,
+                    modifier = Modifier.padding(vertical = 8.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
 
             // LOGIN BUTTON
             Button(
-                onClick = { /* Handle Login */ },
+                onClick = { handleLogin() },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(55.dp),

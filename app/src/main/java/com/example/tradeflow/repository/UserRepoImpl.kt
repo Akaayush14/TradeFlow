@@ -34,6 +34,7 @@ class UserRepoImpl: UserRepo{
     override fun register(
         email: String,
         password: String,
+        phone: String,
         callback: (Boolean, String, String) -> Unit
     ) {
         auth.createUserWithEmailAndPassword(email, password)
@@ -89,7 +90,11 @@ class UserRepoImpl: UserRepo{
                     val user=snapshot.getValue(UserModel::class.java)
                     if (user != null){
                         callback(true, "Profile Fetched ",user)
+                    } else {
+                        callback(false, "User data is null", null)
                     }
+                } else {
+                    callback(false, "User not found", null)
                 }
             }
             override fun onCancelled(error: DatabaseError) {
@@ -101,21 +106,134 @@ class UserRepoImpl: UserRepo{
     override fun getAllUser(callback: (Boolean, String, List<UserModel>?) -> Unit) {
         ref.addValueEventListener(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
-                if(snapshot.exists()){
-                    var allUsers = mutableListOf<UserModel>()
-                    for (data in snapshot.children){
-                        var user = data.getValue(UserModel::class.java)
-                        if(user!=null){
-                            allUsers.add(user)
+                try {
+                    if(snapshot.exists()){
+                        var allUsers = mutableListOf<UserModel>()
+                        for (data in snapshot.children){
+                            try {
+                                var user = data.getValue(UserModel::class.java)
+                                if(user != null){
+                                    // Ensure userId is set from the snapshot key
+                                    val userId = data.key ?: ""
+                                    if (userId.isEmpty()) continue
+
+                                    user.userId = userId
+
+                                    // Ensure name and email are not null
+                                    user.name = data.child("name").getValue(String::class.java) ?: ""
+                                    user.email = data.child("email").getValue(String::class.java) ?: ""
+                                    user.phone = data.child("phone").getValue(String::class.java) ?: ""
+
+                                    // Read isBlocked value from Firebase, default to false if field doesn't exist
+                                    if (data.hasChild("isBlocked")) {
+                                        val isBlockedValue = data.child("isBlocked").getValue(Boolean::class.java)
+                                        user.isBlocked = isBlockedValue ?: false
+                                    } else {
+                                        // Field doesn't exist in database, default to false
+                                        user.isBlocked = false
+                                    }
+                                    // Read isRestricted value from Firebase, default to false if field doesn't exist
+                                    if (data.hasChild("isRestricted")) {
+                                        val isRestrictedValue = data.child("isRestricted").getValue(Boolean::class.java)
+                                        user.isRestricted = isRestrictedValue ?: false
+                                    } else {
+                                        // Field doesn't exist in database, default to false
+                                        user.isRestricted = false
+                                    }
+
+                                    // Only add user if userId is not empty
+                                    if (user.userId.isNotEmpty()) {
+                                        allUsers.add(user)
+                                    }
+                                }
+                            } catch (e: Exception) {
+                                // Skip this user if there's an error reading it
+                                continue
+                            }
                         }
+                        callback(true, "User fetched", allUsers)
+                    } else {
+                        callback(true, "No users found", emptyList())
                     }
-                    callback(true, "User fetched", allUsers)
+                } catch (e: Exception) {
+                    callback(false, "Error: ${e.message}", null)
                 }
             }
 
             override fun onCancelled(error: DatabaseError) {
-                TODO("Not yet implemented")
+                callback(false, error.message ?: "Unknown error", null)
             }
         })
     }
+
+    override fun deleteUser(
+        userId: String,
+        callback: (Boolean, String) -> Unit
+    ) {
+        ref.child(userId).removeValue().addOnCompleteListener {
+            if(it.isSuccessful){
+                callback(true, "User deleted successfully")
+            }else{
+                callback(false, "${it.exception?.message}")
+            }
+        }
+    }
+
+    override fun blockUser(
+        userId: String,
+        isBlocked: Boolean,
+        callback: (Boolean, String) -> Unit
+    ) {
+        ref.child(userId).child("isBlocked").setValue(isBlocked).addOnCompleteListener {
+            if(it.isSuccessful){
+                val message = if(isBlocked) "User blocked successfully" else "User unblocked successfully"
+                callback(true, message)
+            }else{
+                callback(false, "${it.exception?.message}")
+            }
+        }
+    }
+
+    override fun restrictUser(
+        userId: String,
+        isRestricted: Boolean,
+        callback: (Boolean, String) -> Unit
+    ) {
+        ref.child(userId).child("isRestricted").setValue(isRestricted).addOnCompleteListener {
+            if(it.isSuccessful){
+                val message = if(isRestricted) "User restricted successfully" else "User unrestricted successfully"
+                callback(true, message)
+            }else{
+                callback(false, "${it.exception?.message}")
+            }
+        }
+    }
+    override fun updateUserPoints(
+        userId: String,
+        pointsToAdd: Long,
+        callback: (Boolean, String) -> Unit
+    ) {
+        ref.child(userId).child("points").get().addOnSuccessListener { snapshot ->
+            val currentPoints = snapshot.getValue(Long::class.java) ?: 0L
+            val newPoints = currentPoints + pointsToAdd
+
+            ref.child(userId).child("points").setValue(newPoints).addOnCompleteListener {
+                if (it.isSuccessful) {
+                    callback(true, "Points updated successfully")
+                } else {
+                    callback(false, "${it.exception?.message}")
+                }
+            }
+        }.addOnFailureListener {
+            // If points field doesn't exist, create it
+            ref.child(userId).child("points").setValue(pointsToAdd).addOnCompleteListener { task ->
+                if (task.isSuccessful) {
+                    callback(true, "Points updated successfully")
+                } else {
+                    callback(false, "${task.exception?.message}")
+                }
+            }
+        }
+    }
+
 }

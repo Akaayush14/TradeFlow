@@ -1,12 +1,16 @@
-package com.example.classwork.viewmodel
+package com.example.tradeflow.viewmodel
 
-import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseUser
 import com.example.tradeflow.model.UserModel
 import com.example.tradeflow.repository.UserRepo
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 
-class UserViewModel(val repo: UserRepo): ViewModel(){
+class UserViewModel( val repo: UserRepo): ViewModel(){
     fun login(
         email:String, password:String,
         callback:(Boolean, String) -> Unit
@@ -15,10 +19,10 @@ class UserViewModel(val repo: UserRepo): ViewModel(){
     }
 
     fun register(
-        email:String, password: String,
+        email:String, password: String, phone:String,
         callback: (Boolean, String, String) -> Unit
     ){
-        repo.register(email, password, callback)
+        repo.register(email, password, phone, callback)
     }
 
     fun addUserToDatabase(
@@ -39,36 +43,130 @@ class UserViewModel(val repo: UserRepo): ViewModel(){
         return repo.getCurrentUser()
     }
 
-    private val _users = MutableLiveData<UserModel?>()
-    val users: MutableLiveData<UserModel?> get() = _users
+    private val _users = MutableStateFlow<UserModel?>(null)
+    val users: StateFlow<UserModel?> = _users.asStateFlow()
 
-    private val _allUsers = MutableLiveData<List<UserModel>?>()
+    private val _allUsers = MutableStateFlow<List<UserModel>?>(null)
+    val allUsers: StateFlow<List<UserModel>?> = _allUsers.asStateFlow()
 
 
     fun getUserById(
         userId: String
     ){
-        repo.getUserById(userId){
-                success,msg,data->
-            if(success){
-                _users.postValue(data)
-            }else{
-                _users.postValue(null)
+        viewModelScope.launch {
+            repo.getUserById(userId) { success, msg, data ->
+                if(success){
+                    _users.value = data
+                }else{
+                    _users.value = null
+                }
             }
         }
-
     }
 
     fun getAllUser()
     {
-        repo.getAllUser {
-                success, message, data ->
-            if(success){
-                _allUsers.postValue(data)
-            }else{
-                _allUsers.postValue(emptyList())
+        viewModelScope.launch {
+            repo.getAllUser { success, message, data ->
+                if(success){
+                    _allUsers.value = data
+                }else{
+                    _allUsers.value = emptyList()
+                }
             }
         }
+    }
 
+    fun deleteUser(
+        userId: String,
+        callback: (Boolean, String) -> Unit
+    ) {
+        repo.deleteUser(userId, callback)
+    }
+
+    fun blockUser(
+        userId: String,
+        isBlocked: Boolean,
+        callback: (Boolean, String) -> Unit
+    ) {
+        repo.blockUser(userId, isBlocked) { success, message ->
+            if (success) {
+                // Manually update the StateFlow immediately for instant UI feedback
+                viewModelScope.launch {
+                    val currentList = _allUsers.value
+                    if (currentList != null && currentList.isNotEmpty()) {
+                        // Find the user index
+                        val userIndex = currentList.indexOfFirst { it.userId == userId }
+                        if (userIndex != -1) {
+                            // Create a mutable copy of the list
+                            val updatedList = currentList.toMutableList()
+                            // Update only the specific user
+                            val userToUpdate = currentList[userIndex]
+                            updatedList[userIndex] = UserModel(
+                                userId = userToUpdate.userId,
+                                name = userToUpdate.name,
+                                email = userToUpdate.email,
+                                phone = userToUpdate.phone,
+                                isBlocked = isBlocked,
+                                isRestricted = userToUpdate.isRestricted
+                            )
+                            // Update StateFlow with new list
+                            _allUsers.value = updatedList.toList()
+                        }
+                    } else {
+                        // If list is null or empty, refresh from database
+                        getAllUser()
+                    }
+                }
+            }
+            callback(success, message)
+        }
+    }
+
+    fun restrictUser(
+        userId: String,
+        isRestricted: Boolean,
+        callback: (Boolean, String) -> Unit
+    ) {
+        repo.restrictUser(userId, isRestricted) { success, message ->
+            if (success) {
+                // Manually update the StateFlow immediately for instant UI feedback
+                viewModelScope.launch {
+                    val currentList = _allUsers.value
+                    if (currentList != null && currentList.isNotEmpty()) {
+                        // Find the user index
+                        val userIndex = currentList.indexOfFirst { it.userId == userId }
+                        if (userIndex != -1) {
+                            // Create a mutable copy of the list
+                            val updatedList = currentList.toMutableList()
+                            // Update only the specific user
+                            val userToUpdate = currentList[userIndex]
+                            updatedList[userIndex] = UserModel(
+                                userId = userToUpdate.userId,
+                                name = userToUpdate.name,
+                                email = userToUpdate.email,
+                                phone = userToUpdate.phone,
+                                isBlocked = userToUpdate.isBlocked,
+                                isRestricted = isRestricted
+                            )
+                            // Update StateFlow with new list
+                            _allUsers.value = updatedList.toList()
+                        }
+                    } else {
+                        // If list is null or empty, refresh from database
+                        getAllUser()
+                    }
+                }
+            }
+            callback(success, message)
+        }
+    }
+
+    fun updateUserPoints(
+        userId: String,
+        pointsToAdd: Long,
+        callback: (Boolean, String) -> Unit
+    ) {
+        repo.updateUserPoints(userId, pointsToAdd, callback)
     }
 }

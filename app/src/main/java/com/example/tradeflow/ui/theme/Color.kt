@@ -21,3 +21,21 @@ val Blue= Color(0xFF1E50E5)
 val Green1 = Color(0xFF009688)
 
 val Greenish = Color(0xFF007D70)
+
+val Green= Color(0xFF30944C)
+
+val DarkGreen = Color(0xFF01423C)
+
+val LightGreen= Color(0xFF91E1A8)
+
+val Transparent = Color(0x00000000)
+
+val TransparentWhite = Color(0x80FFFFFF)
+
+//from suraj
+val TealBlue = Color(0xFF044852)
+
+//from ronan
+val TealBlue1 = Color(0xFF006B7D)
+
+val Black = Color(0xFF000000)
