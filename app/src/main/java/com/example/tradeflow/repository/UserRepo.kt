@@ -53,5 +53,11 @@ interface UserRepo {
         isRestricted: Boolean,
         callback: (Boolean, String) -> Unit
     )
+    fun updateUserPoints(
+        userId: String,
+        pointsToAdd: Long,
+        callback: (Boolean, String) -> Unit
+    )
+
 
 }

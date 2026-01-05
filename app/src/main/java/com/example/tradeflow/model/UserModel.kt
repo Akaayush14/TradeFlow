@@ -6,7 +6,8 @@ data class UserModel(
     var email: String = "",
     var phone: String = "",
     var isBlocked: Boolean = false,
-    var isRestricted: Boolean = false
+    var isRestricted: Boolean = false,
+    var points: Long = 0L
 ) {
     fun toMap(): Map<String, Any?> {
         return mapOf(
@@ -15,7 +16,8 @@ data class UserModel(
             "email" to email,
             "phone" to phone,
             "isBlocked" to isBlocked,
-            "isRestricted" to isRestricted
+            "isRestricted" to isRestricted,
+            "points" to points
         )
     }
 }

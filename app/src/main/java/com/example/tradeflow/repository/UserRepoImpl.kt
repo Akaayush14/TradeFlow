@@ -116,14 +116,14 @@ class UserRepoImpl: UserRepo{
                                     // Ensure userId is set from the snapshot key
                                     val userId = data.key ?: ""
                                     if (userId.isEmpty()) continue
-                                    
+
                                     user.userId = userId
-                                    
+
                                     // Ensure name and email are not null
                                     user.name = data.child("name").getValue(String::class.java) ?: ""
                                     user.email = data.child("email").getValue(String::class.java) ?: ""
                                     user.phone = data.child("phone").getValue(String::class.java) ?: ""
-                                    
+
                                     // Read isBlocked value from Firebase, default to false if field doesn't exist
                                     if (data.hasChild("isBlocked")) {
                                         val isBlockedValue = data.child("isBlocked").getValue(Boolean::class.java)
@@ -140,7 +140,7 @@ class UserRepoImpl: UserRepo{
                                         // Field doesn't exist in database, default to false
                                         user.isRestricted = false
                                     }
-                                    
+
                                     // Only add user if userId is not empty
                                     if (user.userId.isNotEmpty()) {
                                         allUsers.add(user)
@@ -208,4 +208,32 @@ class UserRepoImpl: UserRepo{
             }
         }
     }
+    override fun updateUserPoints(
+        userId: String,
+        pointsToAdd: Long,
+        callback: (Boolean, String) -> Unit
+    ) {
+        ref.child(userId).child("points").get().addOnSuccessListener { snapshot ->
+            val currentPoints = snapshot.getValue(Long::class.java) ?: 0L
+            val newPoints = currentPoints + pointsToAdd
+
+            ref.child(userId).child("points").setValue(newPoints).addOnCompleteListener {
+                if (it.isSuccessful) {
+                    callback(true, "Points updated successfully")
+                } else {
+                    callback(false, "${it.exception?.message}")
+                }
+            }
+        }.addOnFailureListener {
+            // If points field doesn't exist, create it
+            ref.child(userId).child("points").setValue(pointsToAdd).addOnCompleteListener { task ->
+                if (task.isSuccessful) {
+                    callback(true, "Points updated successfully")
+                } else {
+                    callback(false, "${task.exception?.message}")
+                }
+            }
+        }
+    }
+
 }
