@@ -44,7 +44,11 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.livedata.observeAsState
 import com.example.tradeflow.model.ProductModel
 import com.example.tradeflow.repository.ProductRepoImpl
+import com.example.tradeflow.repository.UserRepoImpl
 import com.example.tradeflow.viewmodel.ProductViewModel
+import com.example.tradeflow.viewmodel.UserViewModel
+import com.example.tradeflow.model.UserModel
+import com.google.firebase.auth.FirebaseAuth
 
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -71,12 +75,21 @@ fun UserExploreScreen() {
     var searchQuery by remember { mutableStateOf("") }
 
     val productViewModel: ProductViewModel = remember { ProductViewModel(ProductRepoImpl()) }
+    val userViewModel: UserViewModel = remember { UserViewModel(UserRepoImpl()) }
+
+    val currentUser = FirebaseAuth.getInstance().currentUser
+    val userId = currentUser?.uid ?: ""
 
     LaunchedEffect(Unit) {
         productViewModel.getAllProduct()
+        if (userId.isNotEmpty()) {
+            userViewModel.getUserById(userId)
+        }
     }
 
     val allProducts by productViewModel.allProducts.observeAsState(initial = emptyList())
+    val userData by userViewModel.users.observeAsState<UserModel?>()
+    val userPoints = userData?.points ?: 0L
 
     val filteredProducts = allProducts?.filter { product ->
         val matchesTab = when (selectedTab) {
@@ -90,69 +103,110 @@ fun UserExploreScreen() {
 
     Scaffold(
         topBar = {
-            TradeFlowTopBar(
-                title = {
-                    TextField(
-                        value = searchQuery,
-                        onValueChange = { searchQuery = it },
-                        placeholder = {
-                            Text(
-                                "Search items...",
-                                color = Color.White.copy(alpha = 0.7f),
-                                fontSize = 16.sp
-                            )
-                        },
-                        leadingIcon = {
-                            Icon(
-                                imageVector = Icons.Default.Search,
-                                contentDescription = "Search Icon",
-                                tint = White
-                            )
-                        },
-                        trailingIcon = {
-                            if (searchQuery.isNotEmpty()) {
-                                IconButton(onClick = { searchQuery = "" }) {
-                                    Icon(
-                                        imageVector = Icons.Default.Close,
-                                        contentDescription = "Clear Search",
-                                        tint = White
-                                    )
-                                }
-                            }
-                        },
+            Column {
+                // Points display row
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Greenish)
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(end = 8.dp),
-                        colors = TextFieldDefaults.colors(
-                            focusedContainerColor = Color.White.copy(alpha = 0.2f),
-                            unfocusedContainerColor = Color.White.copy(alpha = 0.15f),
-                            disabledContainerColor = Color.White.copy(alpha = 0.15f),
-                            focusedIndicatorColor = Color.Transparent,
-                            unfocusedIndicatorColor = Color.Transparent,
-                            cursorColor = White,
-                            focusedTextColor = White,
-                            unfocusedTextColor = White
-                        ),
-                        textStyle = TextStyle(
-                            color = White,
-                            fontSize = 16.sp
-                        ),
-                        shape = RoundedCornerShape(24.dp),
-                        singleLine = true)
-                },
-                actions = {
-                    IconButton(onClick = {
-                        val intent = Intent(activity, UserSetting::class.java)
-                        activity.startActivity(intent)
-                    }) {
-                        // Use Icons.Default.Menu or your custom resource
-                        Icon(
-                            imageVector = Icons.Default.Settings,
-                            contentDescription = null
-                        )
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(Color.White.copy(alpha = 0.2f))
+                            .clickable {
+                                val intent = Intent(activity, UserPointsActivity::class.java)
+                                activity.startActivity(intent)
+                            }
+                            .padding(horizontal = 12.dp, vertical = 6.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "$userPoints Points",
+                                color = White,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = "Use >",
+                                color = White,
+                                fontSize = 12.sp
+                            )
+                        }
                     }
                 }
-            )
+                // Search bar
+                TradeFlowTopBar(
+                    title = {
+                        TextField(
+                            value = searchQuery,
+                            onValueChange = { searchQuery = it },
+                            placeholder = {
+                                Text(
+                                    "Search items...",
+                                    color = Color.White.copy(alpha = 0.7f),
+                                    fontSize = 16.sp
+                                )
+                            },
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = Icons.Default.Search,
+                                    contentDescription = "Search Icon",
+                                    tint = White
+                                )
+                            },
+                            trailingIcon = {
+                                if (searchQuery.isNotEmpty()) {
+                                    IconButton(onClick = { searchQuery = "" }) {
+                                        Icon(
+                                            imageVector = Icons.Default.Close,
+                                            contentDescription = "Clear Search",
+                                            tint = White
+                                        )
+                                    }
+                                }
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(end = 8.dp),
+                            colors = TextFieldDefaults.colors(
+                                focusedContainerColor = Color.White.copy(alpha = 0.2f),
+                                unfocusedContainerColor = Color.White.copy(alpha = 0.15f),
+                                disabledContainerColor = Color.White.copy(alpha = 0.15f),
+                                focusedIndicatorColor = Color.Transparent,
+                                unfocusedIndicatorColor = Color.Transparent,
+                                cursorColor = White,
+                                focusedTextColor = White,
+                                unfocusedTextColor = White
+                            ),
+                            textStyle = TextStyle(
+                                color = White,
+                                fontSize = 16.sp
+                            ),
+                            shape = RoundedCornerShape(24.dp),
+                            singleLine = true)
+                    },
+                    actions = {
+                        IconButton(onClick = {
+                            val intent = Intent(activity, UserSetting::class.java)
+                            activity.startActivity(intent)
+                        }) {
+                            // Use Icons.Default.Menu or your custom resource
+                            Icon(
+                                imageVector = Icons.Default.Settings,
+                                contentDescription = null
+                            )
+                        }
+                    }
+                )
+            }
         }
 
     ) { paddingValues ->
@@ -272,3 +326,5 @@ fun ExploreItemCard(product: ProductModel, onClick: () -> Unit) {
         }
     }
 }
+
+

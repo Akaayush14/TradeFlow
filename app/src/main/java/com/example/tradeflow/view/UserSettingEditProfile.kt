@@ -66,6 +66,7 @@ fun UserSettingEditProfileScreen(navController: NavController) {
     var location by remember { mutableStateOf("") }
     var dob by remember { mutableStateOf("") }
     val context = LocalContext.current
+    val activity = context as? ComponentActivity
     val calendar = Calendar.getInstance()
     val datePickerDialog = DatePickerDialog(
         context,
@@ -98,7 +99,14 @@ fun UserSettingEditProfileScreen(navController: NavController) {
         ) {
 
             IconButton(
-                onClick = { (context as? UserSetting)?.finish() },
+                onClick = { 
+                    // Check if we can pop back in navigation, otherwise finish activity
+                    if (navController.previousBackStackEntry != null) {
+                        navController.popBackStack()
+                    } else {
+                        activity?.finish()
+                    }
+                },
                 modifier = Modifier.padding(20.dp)
             ) {
                 Icon(Icons.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)

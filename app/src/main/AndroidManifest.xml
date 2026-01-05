@@ -192,6 +192,14 @@
             android:name=".view.AdminDashItem"
             android:exported="false"
             android:theme="@style/Theme.TradeFlow" />
+        <activity
+            android:name=".view.PointsActivity"
+            android:exported="false"
+            android:theme="@style/Theme.TradeFlow" />
+        <activity
+            android:name=".view.AdminPointDeals"
+            android:exported="false"
+            android:theme="@style/Theme.TradeFlow" />
     </application>
 
 </manifest>

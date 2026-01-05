@@ -123,4 +123,32 @@ class UserRepoImpl: UserRepo{
             }
         })
     }
+
+    override fun updateUserPoints(
+        userId: String,
+        pointsToAdd: Long,
+        callback: (Boolean, String) -> Unit
+    ) {
+        ref.child(userId).child("points").get().addOnSuccessListener { snapshot ->
+            val currentPoints = snapshot.getValue(Long::class.java) ?: 0L
+            val newPoints = currentPoints + pointsToAdd
+            
+            ref.child(userId).child("points").setValue(newPoints).addOnCompleteListener {
+                if (it.isSuccessful) {
+                    callback(true, "Points updated successfully")
+                } else {
+                    callback(false, "${it.exception?.message}")
+                }
+            }
+        }.addOnFailureListener {
+            // If points field doesn't exist, create it
+            ref.child(userId).child("points").setValue(pointsToAdd).addOnCompleteListener { task ->
+                if (task.isSuccessful) {
+                    callback(true, "Points updated successfully")
+                } else {
+                    callback(false, "${task.exception?.message}")
+                }
+            }
+        }
+    }
 }

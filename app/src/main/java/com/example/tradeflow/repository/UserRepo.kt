@@ -37,4 +37,10 @@ interface UserRepo {
 
     fun getAllUser(callback: (Boolean, String, List<UserModel>?) -> Unit)
 
+    fun updateUserPoints(
+        userId: String,
+        pointsToAdd: Long,
+        callback: (Boolean, String) -> Unit
+    )
+
 }
