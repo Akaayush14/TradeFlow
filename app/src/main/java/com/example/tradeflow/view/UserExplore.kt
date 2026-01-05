@@ -41,7 +41,7 @@ import com.example.tradeflow.ui.theme.White
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.sp
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.runtime.collectAsState
 import com.example.tradeflow.model.ProductModel
 import com.example.tradeflow.repository.ProductRepoImpl
 import com.example.tradeflow.repository.UserRepoImpl
@@ -63,6 +63,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.ui.text.font.FontWeight
 import coil.compose.AsyncImage
 import com.example.tradeflow.R
+
 
 // Add this annotation to use experimental Material 3 APIs
 @OptIn(ExperimentalMaterial3Api::class)
@@ -87,11 +88,11 @@ fun UserExploreScreen() {
         }
     }
 
-    val allProducts by productViewModel.allProducts.observeAsState(initial = emptyList())
-    val userData by userViewModel.users.observeAsState<UserModel?>()
+    val allProducts by productViewModel.allProducts.collectAsState()
+    val userData by userViewModel.users.collectAsState()
     val userPoints = userData?.points ?: 0L
 
-    val filteredProducts = allProducts?.filter { product ->
+    val filteredProducts = allProducts.filter { product ->
         val matchesTab = when (selectedTab) {
             "Rent" -> product.type == "Rent"
             "Trade" -> product.type == "Barter"
@@ -99,7 +100,7 @@ fun UserExploreScreen() {
         }
         val matchesSearch = product.name.contains(searchQuery, ignoreCase = true)
         matchesTab && matchesSearch && !product.isDeleted
-    } ?: emptyList()
+    }
 
     Scaffold(
         topBar = {
@@ -326,5 +327,3 @@ fun ExploreItemCard(product: ProductModel, onClick: () -> Unit) {
         }
     }
 }
-
-

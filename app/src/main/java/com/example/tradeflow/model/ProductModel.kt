@@ -17,7 +17,8 @@ data class ProductModel(
     var image:String="",
     var imageUrl2: String = "",
     var imageUrl3: String = "",
-    var imageUrl4: String = ""
+    var imageUrl4: String = "",
+    var isListed: Boolean = false
 
 ){
     fun toMap(): Map<String, Any?>{
@@ -37,7 +38,8 @@ data class ProductModel(
             "ownerId" to ownerId,
             "createdAt" to createdAt,
             "isDeleted" to isDeleted,
-            "completedAt" to completedAt
+            "completedAt" to completedAt,
+            "isListed" to isListed
         )
     }
 }

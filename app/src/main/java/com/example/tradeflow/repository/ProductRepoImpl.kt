@@ -68,15 +68,26 @@ class ProductRepoImpl: ProductRepo {
 
     override fun getAllProduct(callback: (Boolean, String, List<ProductModel>?) -> Unit) {
         ref.addValueEventListener(object : ValueEventListener {
+
             override fun onDataChange(snapshot: DataSnapshot) {
                 if (snapshot.exists()) {
                     val allProducts = mutableListOf<ProductModel>()
+
                     for (data in snapshot.children) {
-                        var product = data.getValue(ProductModel::class.java)
+                        val product = data.getValue(ProductModel::class.java)
+
                         if (product != null) {
+                            // Handle isListed safely
+                            product.isListed = if (data.hasChild("isListed")) {
+                                data.child("isListed").getValue(Boolean::class.java) ?: true
+                            } else {
+                                true // default if field does not exist
+                            }
+
                             allProducts.add(product)
                         }
                     }
+
                     callback(true, "fetched", allProducts)
                 } else {
                     callback(true, "No products found", emptyList())
@@ -88,6 +99,7 @@ class ProductRepoImpl: ProductRepo {
             }
         })
     }
+
 
     override fun getProductById(
         productID: String,
@@ -227,4 +239,20 @@ class ProductRepoImpl: ProductRepo {
         }
         return fileName
     }
+    override fun listProduct(
+        productId: String,
+        isListed: Boolean,
+        callback: (Boolean, String) -> Unit
+    ) {
+        ref.child(productId).child("isListed").setValue(isListed).addOnCompleteListener {
+            if(it.isSuccessful){
+                val message = if(isListed) "Product listed successfully" else "Product unlisted successfully"
+                callback(true, message)
+            }else{
+                callback(false, "${it.exception?.message}")
+            }
+        }
+    }
 }
+
+

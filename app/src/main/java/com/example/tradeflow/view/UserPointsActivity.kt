@@ -25,6 +25,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.runtime.collectAsState
 import com.example.tradeflow.model.PointDealModel
 import com.example.tradeflow.model.UserModel
 import com.example.tradeflow.repository.PointDealRepoImpl
@@ -54,33 +55,33 @@ class UserPointsActivity : ComponentActivity() {
 fun PointsScreen() {
     val context = androidx.compose.ui.platform.LocalContext.current
     val activity = context as? ComponentActivity
-    
+
     val userViewModel = remember { UserViewModel(UserRepoImpl()) }
     val pointDealViewModel = remember { PointDealViewModel(PointDealRepoImpl()) }
-    
+
     val currentUser = FirebaseAuth.getInstance().currentUser
     val userId = currentUser?.uid ?: ""
-    
+
     var selectedTab by remember { mutableStateOf("Point Deals") }
-    
+
     LaunchedEffect(Unit) {
         if (userId.isNotEmpty()) {
             userViewModel.getUserById(userId)
             pointDealViewModel.getActivePointDeals()
         }
     }
-    
-    val userData by userViewModel.users.observeAsState<UserModel?>()
+
+    val userData by userViewModel.users.collectAsState()
     val activeDeals by pointDealViewModel.activeDeals.observeAsState(initial = emptyList())
-    
+
     val userPoints = userData?.points ?: 0L
-    
+
     // Calculate tier based on points
     val currentTier: String
     val nextTier: String
     val pointsToNextTier: Long
     val progress: Float
-    
+
     when {
         userPoints < 1000 -> {
             currentTier = "Bronze"
@@ -101,7 +102,7 @@ fun PointsScreen() {
             progress = 1f
         }
     }
-    
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -133,7 +134,7 @@ fun PointsScreen() {
                     progress = progress
                 )
             }
-            
+
             // Navigation Tabs
             item {
                 NavigationTabs(
@@ -141,24 +142,42 @@ fun PointsScreen() {
                     onTabSelected = { selectedTab = it }
                 )
             }
-            
+
             // Content based on selected tab
-            when (selectedTab) {
-                "Point Deals" -> {
-                    items(activeDeals ?: emptyList()) { deal ->
+            if (selectedTab == "Point Deals") {
+                val dealsList = activeDeals ?: emptyList()
+                if (dealsList.isEmpty()) {
+                    item {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "No active deals available",
+                                fontSize = 14.sp,
+                                color = Color.Gray
+                            )
+                        }
+                    }
+                } else {
+                    items(dealsList) { deal ->
                         PointDealCard(deal = deal, userPoints = userPoints)
                         Spacer(modifier = Modifier.height(12.dp))
                     }
                 }
-                "How it works?" -> {
-                    item {
-                        HowItWorksContent()
-                    }
+            }
+            
+            if (selectedTab == "How it works?") {
+                item {
+                    HowItWorksContent()
                 }
-                "Point history" -> {
-                    item {
-                        PointHistoryContent()
-                    }
+            }
+            
+            if (selectedTab == "Point history") {
+                item {
+                    PointHistoryContent()
                 }
             }
         }
@@ -179,7 +198,7 @@ private fun PointsSummaryCard(
         "Gold" -> Pair(Color(0xFFFFD700), Color(0xFFFFF8DC))
         else -> Pair(Greenish, Color(0xFF90EE90))
     }
-    
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -221,7 +240,7 @@ private fun PointsSummaryCard(
                     color = White
                 )
             }
-            
+
             Column(
                 horizontalAlignment = Alignment.End
             ) {
@@ -266,7 +285,7 @@ private fun NavigationTabs(
     onTabSelected: (String) -> Unit
 ) {
     val tabs = listOf("How it works?", "Point history", "Point Deals")
-    
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -327,14 +346,14 @@ private fun PointDealCard(deal: PointDealModel, userPoints: Long) {
     val canRedeem = userPoints >= deal.pointsRequired
     val dateFormat = SimpleDateFormat("dd MMM, yyyy", Locale.getDefault())
     val validTillDate = dateFormat.format(Date(deal.validTill))
-    
+
     val tierColor = when (deal.tier) {
         "Bronze" -> Color(0xFFFF6B35)
         "Silver" -> Color(0xFFC0C0C0)
         "Gold" -> Color(0xFFFFD700)
         else -> Greenish
     }
-    
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -369,9 +388,9 @@ private fun PointDealCard(deal: PointDealModel, userPoints: Long) {
                         color = tierColor
                     )
                 }
-                
+
                 Spacer(modifier = Modifier.width(12.dp))
-                
+
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = "${deal.tier} DEAL",
@@ -394,7 +413,7 @@ private fun PointDealCard(deal: PointDealModel, userPoints: Long) {
                     )
                 }
             }
-            
+
             Column(
                 horizontalAlignment = Alignment.End,
                 verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -413,7 +432,7 @@ private fun PointDealCard(deal: PointDealModel, userPoints: Long) {
                         color = Greenish
                     )
                 }
-                
+
                 // Points Required Button
                 Button(
                     onClick = { /* Handle redemption */ },
@@ -450,7 +469,7 @@ private fun HowItWorksContent() {
             fontWeight = FontWeight.Bold,
             modifier = Modifier.padding(bottom = 16.dp)
         )
-        
+
         PointInfoItem("1", "Earn Points", "Add items to the marketplace and earn points based on item value. $100 = 72 points.")
         PointInfoItem("2", "Redeem Points", "Use your points to redeem exclusive deals and offers.")
         PointInfoItem("3", "Tier System", "Progress through tiers (Bronze → Silver → Gold) by earning more points.")
