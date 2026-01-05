@@ -10,7 +10,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-class UserViewModel(val repo: UserRepo): ViewModel(){
+class UserViewModel( val repo: UserRepo): ViewModel(){
     fun login(
         email:String, password:String,
         callback:(Boolean, String) -> Unit
