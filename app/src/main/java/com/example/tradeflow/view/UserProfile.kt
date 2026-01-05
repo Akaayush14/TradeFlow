@@ -1,4 +1,3 @@
-
 package com.example.tradeflow.view
 
 import android.content.Intent
@@ -19,10 +18,6 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.livedata.observeAsState
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -33,6 +28,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
 import com.example.tradeflow.R
 import com.example.tradeflow.model.ProductModel
 import com.example.tradeflow.model.UserModel
@@ -50,21 +46,14 @@ import kotlinx.coroutines.launch
 enum class ListingType { BARTER, RENTAL, BOTH }
 enum class ListingStatus { ALL, AVAILABLE, PENDING, COMPLETED }
 
-
-
-
-data class ListingItem(
-    val id: Int,
-    val name: String,
-    val description: String,
-    val price: String,
-    val imageResId: Int,
-    val type: ListingType
-)
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun UserProfileScreen(onBackClick: () -> Unit = {}, onEditProduct: (ProductModel) -> Unit = {}, showEditSuccess: Boolean = false, onSnackbarShown: () -> Unit = {}) {
+fun UserProfileScreen(
+    onBackClick: () -> Unit = {},
+    onEditProduct: (ProductModel) -> Unit = {},
+    showEditSuccess: Boolean = false,
+    onSnackbarShown: () -> Unit = {}
+) {
     val userViewModel: UserViewModel = remember { UserViewModel(UserRepoImpl()) }
     val productViewModel: ProductViewModel = remember { ProductViewModel(ProductRepoImpl()) }
     val context = LocalContext.current
@@ -72,11 +61,9 @@ fun UserProfileScreen(onBackClick: () -> Unit = {}, onEditProduct: (ProductModel
     val currentUser = FirebaseAuth.getInstance().currentUser
     val userId = currentUser?.uid ?: ""
 
-    // Observe user data from ViewModel
-    val userData by userViewModel.users.observeAsState<UserModel?>()
-
-    // Observe products from ViewModel
-    val allProducts by productViewModel.allProducts.observeAsState()
+    // Use collectAsState() for StateFlow
+    val userData by userViewModel.users.collectAsState()
+    val allProducts by productViewModel.allProducts.collectAsState()
 
     // State for the selected listing type and status
     var selectedTab by remember { mutableStateOf(ListingType.BOTH) }
@@ -103,9 +90,9 @@ fun UserProfileScreen(onBackClick: () -> Unit = {}, onEditProduct: (ProductModel
     // Memoized filtering logic
     val filteredListings = remember(selectedTab, selectedStatus, allProducts) {
         val typeFiltered = when (selectedTab) {
-            ListingType.BARTER -> allProducts.orEmpty().filter { it.type == "Barter" && it.isDeleted != true }
-            ListingType.RENTAL -> allProducts.orEmpty().filter { it.type == "Rent" && it.isDeleted != true }
-            ListingType.BOTH -> allProducts.orEmpty().filter { it.isDeleted != true }
+            ListingType.BARTER -> allProducts.filter { it.type == "Barter" && it.isDeleted != true }
+            ListingType.RENTAL -> allProducts.filter { it.type == "Rent" && it.isDeleted != true }
+            ListingType.BOTH -> allProducts.filter { it.isDeleted != true }
         }
 
         when (selectedStatus) {
@@ -130,6 +117,7 @@ fun UserProfileScreen(onBackClick: () -> Unit = {}, onEditProduct: (ProductModel
     val isLoading = userData == null
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
+
     LaunchedEffect(showEditSuccess) {
         if (showEditSuccess) {
             snackbarHostState.showSnackbar("Item updated successfully")
@@ -163,9 +151,9 @@ fun UserProfileScreen(onBackClick: () -> Unit = {}, onEditProduct: (ProductModel
                 ProfileHeaderSection(
                     userName = userName,
                     userDisplayEmail = userDisplayEmail,
-                    barterCount = allProducts.orEmpty().count { it.type == "Barter" },
-                    rentalCount = allProducts.orEmpty().count { it.type == "Rent" },
-                    completedCount = allProducts.orEmpty().count { it.status == "Completed" },
+                    barterCount = allProducts.count { it.type == "Barter" },
+                    rentalCount = allProducts.count { it.type == "Rent" },
+                    completedCount = allProducts.count { it.status == "Completed" },
                     isLoading = isLoading
                 )
 
@@ -282,8 +270,7 @@ fun UserProfileScreen(onBackClick: () -> Unit = {}, onEditProduct: (ProductModel
                                     }
                                 }
                             }
-                        }
-                        ,
+                        },
                         onMarkTradedRequest = { toComplete ->
                             if (toComplete.status != "Available") return@ProductItemCard
                             val updated = toComplete.copy(status = "Completed", completedAt = System.currentTimeMillis())
@@ -424,30 +411,20 @@ fun ProfileHeaderSection(
                         .height(40.dp)
                         .background(Color(0xFFE0E0E0))
                 )
-                // Review Rating Stat
+                // Completed Trades Stat
                 Column(
                     modifier = Modifier.weight(1f),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Star,
-                            contentDescription = "Rating",
-                            tint = Color(0xFFFFC107),
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = if (isLoading) "0.0" else String.format("%.1f", 4.5), // TODO: Use real rating
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 18.sp,
-                            color = Color.Black
-                        )
-                    }
                     Text(
-                        text = "Rating",
+                        text = completedCount.toString(),
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 18.sp,
+                        color = Color.Black
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "Completed",
                         fontSize = 12.sp,
                         color = Color.Gray,
                         fontWeight = FontWeight.Medium
@@ -479,79 +456,6 @@ fun ProfileStat(label: String, value: String, modifier: Modifier = Modifier) {
             color = Color.Gray,
             fontWeight = FontWeight.Medium
         )
-    }
-}
-
-@Composable
-fun ListingItemCard(item: ListingItem, onClick: () -> Unit) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 4.dp)
-            .clickable(onClick = onClick),
-        colors = CardDefaults.cardColors(containerColor = White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        shape = RoundedCornerShape(0.dp)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // --- Image Display Area ---
-            Box(
-                modifier = Modifier
-                    .size(80.dp)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(Color(0xFFE3F2FD)),
-                contentAlignment = Alignment.Center
-            ) {
-                // Use the drawable resource ID provided in the data model
-                Image(
-                    painter = painterResource(id = item.imageResId),
-                    contentDescription = "Listing Image for ${item.name}",
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize()
-                )
-            }
-
-            Spacer(modifier = Modifier.width(16.dp))
-
-            Column(modifier = Modifier.weight(1f)) {
-                Text(item.name, fontWeight = FontWeight.SemiBold, fontSize = 16.sp, color = Color.Black)
-                Spacer(modifier = Modifier.height(2.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(
-                                if (item.type == ListingType.BARTER) Color(0xFFE0F2F1) else Color(0xFFEDE7F6)
-                            )
-                            .padding(horizontal = 8.dp, vertical = 2.dp)
-                    ) {
-                        Text(
-                            text = if (item.type == ListingType.BARTER) "Barter" else "Rental",
-                            fontSize = 11.sp,
-                            color = if (item.type == ListingType.BARTER) Greenish else Color(0xFF5E35B1),
-                            fontWeight = FontWeight.Medium
-                        )
-                    }
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(item.description, fontSize = 12.sp, color = Color.Gray)
-                }
-            }
-
-            Text(
-                text = item.price,
-                fontWeight = FontWeight.Bold,
-                fontSize = 16.sp,
-                color = Color.Black,
-                modifier = Modifier.align(Alignment.Bottom)
-            )
-        }
-        // Divider line
-        Spacer(modifier = Modifier.height(1.dp).fillMaxWidth().background(Color.LightGray))
     }
 }
 
@@ -591,12 +495,13 @@ fun ProductItemCard(
                 contentAlignment = Alignment.Center
             ) {
                 if (product.imageUrl.isNotEmpty()) {
-                    // TODO: Load image from URL using Coil or Glide
-                    Icon(
-                        Icons.Default.Person,
+                    AsyncImage(
+                        model = product.imageUrl,
                         contentDescription = "Product Image",
-                        modifier = Modifier.size(40.dp),
-                        tint = Color(0xFF0288D1)
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop,
+                        placeholder = painterResource(R.drawable.placeholderimage),
+                        error = painterResource(R.drawable.placeholderimage)
                     )
                 } else {
                     Icon(
@@ -642,7 +547,12 @@ fun ProductItemCard(
                 Spacer(modifier = Modifier.height(2.dp))
 
                 // Description
-                Text(product.description, fontSize = 14.sp, color = Color.Gray)
+                Text(
+                    product.description.takeIf { it.isNotEmpty() } ?: "No description",
+                    fontSize = 14.sp,
+                    color = Color.Gray,
+                    maxLines = 2
+                )
 
                 Spacer(modifier = Modifier.height(8.dp))
 
@@ -656,7 +566,10 @@ fun ProductItemCard(
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(12.dp))
-                            .background(Color(0xFF00897B)) // Teal
+                            .background(
+                                if (product.type == "Barter") Color(0xFF00897B)
+                                else Color(0xFF795548) // Brown for Rent
+                            )
                             .padding(horizontal = 8.dp, vertical = 4.dp)
                     ) {
                         Text(
@@ -691,7 +604,7 @@ fun ProductItemCard(
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        text = product.location,
+                        text = product.location.takeIf { it.isNotEmpty() } ?: "No location specified",
                         fontSize = 12.sp,
                         color = Color.Gray,
                         maxLines = 1
@@ -721,107 +634,113 @@ fun ProductItemCard(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         // Edit Button
-                        if (product.status != "Completed") Card(
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(32.dp),
-                            colors = CardDefaults.cardColors(
-                                containerColor = Color(0xFFE0E0E0)
-                            ),
-                            shape = RoundedCornerShape(8.dp),
-                            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-                        ) {
-                            Row(
+                        if (product.status != "Completed") {
+                            Card(
                                 modifier = Modifier
-                                    .fillMaxSize()
-                                    .clickable { onEdit(product) },
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.Center
+                                    .weight(1f)
+                                    .height(32.dp),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = Color(0xFFE0E0E0)
+                                ),
+                                shape = RoundedCornerShape(8.dp),
+                                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
                             ) {
-                                Text(
-                                    text = "Edit",
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Medium,
-                                    color = Color.Black
-                                )
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Image(
-                                    painter = painterResource(R.drawable.edit),
-                                    contentDescription = "Edit",
-                                    modifier = Modifier.size(14.dp)
-                                )
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .clickable { onEdit(product) },
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.Center
+                                ) {
+                                    Text(
+                                        text = "Edit",
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        color = Color.Black
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Image(
+                                        painter = painterResource(R.drawable.edit),
+                                        contentDescription = "Edit",
+                                        modifier = Modifier.size(14.dp)
+                                    )
+                                }
                             }
                         }
 
                         // Mark as Traded Button
-                        if (product.status != "Completed") Card(
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(32.dp),
-                            colors = CardDefaults.cardColors(
-                                containerColor = Color(0xFFE0E0E0)
-                            ),
-                            shape = RoundedCornerShape(8.dp),
-                            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-                        ) {
-                            Row(
+                        if (product.status != "Completed") {
+                            Card(
                                 modifier = Modifier
-                                    .fillMaxSize()
-                                    .clickable {
-                                        showMarkConfirm = product.status == "Available"
-                                        showMarkBlocked = product.status == "Pending" || product.status == "Completed"
-                                    },
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.Center
+                                    .weight(1f)
+                                    .height(32.dp),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = Color(0xFFE0E0E0)
+                                ),
+                                shape = RoundedCornerShape(8.dp),
+                                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
                             ) {
-                                Text(
-                                    text = " Traded",
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Medium,
-                                    color = Color.Black
-                                )
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Image(
-                                    painter = painterResource(R.drawable.traded),
-                                    contentDescription = "Traded",
-                                    modifier = Modifier.size(14.dp)
-                                )
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .clickable {
+                                            showMarkConfirm = product.status == "Available"
+                                            showMarkBlocked = product.status == "Pending" || product.status == "Completed"
+                                        },
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.Center
+                                ) {
+                                    Text(
+                                        text = " Traded",
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        color = Color.Black
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Image(
+                                        painter = painterResource(R.drawable.traded),
+                                        contentDescription = "Traded",
+                                        modifier = Modifier.size(14.dp)
+                                    )
+                                }
                             }
                         }
 
                         // Delete Button
-                        if (product.status != "Completed") Card(
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(32.dp),
-                            colors = CardDefaults.cardColors(
-                                containerColor = Color(0xFFE0E0E0)
-                            ),
-                            shape = RoundedCornerShape(8.dp),
-                            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-                        ) {
-                            Row(
+                        if (product.status != "Completed") {
+                            Card(
                                 modifier = Modifier
-                                    .fillMaxSize()
-                                    .clickable {
-                                        showDeleteConfirm = product.status == "Available"
-                                        showDeleteBlocked = product.status == "Pending" || product.status == "Completed"
-                                    },
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.Center
+                                    .weight(1f)
+                                    .height(32.dp),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = Color(0xFFE0E0E0)
+                                ),
+                                shape = RoundedCornerShape(8.dp),
+                                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
                             ) {
-                                Text(
-                                    text = "Delete",
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Medium,
-                                    color = Color.Black
-                                )
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Image(
-                                    painter = painterResource(R.drawable.delete),
-                                    contentDescription = "Delete",
-                                    modifier = Modifier.size(14.dp)
-                                )
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .clickable {
+                                            showDeleteConfirm = product.status == "Available"
+                                            showDeleteBlocked = product.status == "Pending" || product.status == "Completed"
+                                        },
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.Center
+                                ) {
+                                    Text(
+                                        text = "Delete",
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        color = Color.Black
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Image(
+                                        painter = painterResource(R.drawable.delete),
+                                        contentDescription = "Delete",
+                                        modifier = Modifier.size(14.dp)
+                                    )
+                                }
                             }
                         }
                     }
@@ -904,7 +823,7 @@ fun ProductItemCard(
                         AlertDialog(
                             onDismissRequest = { showDeleteBlocked = false },
                             title = { Text("Delete not allowed") },
-                            text = { Text("You can’t delete this item while a trade is in progress.") },
+                            text = { Text("You can't delete this item while a trade is in progress.") },
                             confirmButton = {
                                 TextButton(onClick = { showDeleteBlocked = false }) {
                                     Text("Mark as completed")
