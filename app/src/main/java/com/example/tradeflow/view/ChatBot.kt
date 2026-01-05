@@ -53,20 +53,41 @@ fun ChatBotScreen() {
     }
 
     var messageText by remember { mutableStateOf("") }
-
-    // Empty list initially
     val messages = remember { mutableStateListOf<ChatMessage>() }
 
-    Column(modifier = Modifier
-        .fillMaxSize()
-        .background(Color.White)
-    ) {
-
-        ChatBotTopBar()
-
-        Box(modifier = Modifier.weight(1f)) {
-            // White background, no image
-
+    // Using Scaffold to properly handle layout structure and insets
+    Scaffold(
+        modifier = Modifier.fillMaxSize(),
+        containerColor = Color.White,
+        topBar = {
+            ChatBotTopBar()
+        },
+        bottomBar = {
+            ChatBotInputBar(
+                text = messageText,
+                onTextChange = { messageText = it },
+                onSend = {
+                    if (messageText.isNotBlank()) {
+                        messages.add(
+                            ChatMessage(
+                                messageText,
+                                true,
+                                System.currentTimeMillis()
+                            )
+                        )
+                        messageText = ""
+                    }
+                }
+            )
+        }
+    ) { innerPadding ->
+        // innerPadding accounts for the TopBar and BottomBar height
+        // We use it to ensure the content is placed correctly between them
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+        ) {
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
@@ -96,23 +117,6 @@ fun ChatBotScreen() {
                 }
             }
         }
-
-        ChatBotInputBar(
-            text = messageText,
-            onTextChange = { messageText = it },
-            onSend = {
-                if (messageText.isNotBlank()) {
-                    messages.add(
-                        ChatMessage(
-                            messageText,
-                            true,
-                            System.currentTimeMillis()
-                        )
-                    )
-                    messageText = ""
-                }
-            }
-        )
     }
 }
 
@@ -123,6 +127,8 @@ fun ChatBotTopBar(
 ) {
     TopAppBar(
         modifier = Modifier
+            // Important: We keep statusBarsPadding here because we want the TopBar
+            // to respect the status bar inset. The Scaffold will place this TopBar at the top.
             .statusBarsPadding()
             .height(56.dp),
         colors = TopAppBarDefaults.topAppBarColors(
@@ -178,6 +184,9 @@ fun ChatBotInputBar(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 8.dp, vertical = 12.dp)
+            // Important: navigationBarsPadding ensures the input bar sits above the system nav bar.
+            // With windowSoftInputMode="adjustResize", the window will shrink when keyboard opens,
+            // bringing this bar up to sit on top of the keyboard automatically.
             .navigationBarsPadding(),
         verticalAlignment = Alignment.CenterVertically
     ) {
