@@ -3,17 +3,24 @@ package com.example.tradeflow.view
 import android.app.Activity
 import android.content.Intent
 import android.util.Log
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
@@ -51,16 +58,20 @@ import com.example.tradeflow.viewmodel.UserViewModel
 import com.example.tradeflow.model.UserModel
 import com.google.firebase.auth.FirebaseAuth
 
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
-import androidx.compose.foundation.Image
 import androidx.compose.ui.text.font.FontWeight
 import coil.compose.AsyncImage
 import com.example.tradeflow.R
@@ -251,9 +262,12 @@ fun UserExploreScreen() {
                 }
             }
 
-            LazyColumn(
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(2),
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(16.dp)
+                contentPadding = PaddingValues(16.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 items(filteredProducts) { product ->
                     ExploreItemCard(
@@ -264,7 +278,6 @@ fun UserExploreScreen() {
                             context.startActivity(intent)
                         }
                     )
-                    Spacer(modifier = Modifier.height(16.dp))
                 }
             }
         }
@@ -273,76 +286,143 @@ fun UserExploreScreen() {
 
 @Composable
 fun ExploreItemCard(product: ProductModel, onClick: () -> Unit) {
-    Row(
+    Card(
         modifier = Modifier
             .fillMaxWidth()
-            .height(120.dp)
-            .clip(RoundedCornerShape(12.dp))
-            .background(Color.White)
-            .border(1.dp, Color.LightGray, RoundedCornerShape(12.dp))
-            .clickable { onClick() }
-            .padding(8.dp),
-        verticalAlignment = Alignment.CenterVertically
+            .clickable { onClick() },
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
-        // Product Image
-        Box(
-            modifier = Modifier
-                .size(100.dp)
-                .clip(RoundedCornerShape(8.dp))
-                .background(Color.LightGray),
-            contentAlignment = Alignment.Center
-        ) {
-            val displayImage = if (product.imageUrl.isNotEmpty()) {
-                product.imageUrl
-            } else if (product.imageUrls.isNotEmpty()) {
-                product.imageUrls.first()
-            } else {
-                ""
-            }
-            if (displayImage.isNotEmpty()) {
-                Log.d("TF_UI_IMAGE", "Explore card productId=${product.productId} using image=$displayImage")
-            } else {
-                Log.e("TF_UI_IMAGE", "Explore card productId=${product.productId} no image available")
-            }
-
-            if (displayImage.isNotEmpty()) {
-                AsyncImage(
-                    model = displayImage,
-                    contentDescription = product.name,
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop,
-                    placeholder = painterResource(R.drawable.placeholderimage),
-                    error = painterResource(R.drawable.placeholderimage),
-                    onSuccess = {
-                        Log.d("TF_UI_IMAGE", "Explore image loaded productId=${product.productId}")
-                    },
-                    onError = {
-                        Log.e("TF_UI_IMAGE", "Explore image failed productId=${product.productId} url=$displayImage")
-                    }
-                )
-            } else {
-                Image(
-                    painter = painterResource(R.drawable.placeholderimage),
-                    contentDescription = null,
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.width(16.dp))
-
         Column(
-            modifier = Modifier.fillMaxSize(),
-            verticalArrangement = Arrangement.Center
+            modifier = Modifier.fillMaxWidth()
         ) {
-            Text(text = product.name, fontSize = 18.sp, fontWeight = FontWeight.Bold)
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(text = "$${product.price}", fontSize = 16.sp, color = Greenish, fontWeight = FontWeight.SemiBold)
-            Spacer(modifier = Modifier.height(8.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.Star, contentDescription = null, tint = Color(0xFFFFD700), modifier = Modifier.size(16.dp))
-                Text(text = product.status, fontSize = 14.sp, color = Color.Gray)
+            // Product Image with Heart Icon
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(140.dp)
+                    .background(Color.LightGray)
+            ) {
+                val displayImage = if (product.imageUrl.isNotEmpty()) {
+                    product.imageUrl
+                } else if (product.imageUrls.isNotEmpty()) {
+                    product.imageUrls.first()
+                } else {
+                    ""
+                }
+
+                if (displayImage.isNotEmpty()) {
+                    AsyncImage(
+                        model = displayImage,
+                        contentDescription = product.name,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop,
+                        placeholder = painterResource(R.drawable.placeholderimage),
+                        error = painterResource(R.drawable.placeholderimage)
+                    )
+                } else {
+                    Image(
+                        painter = painterResource(R.drawable.placeholderimage),
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                }
+
+                // Heart Icon
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(8.dp)
+                        .size(28.dp)
+                        .background(Color.White.copy(alpha = 0.7f), CircleShape)
+                        .clickable { /* Handle favorite */ },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.FavoriteBorder,
+                        contentDescription = "Favorite",
+                        tint = Color.Gray,
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+            }
+
+            // Product Details
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(8.dp)
+            ) {
+                // Status: Type <-> Category
+                val statusText = if (product.category.isNotEmpty()) "${product.type} ⇄ ${product.category}" else product.type
+                Text(
+                    text = statusText,
+                    fontSize = 10.sp,
+                    color = Greenish,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                // Name
+                Text(
+                    text = product.name,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+
+                Spacer(modifier = Modifier.height(2.dp))
+
+                // Description (Single line)
+                Text(
+                    text = product.description,
+                    fontSize = 12.sp,
+                    color = Color.Gray,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+
+                Spacer(modifier = Modifier.height(6.dp))
+
+                // Price and Location
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = "$${product.price}",
+                        fontSize = 14.sp,
+                        color = Greenish, // Using Primary Color for Price
+                        fontWeight = FontWeight.SemiBold
+                    )
+
+                    if (product.location.isNotEmpty()) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Default.LocationOn,
+                                contentDescription = null,
+                                tint = Color.Gray,
+                                modifier = Modifier.size(12.dp)
+                            )
+                            Spacer(modifier = Modifier.width(2.dp))
+                            Text(
+                                text = product.location,
+                                fontSize = 10.sp,
+                                color = Color.Gray,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.widthIn(max = 60.dp) // Limit width to prevent overflow
+                            )
+                        }
+                    }
+                }
             }
         }
     }
