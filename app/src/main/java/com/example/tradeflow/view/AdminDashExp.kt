@@ -105,6 +105,8 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import kotlin.math.cos
 import kotlin.math.sin
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.layout.ContentScale
+import coil.compose.AsyncImage
 
 import com.example.tradeflow.R
 import com.example.tradeflow.model.NotificationModel
@@ -1527,7 +1529,6 @@ fun isInternetAvailableExp(context: android.content.Context): Boolean {
             capabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) ||
             capabilities.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)
 }
-
 @Composable
 fun ItemCardExp(
     product: ProductModel,
@@ -1535,10 +1536,18 @@ fun ItemCardExp(
     onUnlistClick: () -> Unit,
     onDeleteClick: () -> Unit
 ) {
+    val context = LocalContext.current
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 4.dp),
+            .padding(horizontal = 4.dp)
+            .clickable {
+                val intent = Intent(context, AdminProductEdit::class.java).apply {
+                    putExtra("product_id", product.productId)
+                }
+                context.startActivity(intent)
+            },
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         colors = CardDefaults.cardColors(
             containerColor = if (!product.isListed) Color(0xFFFFEBEE) else Color.White
@@ -1558,25 +1567,22 @@ fun ItemCardExp(
                     .background(Color.LightGray),
                 contentAlignment = Alignment.Center
             ) {
-                // If product has imageUrl field, use AsyncImage with Coil
-                // For now, showing placeholder icon
-                Icon(
-                    painter = painterResource(R.drawable.ic_items),
-                    contentDescription = "Product Image",
-                    tint = Color.Gray,
-                    modifier = Modifier.size(48.dp)
-                )
-
-                // If you have Coil library and imageUrl in ProductModel, use:
-                /*
-                AsyncImage(
-                    model = product.imageUrl,
-                    contentDescription = "Product Image",
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop,
-                    error = painterResource(R.drawable.ic_items)
-                )
-                */
+                if (product.imageUrl.isNotEmpty()) {
+                    AsyncImage(
+                        model = product.imageUrl,
+                        contentDescription = "Product Image",
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop,
+                        error = painterResource(R.drawable.ic_items)
+                    )
+                } else {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_items),
+                        contentDescription = "Product Image",
+                        tint = Color.Gray,
+                        modifier = Modifier.size(48.dp)
+                    )
+                }
             }
 
             // Content on the right
@@ -1594,7 +1600,7 @@ fun ItemCardExp(
 
                 // Price
                 Text(
-                    text = "Price: ${product.price}",
+                    text = "Price: $${product.price}",
                     fontSize = 14.sp,
                     color = Color.Gray
                 )
@@ -1632,7 +1638,9 @@ fun ItemCardExp(
                     if (product.isListed) {
                         // Show Unlist button when listed
                         Button(
-                            onClick = onUnlistClick,
+                            onClick = {
+                                onUnlistClick()
+                            },
                             colors = ButtonDefaults.buttonColors(containerColor = Color.Red),
                             modifier = Modifier.height(36.dp)
                         ) {
@@ -1645,7 +1653,9 @@ fun ItemCardExp(
                     } else {
                         // Show List button (green) when unlisted
                         Button(
-                            onClick = onListClick,
+                            onClick = {
+                                onListClick()
+                            },
                             colors = ButtonDefaults.buttonColors(containerColor = DarkGreen),
                             modifier = Modifier.height(36.dp)
                         ) {
@@ -1659,7 +1669,9 @@ fun ItemCardExp(
 
                     // Always show Delete button
                     Button(
-                        onClick = onDeleteClick,
+                        onClick = {
+                            onDeleteClick()
+                        },
                         colors = ButtonDefaults.buttonColors(containerColor = Color.Red),
                         modifier = Modifier.height(36.dp)
                     ) {
