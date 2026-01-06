@@ -50,7 +50,7 @@ dependencies {
     implementation("androidx.media3:media3-exoplayer:1.2.0")
     implementation("androidx.media3:media3-ui:1.2.0")
     implementation("com.cloudinary:cloudinary-android:2.1.0")
-
+    implementation("io.coil-kt:coil-compose:2.5.0") //added by ronan for image
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
