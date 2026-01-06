@@ -39,4 +39,9 @@ interface ProductRepo {
     )
     fun uploadImage(context: Context, uri: Uri, callback: (String?) -> Unit)
     fun getFileNameFromUri(context: Context, uri: Uri): String?
+    fun listProduct(
+        productId: String,
+        isListed: Boolean,
+        callback: (Boolean, String) -> Unit
+    )
 }

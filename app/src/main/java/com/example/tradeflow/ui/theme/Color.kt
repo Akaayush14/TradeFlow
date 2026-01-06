@@ -38,3 +38,4 @@ val TealBlue = Color(0xFF044852)
 //from ronan
 val TealBlue1 = Color(0xFF006B7D)
 
+val Black = Color(0xFF000000)

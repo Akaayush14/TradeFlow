@@ -1,9 +1,9 @@
 package com.example.tradeflow.repository
 
-import com.example.tradeflow.model.UserModel
+import com.example.tradeflow.model.AdminModel
 import com.google.firebase.auth.FirebaseUser
 
-interface UserRepo {
+interface AdminRepo {
     fun login(
         email:String,
         password:String,
@@ -17,9 +17,9 @@ interface UserRepo {
         callback:(Boolean, String, String) -> Unit
     )
 
-    fun addUserToDatabase(
+    fun addAdminToDatabase(
         userId: String,
-        model: UserModel,
+        model: AdminModel,
         callback: (Boolean, String) -> Unit
     )
 
@@ -30,34 +30,22 @@ interface UserRepo {
 
     fun getCurrentUser() : FirebaseUser?
 
-    fun getUserById(
+    fun getAdminById(
         userId: String,
-        callback:(Boolean, String, UserModel?) -> Unit
+        callback:(Boolean, String, AdminModel?) -> Unit
     )
 
-    fun getAllUser(callback: (Boolean, String, List<UserModel>?) -> Unit)
+    fun getAllAdmins(callback: (Boolean, String, List<AdminModel>?) -> Unit)
 
-    fun deleteUser(
+    fun deleteAdmin(
         userId: String,
         callback: (Boolean, String) -> Unit
     )
 
-    fun blockUser(
+    fun updateAdminStatus(
         userId: String,
         isBlocked: Boolean,
-        callback: (Boolean, String) -> Unit
-    )
-
-    fun restrictUser(
-        userId: String,
         isRestricted: Boolean,
         callback: (Boolean, String) -> Unit
     )
-    fun updateUserPoints(
-        userId: String,
-        pointsToAdd: Long,
-        callback: (Boolean, String) -> Unit
-    )
-
-
 }

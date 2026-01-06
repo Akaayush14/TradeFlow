@@ -42,8 +42,11 @@ import com.example.tradeflow.repository.ProductRepoImpl
 import com.example.tradeflow.ui.theme.Greenish
 import com.example.tradeflow.ui.theme.White
 import com.example.tradeflow.viewmodel.ProductViewModel
+import com.example.tradeflow.viewmodel.UserViewModel
+import com.example.tradeflow.repository.UserRepoImpl
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
+
 
 enum class AddItemMode { ADD, EDIT }
 
@@ -58,6 +61,9 @@ fun UserAddItemScreen(
     val context = LocalContext.current
     val viewModel = remember {
         ProductViewModel(ProductRepoImpl())
+    }
+    val userViewModel = remember {
+        UserViewModel(UserRepoImpl())
     }
 
     var name by remember { mutableStateOf(initialProduct?.name ?: "") }
@@ -186,6 +192,14 @@ fun UserAddItemScreen(
                         }
                         onSaved()
                     } else {
+                        // Calculate and award points when adding a new item
+                        // Formula: $100 = 72 points, so approximately 0.72 points per dollar
+                        val pointsToAward = (priceValue * 0.72).toLong()
+                        if (pointsToAward > 0 && ownerId.isNotEmpty()) {
+                            userViewModel.updateUserPoints(ownerId, pointsToAward) { pointsSuccess, pointsMessage ->
+                                // Points awarded (or failed silently, but item was added successfully)
+                            }
+                        }
                         showSuccessDialog = true
                         resetForm()
                         imageUri = null
