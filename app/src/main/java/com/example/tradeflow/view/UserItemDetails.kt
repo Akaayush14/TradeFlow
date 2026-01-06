@@ -2,6 +2,7 @@ package com.example.tradeflow.view
 
 import android.app.Activity
 import android.os.Bundle
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -115,12 +116,19 @@ fun ItemDetailsScreen() {
 
             LaunchedEffect(product) {
                 if (product != null) {
-                    selectedImageUrl = product!!.imageUrl
+                selectedImageUrl = if (product!!.imageUrl.isNotEmpty()) {
+                    product!!.imageUrl
+                } else if (product!!.imageUrls.isNotEmpty()) {
+                    product!!.imageUrls.first()
+                } else {
+                    ""
                 }
+                Log.d("TF_UI_IMAGE", "Details selected main image productId=${product!!.productId} url=$selectedImageUrl")
             }
+        }
 
-            Column(
-                modifier = Modifier
+        Column(
+            modifier = Modifier
                     .fillMaxSize()
                     .padding(paddingValues)
                     .background(White)
@@ -141,7 +149,13 @@ fun ItemDetailsScreen() {
                             modifier = Modifier.fillMaxSize(),
                             contentScale = ContentScale.Crop,
                             placeholder = painterResource(R.drawable.placeholderimage),
-                            error = painterResource(R.drawable.placeholderimage)
+                            error = painterResource(R.drawable.placeholderimage),
+                            onSuccess = {
+                                Log.d("TF_UI_IMAGE", "Details main image loaded productId=${product?.productId}")
+                            },
+                            onError = {
+                                Log.e("TF_UI_IMAGE", "Details main image failed productId=${product?.productId} url=$selectedImageUrl")
+                            }
                         )
                     } else {
                         Image(
@@ -156,12 +170,16 @@ fun ItemDetailsScreen() {
                 // Image Gallery (Thumbnails)
                 // Use safe call and let to handle null safely
                 val images = product?.let { productItem ->
-                    listOf(
-                        productItem.imageUrl,
-                        productItem.imageUrl2,
-                        productItem.imageUrl3,
-                        productItem.imageUrl4
-                    ).filter { it.isNotEmpty() }
+                    if (productItem.imageUrls.isNotEmpty()) {
+                        productItem.imageUrls
+                    } else {
+                        listOf(
+                            productItem.imageUrl,
+                            productItem.imageUrl2,
+                            productItem.imageUrl3,
+                            productItem.imageUrl4
+                        ).filter { it.isNotEmpty() }
+                    }
                 } ?: emptyList()
 
                 if (images.size > 1) {
@@ -190,7 +208,13 @@ fun ItemDetailsScreen() {
                                     modifier = Modifier.fillMaxSize(),
                                     contentScale = ContentScale.Crop,
                                     placeholder = painterResource(R.drawable.placeholderimage),
-                                    error = painterResource(R.drawable.placeholderimage)
+                                    error = painterResource(R.drawable.placeholderimage),
+                                    onSuccess = {
+                                        Log.d("TF_UI_IMAGE", "Details thumbnail loaded productId=${product?.productId} url=$url")
+                                    },
+                                    onError = {
+                                        Log.e("TF_UI_IMAGE", "Details thumbnail failed productId=${product?.productId} url=$url")
+                                    }
                                 )
                             }
                         }

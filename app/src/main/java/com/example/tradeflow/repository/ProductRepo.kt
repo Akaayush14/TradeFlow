@@ -44,4 +44,6 @@ interface ProductRepo {
         isListed: Boolean,
         callback: (Boolean, String) -> Unit
     )
+
+    suspend fun uploadImages(context: Context, uris: List<Uri?>): List<String>
 }

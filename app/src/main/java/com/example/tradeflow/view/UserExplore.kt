@@ -2,6 +2,7 @@ package com.example.tradeflow.view
 
 import android.app.Activity
 import android.content.Intent
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -291,14 +292,33 @@ fun ExploreItemCard(product: ProductModel, onClick: () -> Unit) {
                 .background(Color.LightGray),
             contentAlignment = Alignment.Center
         ) {
-            if (product.imageUrl.isNotEmpty()) {
+            val displayImage = if (product.imageUrl.isNotEmpty()) {
+                product.imageUrl
+            } else if (product.imageUrls.isNotEmpty()) {
+                product.imageUrls.first()
+            } else {
+                ""
+            }
+            if (displayImage.isNotEmpty()) {
+                Log.d("TF_UI_IMAGE", "Explore card productId=${product.productId} using image=$displayImage")
+            } else {
+                Log.e("TF_UI_IMAGE", "Explore card productId=${product.productId} no image available")
+            }
+
+            if (displayImage.isNotEmpty()) {
                 AsyncImage(
-                    model = product.imageUrl,
+                    model = displayImage,
                     contentDescription = product.name,
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop,
                     placeholder = painterResource(R.drawable.placeholderimage),
-                    error = painterResource(R.drawable.placeholderimage)
+                    error = painterResource(R.drawable.placeholderimage),
+                    onSuccess = {
+                        Log.d("TF_UI_IMAGE", "Explore image loaded productId=${product.productId}")
+                    },
+                    onError = {
+                        Log.e("TF_UI_IMAGE", "Explore image failed productId=${product.productId} url=$displayImage")
+                    }
                 )
             } else {
                 Image(

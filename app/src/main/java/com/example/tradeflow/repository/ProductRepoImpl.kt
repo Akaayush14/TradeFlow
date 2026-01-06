@@ -2,6 +2,7 @@ package com.example.tradeflow.repository
 
 import android.content.Context
 import android.database.Cursor
+import android.util.Log
 import android.os.Handler
 import android.os.Looper
 import android.provider.OpenableColumns
@@ -13,6 +14,7 @@ import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
 import com.google.firebase.storage.FirebaseStorage
+import kotlinx.coroutines.tasks.await
 import java.io.InputStream
 import java.util.UUID
 import java.util.concurrent.Executors
@@ -24,17 +26,44 @@ class ProductRepoImpl: ProductRepo {
     val ref: DatabaseReference = database.getReference("products")
     val storageRef = FirebaseStorage.getInstance().reference
 
+    override suspend fun uploadImages(context: Context, uris: List<Uri?>): List<String> {
+        val tag = "TF_IMAGE_UPLOAD"
+        val uploadedUrls = MutableList(uris.size) { "" }
+        for ((index, uri) in uris.withIndex()) {
+            if (uri != null) {
+                Log.d(tag, "Starting upload for index=$index uri=$uri")
+                val fileName = UUID.randomUUID().toString() + ".jpg"
+                val imageRef = storageRef.child("product_images/$fileName")
+                try {
+                    imageRef.putFile(uri).await() // Wait for upload
+                    val downloadUrl = imageRef.downloadUrl.await() // Wait for URL
+                    uploadedUrls[index] = downloadUrl.toString()
+                    Log.d(tag, "Upload success index=$index url=${uploadedUrls[index]}")
+                } catch (e: Exception) {
+                    Log.e(tag, "Upload failed index=$index uri=$uri error=${e.message}")
+                    e.printStackTrace()
+                    // Leave as empty string on error
+                }
+            }
+        }
+        Log.d(tag, "All upload results: $uploadedUrls")
+        return uploadedUrls
+    }
+
     override fun addProduct(
         model: ProductModel,
         callback: (Boolean, String) -> Unit
     ) {
         var productId = ref.push().key.toString()
         model.productId = productId
-
+        val tag = "TF_FIRESTORE_SAVE"
+        Log.d(tag, "Saving productId=$productId with imageUrl=${model.imageUrl} imageUrls=${model.imageUrls}")
         ref.child(productId).setValue(model).addOnCompleteListener {
             if (it.isSuccessful) {
+                Log.d(tag, "Product saved successfully productId=$productId")
                 callback(true, "Product added successfully")
             } else {
+                Log.e(tag, "Product save failed productId=$productId error=${it.exception?.message}")
                 callback(false, "${it.exception?.message}")
             }
         }
@@ -44,10 +73,14 @@ class ProductRepoImpl: ProductRepo {
         model: ProductModel,
         callback: (Boolean, String) -> Unit
     ) {
+        val tag = "TF_FIRESTORE_SAVE"
+        Log.d(tag, "Updating productId=${model.productId} with imageUrl=${model.imageUrl} imageUrls=${model.imageUrls}")
         ref.child(model.productId).updateChildren(model.toMap()).addOnCompleteListener {
             if (it.isSuccessful) {
+                Log.d(tag, "Product updated successfully productId=${model.productId}")
                 callback(true, "Product updated successfully")
             } else {
+                Log.e(tag, "Product update failed productId=${model.productId} error=${it.exception?.message}")
                 callback(false, "${it.exception?.message}")
             }
         }
@@ -71,6 +104,8 @@ class ProductRepoImpl: ProductRepo {
 
             override fun onDataChange(snapshot: DataSnapshot) {
                 if (snapshot.exists()) {
+                    val tag = "TF_FIRESTORE_FETCH"
+                    Log.d(tag, "Fetching all products count=${snapshot.childrenCount}")
                     val allProducts = mutableListOf<ProductModel>()
 
                     for (data in snapshot.children) {
@@ -85,6 +120,7 @@ class ProductRepoImpl: ProductRepo {
                             }
 
                             allProducts.add(product)
+                            Log.d(tag, "Fetched productId=${product.productId} imageUrl=${product.imageUrl} imageUrls=${product.imageUrls}")
                         }
                     }
 
@@ -110,16 +146,20 @@ class ProductRepoImpl: ProductRepo {
                 if (snapshot.exists()) {
                     var data = snapshot.getValue(ProductModel::class.java)
                     if (data != null) {
+                        Log.d("TF_FIRESTORE_FETCH", "Fetched productId=${data.productId} imageUrl=${data.imageUrl} imageUrls=${data.imageUrls}")
                         callback(true, "product fetched", data)
                     } else {
+                        Log.e("TF_FIRESTORE_FETCH", "Product data null for productId=$productID")
                         callback(false, "Product data is null", null)
                     }
                 } else {
+                    Log.e("TF_FIRESTORE_FETCH", "Product not found productId=$productID")
                     callback(false, "Product not found", null)
                 }
             }
 
             override fun onCancelled(error: DatabaseError) {
+                Log.e("TF_FIRESTORE_FETCH", "Fetch cancelled productId=$productID error=${error.message}")
                 callback(false, error.message, null)
             }
         })
@@ -209,17 +249,30 @@ class ProductRepoImpl: ProductRepo {
         val fileName = UUID.randomUUID().toString() + ".jpg"
         val imageRef = storageRef.child("product_images/$fileName")
 
-        imageRef.putFile(uri)
-            .addOnSuccessListener {
-                imageRef.downloadUrl.addOnSuccessListener { downloadUri ->
-                    callback(downloadUri.toString())
-                }.addOnFailureListener {
-                    callback(null)
-                }
-            }
-            .addOnFailureListener {
+        try {
+            val stream = context.contentResolver.openInputStream(uri)
+            if (stream != null) {
+                imageRef.putStream(stream)
+                    .addOnSuccessListener {
+                        imageRef.downloadUrl.addOnSuccessListener { downloadUri ->
+                            callback(downloadUri.toString())
+                            try { stream.close() } catch (e: Exception) { e.printStackTrace() }
+                        }.addOnFailureListener {
+                            callback(null)
+                            try { stream.close() } catch (e: Exception) { e.printStackTrace() }
+                        }
+                    }
+                    .addOnFailureListener {
+                        callback(null)
+                        try { stream.close() } catch (e: Exception) { e.printStackTrace() }
+                    }
+            } else {
                 callback(null)
             }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            callback(null)
+        }
     }
 
 

@@ -1,6 +1,7 @@
 package com.example.tradeflow.view
 
 import android.net.Uri
+import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
@@ -87,12 +88,15 @@ fun UserAddItemScreen(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         if (uri != null) {
+            Log.d("TF_IMAGE_SELECT", "Selected image uri=$uri for index=$activeImageIndex")
             when (activeImageIndex) {
                 0 -> imageUri = uri
                 1 -> imageUri2 = uri
                 2 -> imageUri3 = uri
                 3 -> imageUri4 = uri
             }
+        } else {
+            Log.e("TF_IMAGE_SELECT", "No URI returned for index=$activeImageIndex")
         }
     }
 
@@ -143,15 +147,18 @@ fun UserAddItemScreen(
     }
 
     fun saveProduct() {
+        Log.d("TF_SAVE_FLOW", "Save initiated mode=$mode")
         if (!validateForm()) {
             errorMessage = "Please fill all fields and agree to terms"
             showErrorDialog = true
+            Log.e("TF_SAVE_FLOW", "Validation failed: $errorMessage")
             return
         }
 
         if (ownerId.isEmpty() && mode == AddItemMode.ADD) {
             errorMessage = "Please login to add products"
             showErrorDialog = true
+            Log.e("TF_SAVE_FLOW", "OwnerId empty for ADD")
             return
         }
 
@@ -163,10 +170,14 @@ fun UserAddItemScreen(
             errorMessage = "Please enter a valid price"
             showErrorDialog = true
             isLoading = false
+            Log.e("TF_SAVE_FLOW", "Invalid price input error=${e.message}")
             return
         }
 
         fun proceedToSave(url1: String, url2: String, url3: String, url4: String) {
+            val allImageUrls = listOf(url1, url2, url3, url4).filter { it.isNotEmpty() }
+            Log.d("TF_SAVE_FLOW", "ProceedToSave urls url1=$url1 url2=$url2 url3=$url3 url4=$url4 imageUrls=$allImageUrls")
+            
             val product = ProductModel(
                 productId = if (mode == AddItemMode.EDIT) initialProduct?.productId ?: "" else "",
                 name = name.trim(),
@@ -180,11 +191,13 @@ fun UserAddItemScreen(
                 imageUrl = url1,
                 imageUrl2 = url2,
                 imageUrl3 = url3,
-                imageUrl4 = url4
+                imageUrl4 = url4,
+                imageUrls = allImageUrls
             )
 
             val callback: (Boolean, String) -> Unit = { success, message ->
                 isLoading = false
+                Log.d("TF_FIRESTORE_SAVE", "Save callback success=$success message=$message productId=${product.productId}")
                 if (success) {
                     if (mode == AddItemMode.EDIT) {
                         coroutineScope.launch {
@@ -197,6 +210,7 @@ fun UserAddItemScreen(
                         val pointsToAward = (priceValue * 0.72).toLong()
                         if (pointsToAward > 0 && ownerId.isNotEmpty()) {
                             userViewModel.updateUserPoints(ownerId, pointsToAward) { pointsSuccess, pointsMessage ->
+                                Log.d("TF_POINTS", "Points update success=$pointsSuccess message=$pointsMessage")
                                 // Points awarded (or failed silently, but item was added successfully)
                             }
                         }
@@ -214,18 +228,36 @@ fun UserAddItemScreen(
             }
 
             if (mode == AddItemMode.ADD) {
+                Log.d("TF_FIRESTORE_SAVE", "Calling addProduct with product name=${product.name} imageUrl=${product.imageUrl} imageUrls=${product.imageUrls}")
                 viewModel.addProduct(product, callback)
             } else {
+                Log.d("TF_FIRESTORE_SAVE", "Calling updateProduct with productId=${product.productId} imageUrl=${product.imageUrl} imageUrls=${product.imageUrls}")
                 viewModel.updateProduct(product, callback)
             }
         }
 
         val imagesToUpload = listOf(imageUri, imageUri2, imageUri3, imageUri4)
+        Log.d("TF_IMAGE_UPLOAD", "Uploading images uris=$imagesToUpload")
         viewModel.uploadMultipleImages(context, imagesToUpload) { newUrls ->
+            // Check if uploads failed for selected images
+            val uploadFailed = imagesToUpload.zip(newUrls).any { (uri, url) -> 
+                uri != null && url.isEmpty() 
+            }
+            Log.d("TF_IMAGE_UPLOAD", "Upload results=$newUrls uploadFailed=$uploadFailed")
+            
+            if (uploadFailed) {
+                isLoading = false
+                errorMessage = "Failed to upload one or more images. Please check your connection and try again."
+                showErrorDialog = true
+                Log.e("TF_IMAGE_UPLOAD", "One or more uploads failed")
+                return@uploadMultipleImages
+            }
+
             val finalUrl1 = if (newUrls[0].isNotEmpty()) newUrls[0] else (initialProduct?.imageUrl ?: "")
             val finalUrl2 = if (newUrls[1].isNotEmpty()) newUrls[1] else (initialProduct?.imageUrl2 ?: "")
             val finalUrl3 = if (newUrls[2].isNotEmpty()) newUrls[2] else (initialProduct?.imageUrl3 ?: "")
             val finalUrl4 = if (newUrls[3].isNotEmpty()) newUrls[3] else (initialProduct?.imageUrl4 ?: "")
+            Log.d("TF_IMAGE_UPLOAD", "Final URLs after merge: [$finalUrl1, $finalUrl2, $finalUrl3, $finalUrl4]")
 
             proceedToSave(finalUrl1, finalUrl2, finalUrl3, finalUrl4)
         }
