@@ -68,6 +68,7 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.LinearEasing
+import androidx.compose.foundation.clickable
 import androidx.compose.ui.draw.rotate
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
@@ -90,6 +91,8 @@ import com.example.tradeflow.viewmodel.NotificationViewModel
 import com.example.tradeflow.viewmodel.ProductViewModel
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import coil.compose.AsyncImage
 
 class AdminDashItem : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
