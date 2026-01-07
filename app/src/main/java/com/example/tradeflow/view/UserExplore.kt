@@ -243,7 +243,7 @@ fun UserExploreScreen() {
                     ),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                val tabs = listOf("All","Rent","Trade")
+                val tabs = listOf("All","Rent","Barter")
                 tabs.forEach { tabName ->
                     val isSelected = selectedTab == tabName
                     Box(
@@ -355,16 +355,40 @@ fun ExploreItemCard(product: ProductModel, onClick: () -> Unit) {
                     .fillMaxWidth()
                     .padding(8.dp)
             ) {
-                // Status: Type <-> Category
-                val statusText = if (product.category.isNotEmpty()) "${product.type} ⇄ ${product.category}" else product.type
-                Text(
-                    text = statusText,
-                    fontSize = 10.sp,
-                    color = Greenish,
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
+                // Status Row: Type (Left) and Status Badge (Right)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = product.type,
+                        fontSize = 12.sp,
+                        color = Greenish,
+                        fontWeight = FontWeight.Bold
+                    )
+                    
+                    val statusColor = when (product.status) {
+                        "Available" -> Greenish
+                        "Completed" -> Color(0xFF2196F3) // Blue
+                        "Pending" -> Color(0xFFFF9800)   // Orange
+                        else -> Color.Gray
+                    }
+                    
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(statusColor)
+                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                    ) {
+                        Text(
+                            text = product.status,
+                            fontSize = 10.sp,
+                            color = Color.White,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
 
                 Spacer(modifier = Modifier.height(4.dp))
 
@@ -397,7 +421,7 @@ fun ExploreItemCard(product: ProductModel, onClick: () -> Unit) {
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text(
-                        text = "$${product.price}",
+                        text = "Rs${product.price}",
                         fontSize = 14.sp,
                         color = Greenish, // Using Primary Color for Price
                         fontWeight = FontWeight.SemiBold
