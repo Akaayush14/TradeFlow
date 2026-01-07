@@ -49,6 +49,7 @@ import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
 
 
+
 enum class AddItemMode { ADD, EDIT }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -175,7 +176,7 @@ fun UserAddItemScreen(
         }
 
         fun proceedToSave(url: String) {
-            
+
             val product = ProductModel(
                 productId = if (mode == AddItemMode.EDIT) initialProduct?.productId ?: "" else "",
                 name = name.trim(),
@@ -246,6 +247,8 @@ fun UserAddItemScreen(
             proceedToSave(finalUrl)
         }
     }
+
+
 
     Scaffold(
         topBar = {

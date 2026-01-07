@@ -115,5 +115,8 @@ class ProductViewModel(private val repo: ProductRepo) : ViewModel() {
     ) {
         repo.uploadImage(context, imageUri, callback)
     }
+    suspend fun uploadImages(context: Context, uris: List<Uri?>): List<String> {
+        return repo.uploadImages(context, uris)
+    }
 
 }

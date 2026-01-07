@@ -429,11 +429,10 @@ fun ExploreItemCard(product: ProductModel, onClick: () -> Unit) {
 
                     if (product.location.isNotEmpty()) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Default.LocationOn,
-                                contentDescription = null,
-                                tint = Color.Gray,
-                                modifier = Modifier.size(12.dp)
+                            Image(
+                                painter = painterResource(R.drawable.location_on), // You'll need to add this drawable
+                                contentDescription = "Location",
+                                modifier = Modifier.size(16.dp)
                             )
                             Spacer(modifier = Modifier.width(2.dp))
                             Text(
