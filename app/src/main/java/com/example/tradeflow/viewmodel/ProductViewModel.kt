@@ -108,37 +108,12 @@ class ProductViewModel(private val repo: ProductRepo) : ViewModel() {
         }
     }
 
-    /* -------------------- IMAGE UPLOAD (USER PART) -------------------- */
-    
-    fun uploadImages(
-        context: Context,
-        uris: List<Uri>,
-        callback: (List<String>) -> Unit
-    ) {
-        viewModelScope.launch {
-            val urls = repo.uploadImages(context, uris)
-            callback(urls)
-        }
-    }
-
     fun uploadImage(
         context: Context,
-        uri: Uri,
+        imageUri: Uri,
         callback: (String?) -> Unit
     ) {
-        repo.uploadImage(context, uri, callback)
+        repo.uploadImage(context, imageUri, callback)
     }
 
-    fun uploadMultipleImages(
-        context: Context,
-        images: List<Uri?>,
-        callback: (List<String>) -> Unit
-    ) {
-        Log.d("TF_IMAGE_UPLOAD", "ViewModel forwarding upload images=$images")
-        viewModelScope.launch {
-            val results = repo.uploadImages(context, images)
-            Log.d("TF_IMAGE_UPLOAD", "ViewModel received upload results=$results")
-            callback(results)
-        }
-    }
 }

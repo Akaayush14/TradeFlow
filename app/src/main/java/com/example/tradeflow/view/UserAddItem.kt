@@ -174,9 +174,7 @@ fun UserAddItemScreen(
             return
         }
 
-        fun proceedToSave(url1: String, url2: String, url3: String, url4: String) {
-            val allImageUrls = listOf(url1, url2, url3, url4).filter { it.isNotEmpty() }
-            Log.d("TF_SAVE_FLOW", "ProceedToSave urls url1=$url1 url2=$url2 url3=$url3 url4=$url4 imageUrls=$allImageUrls")
+        fun proceedToSave(url: String) {
             
             val product = ProductModel(
                 productId = if (mode == AddItemMode.EDIT) initialProduct?.productId ?: "" else "",
@@ -188,11 +186,7 @@ fun UserAddItemScreen(
                 type = selectedPurpose,
                 ownerId = if (mode == AddItemMode.EDIT) initialProduct?.ownerId ?: ownerId else ownerId,
                 status = status,
-                imageUrl = url1,
-                imageUrl2 = url2,
-                imageUrl3 = url3,
-                imageUrl4 = url4,
-                imageUrls = allImageUrls
+                imageUrl = url
             )
 
             val callback: (Boolean, String) -> Unit = { success, message ->
@@ -217,9 +211,6 @@ fun UserAddItemScreen(
                         showSuccessDialog = true
                         resetForm()
                         imageUri = null
-                        imageUri2 = null
-                        imageUri3 = null
-                        imageUri4 = null
                     }
                 } else {
                     errorMessage = message
@@ -228,38 +219,31 @@ fun UserAddItemScreen(
             }
 
             if (mode == AddItemMode.ADD) {
-                Log.d("TF_FIRESTORE_SAVE", "Calling addProduct with product name=${product.name} imageUrl=${product.imageUrl} imageUrls=${product.imageUrls}")
+                Log.d("TF_FIRESTORE_SAVE", "Calling addProduct with product name=${product.name} imageUrl=${product.imageUrl}")
                 viewModel.addProduct(product, callback)
             } else {
-                Log.d("TF_FIRESTORE_SAVE", "Calling updateProduct with productId=${product.productId} imageUrl=${product.imageUrl} imageUrls=${product.imageUrls}")
+                Log.d("TF_FIRESTORE_SAVE", "Calling updateProduct with productId=${product.productId} imageUrl=${product.imageUrl}")
                 viewModel.updateProduct(product, callback)
             }
         }
 
-        val imagesToUpload = listOf(imageUri, imageUri2, imageUri3, imageUri4)
-        Log.d("TF_IMAGE_UPLOAD", "Uploading images uris=$imagesToUpload")
-        viewModel.uploadMultipleImages(context, imagesToUpload) { newUrls ->
-            // Check if uploads failed for selected images
-            val uploadFailed = imagesToUpload.zip(newUrls).any { (uri, url) -> 
-                uri != null && url.isEmpty() 
+        if (imageUri != null) {
+            Log.d("TF_IMAGE_UPLOAD", "Uploading image uri=$imageUri")
+            viewModel.uploadImage(context, imageUri!!) { newUrl ->
+                if (newUrl == null) {
+                    isLoading = false
+                    errorMessage = "Failed to upload image. Please check your connection and try again."
+                    showErrorDialog = true
+                    Log.e("TF_IMAGE_UPLOAD", "Upload failed")
+                    return@uploadImage
+                }
+                Log.d("TF_IMAGE_UPLOAD", "Upload success url=$newUrl")
+                proceedToSave(newUrl)
             }
-            Log.d("TF_IMAGE_UPLOAD", "Upload results=$newUrls uploadFailed=$uploadFailed")
-            
-            if (uploadFailed) {
-                isLoading = false
-                errorMessage = "Failed to upload one or more images. Please check your connection and try again."
-                showErrorDialog = true
-                Log.e("TF_IMAGE_UPLOAD", "One or more uploads failed")
-                return@uploadMultipleImages
-            }
-
-            val finalUrl1 = if (newUrls[0].isNotEmpty()) newUrls[0] else (initialProduct?.imageUrl ?: "")
-            val finalUrl2 = if (newUrls[1].isNotEmpty()) newUrls[1] else (initialProduct?.imageUrl2 ?: "")
-            val finalUrl3 = if (newUrls[2].isNotEmpty()) newUrls[2] else (initialProduct?.imageUrl3 ?: "")
-            val finalUrl4 = if (newUrls[3].isNotEmpty()) newUrls[3] else (initialProduct?.imageUrl4 ?: "")
-            Log.d("TF_IMAGE_UPLOAD", "Final URLs after merge: [$finalUrl1, $finalUrl2, $finalUrl3, $finalUrl4]")
-
-            proceedToSave(finalUrl1, finalUrl2, finalUrl3, finalUrl4)
+        } else {
+            // No new image selected
+            val finalUrl = initialProduct?.imageUrl ?: ""
+            proceedToSave(finalUrl)
         }
     }
 

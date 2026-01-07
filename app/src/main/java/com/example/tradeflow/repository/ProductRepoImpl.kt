@@ -7,6 +7,8 @@ import android.os.Handler
 import android.os.Looper
 import android.provider.OpenableColumns
 import android.net.Uri
+import com.cloudinary.Cloudinary
+import com.cloudinary.utils.ObjectUtils
 import com.example.tradeflow.model.ProductModel
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
@@ -25,6 +27,13 @@ class ProductRepoImpl: ProductRepo {
     val database: FirebaseDatabase = FirebaseDatabase.getInstance()
     val ref: DatabaseReference = database.getReference("products")
     val storageRef = FirebaseStorage.getInstance().reference
+    private val cloudinary = Cloudinary(
+        mapOf(
+            "cloud_name" to "dpi7b9iam",
+            "api_key" to "561879326562495",
+            "api_secret" to "iteXJaLRqFgpuMwmVcw0gw9fjgE"
+        )
+    )
 
     override suspend fun uploadImages(context: Context, uris: List<Uri?>): List<String> {
         val tag = "TF_IMAGE_UPLOAD"
@@ -244,42 +253,40 @@ class ProductRepoImpl: ProductRepo {
             }
         })
     }
+    override fun uploadImage(context: Context, imageUri: Uri, callback: (String?) -> Unit) {
+        val executor = Executors.newSingleThreadExecutor()
+        executor.execute {
+            try {
+                val inputStream: InputStream? = context.contentResolver.openInputStream(imageUri)
+                var fileName = getFileNameFromUri(context, imageUri)
 
-    override fun uploadImage(context: Context, uri: Uri, callback: (String?) -> Unit) {
-        val fileName = UUID.randomUUID().toString() + ".jpg"
-        val imageRef = storageRef.child("product_images/$fileName")
+                fileName = fileName?.substringBeforeLast(".") ?: "uploaded_image"
 
-        try {
-            val stream = context.contentResolver.openInputStream(uri)
-            if (stream != null) {
-                imageRef.putStream(stream)
-                    .addOnSuccessListener {
-                        imageRef.downloadUrl.addOnSuccessListener { downloadUri ->
-                            callback(downloadUri.toString())
-                            try { stream.close() } catch (e: Exception) { e.printStackTrace() }
-                        }.addOnFailureListener {
-                            callback(null)
-                            try { stream.close() } catch (e: Exception) { e.printStackTrace() }
-                        }
-                    }
-                    .addOnFailureListener {
-                        callback(null)
-                        try { stream.close() } catch (e: Exception) { e.printStackTrace() }
-                    }
-            } else {
-                callback(null)
+                val response = cloudinary.uploader().upload(
+                    inputStream, ObjectUtils.asMap(
+                        "public_id", fileName,
+                        "resource_type", "image"
+                    )
+                )
+
+                var imageUrl = response["url"] as String?
+
+                imageUrl = imageUrl?.replace("http://", "https://")
+
+                Handler(Looper.getMainLooper()).post {
+                    callback(imageUrl)
+                }
+
+            } catch (e: Exception) {
+                e.printStackTrace()
+                Handler(Looper.getMainLooper()).post {
+                    callback(null)
+                }
             }
-        } catch (e: Exception) {
-            e.printStackTrace()
-            callback(null)
         }
     }
 
-
-    override fun getFileNameFromUri(
-        context: Context,
-        uri: Uri
-    ): String? {
+    override fun getFileNameFromUri(context: Context, uri: Uri): String? {
         var fileName: String? = null
         val cursor: Cursor? = context.contentResolver.query(uri, null, null, null, null)
         cursor?.use {
@@ -292,6 +299,8 @@ class ProductRepoImpl: ProductRepo {
         }
         return fileName
     }
+
+
     override fun listProduct(
         productId: String,
         isListed: Boolean,
