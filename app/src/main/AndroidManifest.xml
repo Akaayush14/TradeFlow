@@ -221,6 +221,11 @@
             android:name=".view.AdminPointDeals"
             android:exported="false"
             android:theme="@style/Theme.TradeFlow" />
+        <activity
+            android:name=".view.UserSettingEditProfile"
+            android:exported="false"
+            android:label="Edit Profile"
+            android:theme="@style/Theme.TradeFlow" />
     </application>
 
 </manifest>

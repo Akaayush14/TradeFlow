@@ -154,7 +154,20 @@ fun UserProfileScreen(
                     barterCount = allProducts.count { it.type == "Barter" },
                     rentalCount = allProducts.count { it.type == "Rent" },
                     completedCount = allProducts.count { it.status == "Completed" },
-                    isLoading = isLoading
+                    isLoading = isLoading,
+                    onEditProfileClick = {
+                        try {
+                            // Navigate to Edit Profile screen
+                            val intent = Intent(context, UserSettingEditProfile::class.java)
+                            context.startActivity(intent)
+                        } catch (e: Exception) {
+                            Log.e("UserProfile", "Error navigating to Edit Profile: ${e.message}")
+                            // Show error message to user if navigation fails
+                            coroutineScope.launch {
+                                snackbarHostState.showSnackbar("Unable to open Edit Profile")
+                            }
+                        }
+                    }
                 )
 
                 // Tabs for Barter / Rental / Both listings
@@ -300,7 +313,8 @@ fun ProfileHeaderSection(
     barterCount: Int,
     rentalCount: Int,
     completedCount: Int,
-    isLoading: Boolean = false
+    isLoading: Boolean = false,
+    onEditProfileClick: () -> Unit = {}
 ) {
     Column(
         modifier = Modifier
@@ -338,8 +352,8 @@ fun ProfileHeaderSection(
                         .background(Greenish)
                         .align(Alignment.BottomEnd)
                         .clickable {
-                            // TODO: replace SettingsActivity with your actual settings activity class name if different
-                            // context.startActivity(Intent(context, SettingsActivity::class.java))
+                            // Navigate to Edit Profile screen
+                            onEditProfileClick()
                         },
                     contentAlignment = Alignment.Center
                 ) {
