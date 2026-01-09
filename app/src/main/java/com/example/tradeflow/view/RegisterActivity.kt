@@ -436,5 +436,4 @@ fun RegisterBody() {
 @Composable
 fun RegisterView() {
     RegisterBody()
-
 }

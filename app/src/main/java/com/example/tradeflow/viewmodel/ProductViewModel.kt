@@ -14,7 +14,6 @@ import kotlinx.coroutines.launch
 class ProductViewModel(private val repo: ProductRepo) : ViewModel() {
 
     /* -------------------- STATE -------------------- */
-
     private val _product = MutableStateFlow<ProductModel?>(null)
     val product: StateFlow<ProductModel?> = _product.asStateFlow()
 
@@ -25,7 +24,6 @@ class ProductViewModel(private val repo: ProductRepo) : ViewModel() {
     val loading: StateFlow<Boolean> = _loading.asStateFlow()
 
     /* -------------------- CRUD -------------------- */
-
     fun addProduct(model: ProductModel, callback: (Boolean, String) -> Unit) {
         repo.addProduct(model, callback)
     }
@@ -39,52 +37,57 @@ class ProductViewModel(private val repo: ProductRepo) : ViewModel() {
     }
 
     /* -------------------- FETCH -------------------- */
-
     fun getAllProduct() {
-        _loading.value = true
-        repo.getAllProduct { success, _, data ->
-            viewModelScope.launch {
+        viewModelScope.launch {
+            _loading.value = true
+            repo.getAllProduct { success, _, data ->
                 _loading.value = false
                 if (success) {
-                    // new list instance to trigger recomposition
-                    _allProducts.value = ArrayList(data ?: emptyList())
+                    _allProducts.value = data ?: emptyList()
                 }
             }
         }
     }
 
     fun getProductById(productID: String) {
-        repo.getProductById(productID) { success, _, data ->
-            _product.value = if (success) data else null
+        viewModelScope.launch {
+            repo.getProductById(productID) { success, _, data ->
+                _product.value = if (success) data else null
+            }
         }
     }
 
     fun getProductByCategory(categoryId: String) {
-        _loading.value = true
-        repo.getProductByCategory(categoryId) { success, _, data ->
-            _loading.value = false
-            _allProducts.value = data ?: emptyList()
+        viewModelScope.launch {
+            _loading.value = true
+            repo.getProductByCategory(categoryId) { success, _, data ->
+                _loading.value = false
+                _allProducts.value = data ?: emptyList()
+            }
         }
     }
 
     fun getProductsByOwner(ownerId: String) {
-        _loading.value = true
-        repo.getProductsByOwner(ownerId) { success, _, data ->
-            _loading.value = false
-            _allProducts.value = data ?: emptyList()
+        viewModelScope.launch {
+            _loading.value = true
+            repo.getProductsByOwner(ownerId) { success, _, data ->
+                _loading.value = false
+                _allProducts.value = data ?: emptyList()
+            }
         }
     }
 
     fun getProductsByType(type: String) {
-        _loading.value = true
-        repo.getProductsByType(type) { success, _, data ->
-            _loading.value = false
-            _allProducts.value = data ?: emptyList()
+        viewModelScope.launch {
+            _loading.value = true
+            repo.getProductsByType(type) { success, _, data ->
+                _loading.value = false
+                _allProducts.value = data ?: emptyList()
+            }
         }
     }
 
     /* -------------------- ADMIN: LIST / UNLIST -------------------- */
-
     fun listProduct(
         productId: String,
         isListed: Boolean,
@@ -105,7 +108,6 @@ class ProductViewModel(private val repo: ProductRepo) : ViewModel() {
     }
 
     /* -------------------- IMAGE UPLOAD (USER PART) -------------------- */
-
     fun uploadImage(
         context: Context,
         uri: Uri,
@@ -142,6 +144,3 @@ class ProductViewModel(private val repo: ProductRepo) : ViewModel() {
         }
     }
 }
-
-
-// mergedd this
