@@ -112,14 +112,17 @@ import com.example.tradeflow.model.ProductModel
 import com.example.tradeflow.model.UserModel
 import com.example.tradeflow.repository.AdminRepoImpl
 import com.example.tradeflow.repository.NotificationRepoImpl
+import com.example.tradeflow.repository.PointDealRepoImpl
 import com.example.tradeflow.repository.ProductRepoImpl
 import com.example.tradeflow.repository.UserRepoImpl
 import com.example.tradeflow.ui.theme.DarkGreen
 import com.example.tradeflow.ui.theme.Greenish
 import com.example.tradeflow.viewmodel.AdminViewModel
 import com.example.tradeflow.viewmodel.NotificationViewModel
+import com.example.tradeflow.viewmodel.PointDealViewModel
 import com.example.tradeflow.viewmodel.ProductViewModel
 import com.example.tradeflow.viewmodel.UserViewModel
+import androidx.compose.runtime.livedata.observeAsState
 
 class AdminDashExp : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -459,12 +462,14 @@ fun MetricsContent(onRequireAdminAccess: () -> Unit) {
     val productViewModel = remember { ProductViewModel(ProductRepoImpl()) }
     val notificationViewModel = remember { NotificationViewModel(NotificationRepoImpl()) }
     val adminViewModel = remember { AdminViewModel(AdminRepoImpl()) }
+    val pointDealViewModel = remember { PointDealViewModel(PointDealRepoImpl()) }
 
     val allUsers by userViewModel.allUsers.collectAsState()
     val allProducts by productViewModel.allProducts.collectAsState()
     val notifications by notificationViewModel.notifications.collectAsState()
     val unreadCount by notificationViewModel.unreadCount.collectAsState()
     val allAdmins by adminViewModel.allAdmins.collectAsState()
+    val allDeals by pointDealViewModel.allDeals.observeAsState()
 
     val coroutineScope = rememberCoroutineScope()
 
@@ -474,6 +479,7 @@ fun MetricsContent(onRequireAdminAccess: () -> Unit) {
         notificationViewModel.getAllNotifications()
         notificationViewModel.getUnreadCount()
         adminViewModel.getAllAdmins()
+        pointDealViewModel.getAllPointDeals()
     }
 
     // User Metrics
@@ -515,6 +521,7 @@ fun MetricsContent(onRequireAdminAccess: () -> Unit) {
                 notificationViewModel.getAllNotifications()
                 notificationViewModel.getUnreadCount()
                 adminViewModel.getAllAdmins()
+                pointDealViewModel.getAllPointDeals()
                 delay(1000) // Simulate delay for better UI
                 isRefreshing = false
             }
@@ -749,24 +756,55 @@ fun MetricsContent(onRequireAdminAccess: () -> Unit) {
                     }
 
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        ProductListingPieChartCard(
-                            listed = listedProducts,
-                            unlisted = unlistedProducts,
-                            modifier = Modifier.weight(1f)
-                        )
-                        ProductPriceRangePieChartCard(
-                            lt100 = bucketLt100,
-                            r100_499 = bucket100_499,
-                            r500_999 = bucket500_999,
-                            r1000_1499 = bucket1000_1499,
-                            r1500_2000 = bucket1500_2000,
-                            gt2000 = bucketGt2000,
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    ProductListingPieChartCard(
+                        listed = listedProducts,
+                        unlisted = unlistedProducts,
+                        modifier = Modifier.weight(1f)
+                    )
+                    ProductPriceRangePieChartCard(
+                        lt100 = bucketLt100,
+                        r100_499 = bucket100_499,
+                        r500_999 = bucket500_999,
+                        r1000_1499 = bucket1000_1499,
+                        r1500_2000 = bucket1500_2000,
+                        gt2000 = bucketGt2000,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Point Deals Section
+                Text(
+                    text = "Point Deals",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Black
+                )
+
+                val activeDealsCount = allDeals?.count { it.isActive && it.validTill > System.currentTimeMillis() } ?: 0
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    MetricCard(
+                        title = "Active Deals",
+                        value = "$activeDealsCount",
+                        icon = painterResource(R.drawable.ic_items), // Using items icon as generic deal icon
+                        color = Color(0xFFE91E63), // Pink color for deals
+                        modifier = Modifier.weight(1f),
+                        onClick = {
+                            val intent = Intent(context, AdminPointDealsActivity::class.java)
+                            context.startActivity(intent)
+                        }
+                    )
+                    // Placeholder for balance or other metrics to keep grid structure
+                    Spacer(modifier = Modifier.weight(1f))
+                }
                 }
             }
         }

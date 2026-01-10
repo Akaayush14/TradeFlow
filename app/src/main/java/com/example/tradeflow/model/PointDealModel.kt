@@ -30,6 +30,22 @@ data class PointDealModel(
             "updatedAt" to updatedAt
         )
     }
-}
 
+
+    fun toUpdateMap(): Map<String, Any?> {
+        return mapOf(
+            "title" to title,
+            "offer" to offer,
+            "tier" to tier,
+            "serviceCategory" to serviceCategory,
+            "pointsRequired" to pointsRequired,
+            "validTill" to validTill,
+            "isActive" to isActive,
+            "discountAmount" to discountAmount,
+            "discountType" to discountType,
+            "updatedAt" to updatedAt
+        )
+    }
+
+}
 

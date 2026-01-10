@@ -34,7 +34,7 @@ class PointDealRepoImpl : PointDealRepo {
         callback: (Boolean, String) -> Unit
     ) {
         model.updatedAt = System.currentTimeMillis()
-        ref.child(model.dealId).updateChildren(model.toMap()).addOnCompleteListener {
+        ref.child(model.dealId).updateChildren(model.toUpdateMap()).addOnCompleteListener {
             if (it.isSuccessful) {
                 callback(true, "Point deal updated successfully")
             } else {
@@ -159,6 +159,9 @@ class PointDealRepoImpl : PointDealRepo {
                 }
             })
     }
+
+
 }
+
 
 

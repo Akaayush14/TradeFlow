@@ -228,6 +228,10 @@
             android:exported="false"
             android:theme="@style/Theme.TradeFlow" />
         <activity
+            android:name=".view.AdminPointDealsActivity"
+            android:exported="false"
+            android:theme="@style/Theme.TradeFlow" />
+        <activity
             android:name=".view.AdminPointDeals"
             android:exported="false"
             android:theme="@style/Theme.TradeFlow" />

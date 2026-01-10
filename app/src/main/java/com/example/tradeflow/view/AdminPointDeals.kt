@@ -1,226 +1,150 @@
 package com.example.tradeflow.view
 
+import android.app.DatePickerDialog
+import android.content.Intent
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.runtime.livedata.observeAsState
-import com.example.tradeflow.R
 import com.example.tradeflow.model.PointDealModel
 import com.example.tradeflow.repository.PointDealRepoImpl
-import com.example.tradeflow.ui.theme.DarkGreen
 import com.example.tradeflow.ui.theme.Greenish
 import com.example.tradeflow.ui.theme.White
 import com.example.tradeflow.viewmodel.PointDealViewModel
 import java.text.SimpleDateFormat
 import java.util.*
 
-class AdminPointDeals : ComponentActivity() {
+class AdminPointDealsActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            MaterialTheme {
-                AdminPointDealsScreen()
-            }
+            AdminPointDealsScreen(
+                onBackClick = {
+                    finish()
+                }
+            )
         }
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AdminPointDealsScreen() {
+fun AdminPointDealsScreen(onBackClick: () -> Unit) {
     val context = LocalContext.current
-    val activity = context as? ComponentActivity
-    
-    val pointDealViewModel = remember { PointDealViewModel(PointDealRepoImpl()) }
-    
+    val viewModel = remember { PointDealViewModel(PointDealRepoImpl()) }
+    val allDeals by viewModel.allDeals.observeAsState(initial = emptyList())
+
     var showAddDialog by remember { mutableStateOf(false) }
-    var editingDeal by remember { mutableStateOf<PointDealModel?>(null) }
-    
+
     LaunchedEffect(Unit) {
-        pointDealViewModel.getAllPointDeals()
+        viewModel.getAllPointDeals()
     }
-    
-    val allDeals by pointDealViewModel.allDeals.observeAsState(initial = emptyList())
-    
+
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text("Manage Point Deals", color = White, fontWeight = FontWeight.Bold) },
                 navigationIcon = {
-                    IconButton(onClick = { activity?.finish() }) {
-                        Icon(
-                            painter = painterResource(R.drawable.ic_back),
-                            "Back",
-                            tint = White
-                        )
+                    IconButton(onClick = onBackClick) {
+                        Icon(Icons.Default.ArrowBack, "Back", tint = White)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = Greenish
-                ),
-                actions = {
-                    IconButton(onClick = { 
-                        editingDeal = null
-                        showAddDialog = true 
-                    }) {
-                        Icon(Icons.Default.Add, "Add Deal", tint = White)
-                    }
-                }
-            )
-        }
-    ) { paddingValues ->
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .background(Color.White)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            items(allDeals ?: emptyList()) { deal ->
-                AdminPointDealCard(
-                    deal = deal,
-                    onEdit = {
-                        editingDeal = deal
-                        showAddDialog = true
-                    },
-                    onDelete = {
-                        pointDealViewModel.deletePointDeal(deal.dealId) { success, message ->
-                            if (success) {
-                                pointDealViewModel.getAllPointDeals()
-                            }
-                        }
-                    }
                 )
+            )
+        },
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = { showAddDialog = true },
+                containerColor = Greenish,
+                contentColor = White
+            ) {
+                Icon(Icons.Default.Add, "Add Deal")
             }
         }
-        
-        if (showAddDialog) {
-            AddEditPointDealDialog(
-                deal = editingDeal,
-                onDismiss = { 
-                    showAddDialog = false
-                    editingDeal = null
-                },
-                onSave = { deal ->
-                    if (editingDeal != null) {
-                        pointDealViewModel.updatePointDeal(deal) { success, message ->
-                            if (success) {
-                                pointDealViewModel.getAllPointDeals()
-                                showAddDialog = false
-                                editingDeal = null
+    ) { padding ->
+        Box(modifier = Modifier.padding(padding)) {
+            if (allDeals.isNullOrEmpty()) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text("No deals found", color = Color.Gray)
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    items(allDeals!!) { deal ->
+                        AdminDealCard(deal = deal, onDelete = {
+                            viewModel.deletePointDeal(deal.dealId) { success, msg ->
+                                Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+                                if (success) viewModel.getAllPointDeals()
                             }
-                        }
-                    } else {
-                        pointDealViewModel.addPointDeal(deal) { success, message ->
-                            if (success) {
-                                pointDealViewModel.getAllPointDeals()
-                                showAddDialog = false
-                            }
-                        }
+                        })
                     }
                 }
-            )
+            }
         }
+    }
+
+    if (showAddDialog) {
+        AddDealDialog(
+            onDismiss = { showAddDialog = false },
+            onAdd = { deal ->
+                viewModel.addPointDeal(deal) { success, msg ->
+                    Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+                    if (success) {
+                        showAddDialog = false
+                        viewModel.getAllPointDeals()
+                    }
+                }
+            }
+        )
     }
 }
 
 @Composable
-fun AdminPointDealCard(
-    deal: PointDealModel,
-    onEdit: () -> Unit,
-    onDelete: () -> Unit
-) {
-    val dateFormat = SimpleDateFormat("dd MMM, yyyy", Locale.getDefault())
-    val validTillDate = dateFormat.format(Date(deal.validTill))
-    
+fun AdminDealCard(deal: PointDealModel, onDelete: () -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = White),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
-        Column(
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp)
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "${deal.tier} DEAL",
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.Gray
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = deal.offer,
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = "Category: ${deal.serviceCategory}",
-                        fontSize = 12.sp,
-                        color = Color.Gray
-                    )
-                    Text(
-                        text = "Points Required: ${deal.pointsRequired}",
-                        fontSize = 12.sp,
-                        color = Color.Gray
-                    )
-                    Text(
-                        text = "Valid till: $validTillDate",
-                        fontSize = 12.sp,
-                        color = Color.Gray
-                    )
-                    Text(
-                        text = "Status: ${if (deal.isActive) "Active" else "Inactive"}",
-                        fontSize = 12.sp,
-                        color = if (deal.isActive) Greenish else Color.Red
-                    )
-                }
-                
-                Row {
-                    IconButton(onClick = onEdit) {
-                        Icon(Icons.Default.Edit, "Edit", tint = Greenish)
-                    }
-                    IconButton(onClick = onDelete) {
-                        Icon(Icons.Default.Delete, "Delete", tint = Color.Red)
-                    }
-                }
+            Column(modifier = Modifier.weight(1f)) {
+                Text(text = deal.offer, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                Text(text = "${deal.tier} • ${deal.serviceCategory}", fontSize = 12.sp, color = Color.Gray)
+                Text(text = "${deal.pointsRequired} Points", fontSize = 12.sp, color = Greenish, fontWeight = FontWeight.Bold)
+            }
+            IconButton(onClick = onDelete) {
+                Icon(Icons.Default.Delete, "Delete", tint = Color.Red)
             }
         }
     }
@@ -228,203 +152,131 @@ fun AdminPointDealCard(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AddEditPointDealDialog(
-    deal: PointDealModel?,
-    onDismiss: () -> Unit,
-    onSave: (PointDealModel) -> Unit
-) {
-    var title by remember { mutableStateOf(deal?.title ?: "") }
-    var offer by remember { mutableStateOf(deal?.offer ?: "") }
-    var tier by remember { mutableStateOf(deal?.tier ?: "Bronze") }
-    var serviceCategory by remember { mutableStateOf(deal?.serviceCategory ?: "") }
-    var pointsRequired by remember { mutableStateOf(deal?.pointsRequired?.toString() ?: "") }
-    var discountAmount by remember { mutableStateOf(deal?.discountAmount?.toString() ?: "") }
-    var discountType by remember { mutableStateOf(deal?.discountType ?: "FLAT") }
-    var validTillDays by remember { mutableStateOf("30") }
-    var isActive by remember { mutableStateOf(deal?.isActive ?: true) }
-    
-    val tiers = listOf("Bronze", "Silver", "Gold")
-    val discountTypes = listOf("FLAT", "UPTO")
-    var tierExpanded by remember { mutableStateOf(false) }
-    var discountTypeExpanded by remember { mutableStateOf(false) }
-    
+fun AddDealDialog(onDismiss: () -> Unit, onAdd: (PointDealModel) -> Unit) {
+    var offer by remember { mutableStateOf("") }
+    var tier by remember { mutableStateOf("Bronze") }
+    var category by remember { mutableStateOf("BIKE") }
+    var points by remember { mutableStateOf("") }
+    var discountAmount by remember { mutableStateOf("") }  // ADD THIS
+    var discountType by remember { mutableStateOf("FLAT") }  // ADD THIS
+    var validDate by remember { mutableStateOf("") }
+    var validTillMillis by remember { mutableLongStateOf(System.currentTimeMillis() + 7 * 24 * 60 * 60 * 1000) } // Default 7 days
+
+    val context = LocalContext.current
+    val calendar = Calendar.getInstance()
+
+    val datePickerDialog = DatePickerDialog(
+        context,
+        { _, year, month, dayOfMonth ->
+            calendar.set(year, month, dayOfMonth)
+            validTillMillis = calendar.timeInMillis
+            val sdf = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+            validDate = sdf.format(calendar.time)
+        },
+        calendar.get(Calendar.YEAR),
+        calendar.get(Calendar.MONTH),
+        calendar.get(Calendar.DAY_OF_MONTH)
+    )
+
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(if (deal == null) "Add Point Deal" else "Edit Point Deal", fontWeight = FontWeight.Bold) },
+        title = { Text("Add Point Deal") },
         text = {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                OutlinedTextField(
-                    value = title,
-                    onValueChange = { title = it },
-                    label = { Text("Title") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
-                )
-                
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(
                     value = offer,
                     onValueChange = { offer = it },
-                    label = { Text("Offer (e.g., FLAT $15 OFF!! or FLAT Rs.15 OFF!!)") },
-                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text("Offer (e.g. FLAT Rs.15 OFF!!)") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                // Tier Dropdown (Simplified as RadioRow for now)
+                Text("Tier:")
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf("Bronze", "Silver", "Gold").forEach { t ->
+                        FilterChip(
+                            selected = tier == t,
+                            onClick = { tier = t },
+                            label = { Text(t) }
+                        )
+                    }
+                }
+
+                // Category Dropdown
+                Text("Category:")
+
+                OutlinedTextField(
+                    value = category,
+                    onValueChange = { category = it },
+                    label = { Text("Enter category") },
                     singleLine = true,
-                    placeholder = { Text("Enter offer text with $ or Rs. amount") }
+                    modifier = Modifier.fillMaxWidth()
                 )
-                
-                // Tier Dropdown
-                ExposedDropdownMenuBox(
-                    expanded = tierExpanded,
-                    onExpandedChange = { tierExpanded = !tierExpanded }
-                ) {
-                    OutlinedTextField(
-                        value = tier,
-                        onValueChange = {},
-                        readOnly = true,
-                        label = { Text("Tier") },
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = tierExpanded) },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .menuAnchor()
-                    )
-                    ExposedDropdownMenu(
-                        expanded = tierExpanded,
-                        onDismissRequest = { tierExpanded = false }
-                    ) {
-                        tiers.forEach { t ->
-                            DropdownMenuItem(
-                                text = { Text(t) },
-                                onClick = {
-                                    tier = t
-                                    tierExpanded = false
-                                }
-                            )
-                        }
-                    }
-                }
-                
+
                 OutlinedTextField(
-                    value = serviceCategory,
-                    onValueChange = { serviceCategory = it },
-                    label = { Text("Service Category (e.g., BIKE, FOOD, CAR)") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
-                )
-                
-                OutlinedTextField(
-                    value = pointsRequired,
-                    onValueChange = { pointsRequired = it },
+                    value = points,
+                    onValueChange = { if (it.all { char -> char.isDigit() }) points = it },
                     label = { Text("Points Required") },
-                    modifier = Modifier.fillMaxWidth(),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    singleLine = true
+                    modifier = Modifier.fillMaxWidth()
                 )
-                
-                // Discount Type Dropdown
-                ExposedDropdownMenuBox(
-                    expanded = discountTypeExpanded,
-                    onExpandedChange = { discountTypeExpanded = !discountTypeExpanded }
-                ) {
-                    OutlinedTextField(
-                        value = discountType,
-                        onValueChange = {},
-                        readOnly = true,
-                        label = { Text("Discount Type") },
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = discountTypeExpanded) },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .menuAnchor()
-                    )
-                    ExposedDropdownMenu(
-                        expanded = discountTypeExpanded,
-                        onDismissRequest = { discountTypeExpanded = false }
-                    ) {
-                        discountTypes.forEach { dt ->
-                            DropdownMenuItem(
-                                text = { Text(dt) },
-                                onClick = {
-                                    discountType = dt
-                                    discountTypeExpanded = false
-                                }
-                            )
-                        }
-                    }
-                }
-                
+
+                // ADD DISCOUNT FIELDS HERE - BETWEEN POINTS AND VALID TILL
                 OutlinedTextField(
                     value = discountAmount,
                     onValueChange = { discountAmount = it },
-                    label = { Text("Discount Amount (in Dollars $)") },
-                    modifier = Modifier.fillMaxWidth(),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    singleLine = true,
-                    placeholder = { Text("e.g., 15.0 (will show as $15)") },
-                    supportingText = { 
-                        Text(
-                            "Note: Since your items use dollar pricing, discounts are in dollars ($)",
-                            fontSize = 10.sp,
-                            color = Color.Gray
+                    label = { Text("Discount Amount") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Text("Discount Type:")
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf("FLAT", "UPTO").forEach { type ->
+                        FilterChip(
+                            selected = discountType == type,
+                            onClick = { discountType = type },
+                            label = { Text(type) }
                         )
                     }
-                )
-                
-                OutlinedTextField(
-                    value = validTillDays,
-                    onValueChange = { validTillDays = it },
-                    label = { Text("Valid Till (days from now)") },
-                    modifier = Modifier.fillMaxWidth(),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    singleLine = true
-                )
-                
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Checkbox(
-                        checked = isActive,
-                        onCheckedChange = { isActive = it }
-                    )
-                    Text("Active")
                 }
+
+                OutlinedTextField(
+                    value = validDate,
+                    onValueChange = {},
+                    label = { Text("Valid Till") },
+                    readOnly = true,
+                    trailingIcon = {
+                        IconButton(onClick = { datePickerDialog.show() }) {
+                            Icon(Icons.Default.DateRange, "Select Date")
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
         },
         confirmButton = {
             Button(
                 onClick = {
-                    // Auto-generate offer text if not provided, using dollar format
-                    val finalOffer = if (offer.isBlank() && discountAmount.isNotBlank()) {
-                        val amount = discountAmount.toDoubleOrNull() ?: 0.0
-                        if (discountType == "FLAT") {
-                            "FLAT $${String.format("%.0f", amount)} OFF!!"
-                        } else {
-                            "UPTO $${String.format("%.0f", amount)} OFF!!"
-                        }
+                    if (offer.isNotEmpty() && points.isNotEmpty()) {
+                        val deal = PointDealModel(
+                            // REMOVE: dealId = UUID.randomUUID().toString(),
+                            title = "${tier} DEAL",
+                            offer = offer,
+                            tier = tier,
+                            serviceCategory = category,
+                            pointsRequired = points.toLongOrNull() ?: 0L,
+                            validTill = validTillMillis,
+                            isActive = true,
+                            discountAmount = discountAmount.toDoubleOrNull() ?: 0.0,  // ADD THIS
+                            discountType = discountType  // ADD THIS
+                        )
+                        onAdd(deal)
                     } else {
-                        offer
+                        Toast.makeText(context, "Please fill all fields", Toast.LENGTH_SHORT).show()
                     }
-                    
-                    val dealModel = PointDealModel(
-                        dealId = deal?.dealId ?: "",
-                        title = title.ifBlank { "${tier} Deal" },
-                        offer = finalOffer,
-                        tier = tier,
-                        serviceCategory = serviceCategory,
-                        pointsRequired = pointsRequired.toLongOrNull() ?: 0L,
-                        validTill = System.currentTimeMillis() + (validTillDays.toLongOrNull() ?: 30L) * 24 * 60 * 60 * 1000,
-                        isActive = isActive,
-                        discountAmount = discountAmount.toDoubleOrNull() ?: 0.0,
-                        discountType = discountType,
-                        createdAt = deal?.createdAt ?: System.currentTimeMillis(),
-                        updatedAt = System.currentTimeMillis()
-                    )
-                    onSave(dealModel)
                 },
                 colors = ButtonDefaults.buttonColors(containerColor = Greenish)
             ) {
-                Text("Save", color = White)
+                Text("Add", color = White)
             }
         },
         dismissButton = {
@@ -434,4 +286,8 @@ fun AddEditPointDealDialog(
         }
     )
 }
+
+
+
+
 
