@@ -50,8 +50,6 @@ import com.example.tradeflow.repository.UserRepoImpl
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
 
-
-
 enum class AddItemMode { ADD, EDIT }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -63,13 +61,10 @@ fun UserAddItemScreen(
     onSaved: () -> Unit = {}
 ) {
     val context = LocalContext.current
-    val viewModel = remember {
-        ProductViewModel(ProductRepoImpl())
-    }
-    val userViewModel = remember {
-        UserViewModel(UserRepoImpl())
-    }
+    val viewModel = remember { ProductViewModel(ProductRepoImpl()) }
+    val userViewModel = remember { UserViewModel(UserRepoImpl()) }
 
+    // Form fields
     var name by remember { mutableStateOf(initialProduct?.name ?: "") }
     var price by remember { mutableStateOf(if (initialProduct != null) initialProduct.price.toString() else "") }
     var location by remember { mutableStateOf(initialProduct?.location ?: "") }
@@ -80,13 +75,27 @@ fun UserAddItemScreen(
     var agreedToTerms by remember { mutableStateOf(false) }
     var isDropdownExpanded by remember { mutableStateOf(false) }
 
+    // Image URIs
     var imageUri by remember { mutableStateOf<Uri?>(null) }
     var imageUri2 by remember { mutableStateOf<Uri?>(null) }
     var imageUri3 by remember { mutableStateOf<Uri?>(null) }
     var imageUri4 by remember { mutableStateOf<Uri?>(null) }
-
     var activeImageIndex by remember { mutableStateOf(0) }
 
+    // UI state
+    var showSuccessDialog by remember { mutableStateOf(false) }
+    var showErrorDialog by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf("") }
+    var isLoading by remember { mutableStateOf(false) }
+
+    val currentUser = FirebaseAuth.getInstance().currentUser
+    val ownerId = currentUser?.uid ?: ""
+    val typeOptions = listOf("Barter", "Rent", "Both")
+    val isPlaceholder = selectedPurpose == "Select purpose"
+    val snackbarHostState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
+
+    // Image picker launcher
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
@@ -103,19 +112,7 @@ fun UserAddItemScreen(
         }
     }
 
-    var showSuccessDialog by remember { mutableStateOf(false) }
-    var showErrorDialog by remember { mutableStateOf(false) }
-    var errorMessage by remember { mutableStateOf("") }
-    var isLoading by remember { mutableStateOf(false) }
-
-    val currentUser = FirebaseAuth.getInstance().currentUser
-    val ownerId = currentUser?.uid ?: ""
-
-    val typeOptions = listOf("Barter", "Rent", "Both")
-    val isPlaceholder = selectedPurpose == "Select purpose"
-    val snackbarHostState = remember { SnackbarHostState() }
-    val coroutineScope = rememberCoroutineScope()
-
+    // Load initial product data in EDIT mode
     LaunchedEffect(initialProduct?.productId, mode) {
         if (mode == AddItemMode.EDIT && initialProduct != null) {
             name = initialProduct.name
@@ -147,10 +144,15 @@ fun UserAddItemScreen(
         category = ""
         agreedToTerms = false
         status = "Available"
+        imageUri = null
+        imageUri2 = null
+        imageUri3 = null
+        imageUri4 = null
     }
 
     fun saveProduct() {
         Log.d("TF_SAVE_FLOW", "Save initiated mode=$mode")
+
         if (!validateForm()) {
             errorMessage = "Please fill all fields and agree to terms"
             showErrorDialog = true
@@ -177,24 +179,13 @@ fun UserAddItemScreen(
             return
         }
 
-        fun proceedToSave(url: String) {
-            // Collect all selected image URLs
-            val allImageUrls = mutableListOf<String>()
-
-            // Add all selected images to the list
-            imageUri?.let { allImageUrls.add(it.toString()) }
-            imageUri2?.let { allImageUrls.add(it.toString()) }
-            imageUri3?.let { allImageUrls.add(it.toString()) }
-            imageUri4?.let { allImageUrls.add(it.toString()) }
-
-            // Add the main image URL if it exists
-            if (url.isNotEmpty()) {
-                allImageUrls.add(0, url) // Main image as first element
-            }
-
-            // Remove duplicates and empty strings
-            val finalImageUrls = allImageUrls.filter { it.isNotEmpty() }.distinct()
-
+        // Define proceedToSave FIRST so it's in scope for uploadNextImage
+        fun proceedToSave(
+            mainUrl: String,
+            subUrl2: String = "",
+            subUrl3: String = "",
+            subUrl4: String = ""
+        ) {
             val product = ProductModel(
                 productId = if (mode == AddItemMode.EDIT) initialProduct?.productId ?: "" else "",
                 name = name.trim(),
@@ -205,13 +196,16 @@ fun UserAddItemScreen(
                 type = selectedPurpose,
                 ownerId = if (mode == AddItemMode.EDIT) initialProduct?.ownerId ?: ownerId else ownerId,
                 status = status,
-                imageUrl = url,
-                imageUrls = finalImageUrls // Store all image URLs in the list
+                imageUrl = mainUrl,
+                imageUrl2 = subUrl2,
+                imageUrl3 = subUrl3,
+                imageUrl4 = subUrl4
             )
 
             val callback: (Boolean, String) -> Unit = { success, message ->
                 isLoading = false
                 Log.d("TF_FIRESTORE_SAVE", "Save callback success=$success message=$message productId=${product.productId}")
+
                 if (success) {
                     if (mode == AddItemMode.EDIT) {
                         coroutineScope.launch {
@@ -219,18 +213,15 @@ fun UserAddItemScreen(
                         }
                         onSaved()
                     } else {
-                        // Calculate and award points when adding a new item
-                        // Formula: $100 = 72 points, so approximately 0.72 points per dollar
+                        // Calculate and award points for new items
                         val pointsToAward = (priceValue * 0.72).toLong()
                         if (pointsToAward > 0 && ownerId.isNotEmpty()) {
                             userViewModel.updateUserPoints(ownerId, pointsToAward) { pointsSuccess, pointsMessage ->
                                 Log.d("TF_POINTS", "Points update success=$pointsSuccess message=$pointsMessage")
-                                // Points awarded (or failed silently, but item was added successfully)
                             }
                         }
                         showSuccessDialog = true
                         resetForm()
-                        imageUri = null
                     }
                 } else {
                     errorMessage = message
@@ -239,35 +230,86 @@ fun UserAddItemScreen(
             }
 
             if (mode == AddItemMode.ADD) {
-                Log.d("TF_FIRESTORE_SAVE", "Calling addProduct with product name=${product.name} imageUrl=${product.imageUrl}")
+                Log.d("TF_FIRESTORE_SAVE", "Calling addProduct with product name=${product.name}")
                 viewModel.addProduct(product, callback)
             } else {
-                Log.d("TF_FIRESTORE_SAVE", "Calling updateProduct with productId=${product.productId} imageUrl=${product.imageUrl}")
+                Log.d("TF_FIRESTORE_SAVE", "Calling updateProduct with productId=${product.productId}")
                 viewModel.updateProduct(product, callback)
             }
         }
 
-        if (imageUri != null) {
-            Log.d("TF_IMAGE_UPLOAD", "Uploading image uri=$imageUri")
-            viewModel.uploadImage(context, imageUri!!) { newUrl ->
-                if (newUrl == null) {
-                    isLoading = false
-                    errorMessage = "Failed to upload image. Please check your connection and try again."
-                    showErrorDialog = true
-                    Log.e("TF_IMAGE_UPLOAD", "Upload failed")
-                    return@uploadImage
-                }
-                Log.d("TF_IMAGE_UPLOAD", "Upload success url=$newUrl")
-                proceedToSave(newUrl)
+        // Upload all images to Cloudinary first, then save to Firebase
+        fun uploadAllImagesAndSave() {
+            val imagesToUpload = mutableListOf<Pair<Int, Uri>>()
+
+            imageUri?.let { imagesToUpload.add(0 to it) }
+            imageUri2?.let { imagesToUpload.add(1 to it) }
+            imageUri3?.let { imagesToUpload.add(2 to it) }
+            imageUri4?.let { imagesToUpload.add(3 to it) }
+
+            // In ADD mode, require at least one image
+            if (mode == AddItemMode.ADD && imagesToUpload.isEmpty()) {
+                isLoading = false
+                errorMessage = "Please select at least one image"
+                showErrorDialog = true
+                return
             }
-        } else {
-            // No new image selected
-            val finalUrl = initialProduct?.imageUrl ?: ""
-            proceedToSave(finalUrl)
+
+            // If no new images in EDIT mode, use existing URLs
+            if (imagesToUpload.isEmpty()) {
+                proceedToSave(
+                    mainUrl = initialProduct?.imageUrl ?: "",
+                    subUrl2 = initialProduct?.imageUrl2 ?: "",
+                    subUrl3 = initialProduct?.imageUrl3 ?: "",
+                    subUrl4 = initialProduct?.imageUrl4 ?: ""
+                )
+                return
+            }
+
+            // Upload images sequentially to avoid race conditions
+            val uploadedUrls = mutableMapOf<Int, String>()
+            var currentUploadIndex = 0
+
+            fun uploadNextImage() {
+                if (currentUploadIndex >= imagesToUpload.size) {
+                    // All uploads complete, proceed to save
+                    proceedToSave(
+                        mainUrl = uploadedUrls[0] ?: initialProduct?.imageUrl ?: "",
+                        subUrl2 = uploadedUrls[1] ?: initialProduct?.imageUrl2 ?: "",
+                        subUrl3 = uploadedUrls[2] ?: initialProduct?.imageUrl3 ?: "",
+                        subUrl4 = uploadedUrls[3] ?: initialProduct?.imageUrl4 ?: ""
+                    )
+                    return
+                }
+
+                val (index, uri) = imagesToUpload[currentUploadIndex]
+                val imageLabel = if (index == 0) "main" else "sub $index"
+
+                Log.d("TF_IMAGE_UPLOAD", "Uploading $imageLabel image uri=$uri")
+
+                viewModel.uploadImage(context, uri) { url ->
+                    if (url == null) {
+                        isLoading = false
+                        errorMessage = "Failed to upload $imageLabel image. Please check your connection and try again."
+                        showErrorDialog = true
+                        Log.e("TF_IMAGE_UPLOAD", "Upload failed for $imageLabel image")
+                        return@uploadImage
+                    }
+
+                    Log.d("TF_IMAGE_UPLOAD", "Upload success for $imageLabel image url=$url")
+                    uploadedUrls[index] = url
+                    currentUploadIndex++
+                    uploadNextImage()
+                }
+            }
+
+            // Start uploading the first image
+            uploadNextImage()
         }
+
+        // Start the upload and save process
+        uploadAllImagesAndSave()
     }
-
-
 
     Scaffold(
         topBar = {
@@ -303,9 +345,7 @@ fun UserAddItemScreen(
                         .padding(top = 16.dp),
                     singleLine = true,
                     textStyle = TextStyle(fontSize = 14.sp),
-                    keyboardOptions = KeyboardOptions.Default.copy(
-                        imeAction = ImeAction.Next
-                    ),
+                    keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Next),
                     colors = TextFieldDefaults.colors(
                         focusedContainerColor = White,
                         unfocusedContainerColor = White,
@@ -328,9 +368,7 @@ fun UserAddItemScreen(
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                     textStyle = TextStyle(fontSize = 14.sp),
-                    keyboardOptions = KeyboardOptions.Default.copy(
-                        imeAction = ImeAction.Next
-                    ),
+                    keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Next),
                     colors = TextFieldDefaults.colors(
                         focusedContainerColor = White,
                         unfocusedContainerColor = White,
@@ -353,9 +391,7 @@ fun UserAddItemScreen(
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                     textStyle = TextStyle(fontSize = 14.sp),
-                    keyboardOptions = KeyboardOptions.Default.copy(
-                        imeAction = ImeAction.Next
-                    ),
+                    keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Next),
                     colors = TextFieldDefaults.colors(
                         focusedContainerColor = White,
                         unfocusedContainerColor = White,
@@ -369,12 +405,13 @@ fun UserAddItemScreen(
                 )
             }
 
+            // LOCATION AND PURPOSE
             item {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    // Location Column
+                    // Location
                     Box(modifier = Modifier.weight(1f)) {
                         OutlinedTextField(
                             value = location,
@@ -383,9 +420,7 @@ fun UserAddItemScreen(
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true,
                             textStyle = TextStyle(fontSize = 14.sp),
-                            keyboardOptions = KeyboardOptions.Default.copy(
-                                imeAction = ImeAction.Next
-                            ),
+                            keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Next),
                             colors = TextFieldDefaults.colors(
                                 focusedContainerColor = White,
                                 unfocusedContainerColor = White,
@@ -398,6 +433,8 @@ fun UserAddItemScreen(
                             shape = RoundedCornerShape(12.dp)
                         )
                     }
+
+                    // Purpose Dropdown
                     Box(modifier = Modifier.weight(1f)) {
                         ExposedDropdownMenuBox(
                             expanded = isDropdownExpanded,
@@ -445,6 +482,8 @@ fun UserAddItemScreen(
                     }
                 }
             }
+
+            // DESCRIPTION
             item {
                 OutlinedTextField(
                     value = description,
@@ -466,6 +505,8 @@ fun UserAddItemScreen(
                     shape = RoundedCornerShape(12.dp)
                 )
             }
+
+            // IMAGES SECTION
             item {
                 Text(
                     "Add Images (Main + 3 Sub-images)",
@@ -485,7 +526,8 @@ fun UserAddItemScreen(
                         },
                     contentAlignment = Alignment.Center
                 ) {
-                    val currentImage = imageUri ?: (if (mode == AddItemMode.EDIT && !initialProduct?.imageUrl.isNullOrEmpty()) initialProduct?.imageUrl else null)
+                    val currentImage = imageUri ?: (if (mode == AddItemMode.EDIT && !initialProduct?.imageUrl.isNullOrEmpty())
+                        initialProduct?.imageUrl else null)
 
                     if (currentImage != null) {
                         AsyncImage(
@@ -505,7 +547,7 @@ fun UserAddItemScreen(
                         )
                     }
 
-                    // Label for Main Image
+                    // Main Image Label
                     Box(
                         modifier = Modifier
                             .align(Alignment.BottomEnd)
@@ -519,7 +561,7 @@ fun UserAddItemScreen(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Sub Images
+                // Sub Images Row
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -542,7 +584,8 @@ fun UserAddItemScreen(
                                 },
                             contentAlignment = Alignment.Center
                         ) {
-                            val currentSubImage = uri ?: (if (mode == AddItemMode.EDIT && !existingUrl.isNullOrEmpty()) existingUrl else null)
+                            val currentSubImage = uri ?: (if (mode == AddItemMode.EDIT && !existingUrl.isNullOrEmpty())
+                                existingUrl else null)
 
                             if (currentSubImage != null) {
                                 AsyncImage(
@@ -565,6 +608,8 @@ fun UserAddItemScreen(
                     }
                 }
             }
+
+            // TERMS AND CONDITIONS
             item {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Checkbox(
@@ -598,6 +643,8 @@ fun UserAddItemScreen(
                     )
                 }
             }
+
+            // CONFIRM BUTTON
             item {
                 Button(
                     onClick = { saveProduct() },
@@ -616,6 +663,8 @@ fun UserAddItemScreen(
             }
         }
     }
+
+    // Success Dialog
     if (showSuccessDialog) {
         AlertDialog(
             onDismissRequest = { showSuccessDialog = false },
@@ -634,6 +683,8 @@ fun UserAddItemScreen(
             }
         )
     }
+
+    // Error Dialog
     if (showErrorDialog) {
         AlertDialog(
             onDismissRequest = { showErrorDialog = false },

@@ -14,7 +14,6 @@ data class ProductModel(
     var createdAt: Long = System.currentTimeMillis(),
     var isDeleted: Boolean = false,
     var completedAt: Long? = null,
-    var image:String="",
     var imageUrl2: String = "",
     var imageUrl3: String = "",
     var imageUrl4: String = "",
