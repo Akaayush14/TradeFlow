@@ -3,6 +3,7 @@ package com.example.tradeflow.view
 import android.app.DatePickerDialog
 import android.os.Bundle
 import android.widget.DatePicker
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -24,6 +25,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -77,7 +79,12 @@ fun UserSettingEditProfileScreen(navController: NavController) {
     var location by remember { mutableStateOf("") }
     var dob by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(false) }
+    var isSaving by remember { mutableStateOf(false) }
     var showSuccessDialog by remember { mutableStateOf(false) }
+    var selectedCountryCode by remember { mutableStateOf("+977") } // Default to Nepal
+
+    // Store the original user data
+    var originalUser by remember { mutableStateOf<com.example.tradeflow.model.UserModel?>(null) }
 
     // Fetch user data when screen loads
     LaunchedEffect(currentUserId) {
@@ -88,8 +95,17 @@ fun UserSettingEditProfileScreen(navController: NavController) {
             // Observe the user data from ViewModel
             userViewModel.users.collect { user ->
                 if (user != null) {
+                    // Store original user data
+                    originalUser = user
+
+                    // Populate form fields
                     name = user.name
-                    phone = extractPhoneNumber(user.phone) // Extract just the number part
+
+                    // Extract phone number and country code
+                    val phoneResult = extractPhoneNumber(user.phone)
+                    phone = phoneResult.first
+                    selectedCountryCode = phoneResult.second
+
                     gender = user.gender
                     dob = user.dob
                     location = user.location
@@ -199,7 +215,12 @@ fun UserSettingEditProfileScreen(navController: NavController) {
                     modifier = Modifier.fillMaxWidth()
                 )
 
-                PhoneNumberField(phone) { phone = it }
+                PhoneNumberField(
+                    phone = phone,
+                    selectedCountryCode = selectedCountryCode,
+                    onPhoneChange = { phone = it },
+                    onCountryCodeChange = { selectedCountryCode = it }
+                )
 
                 LocationField(location) { location = it }
 
@@ -234,21 +255,42 @@ fun UserSettingEditProfileScreen(navController: NavController) {
                             )
                         )
                         .clickable {
+                            if (isSaving) return@clickable
+
                             // Save all fields to Firebase
+                            isSaving = true
                             saveProfileChanges(
                                 userId = currentUserId,
                                 name = name,
                                 phone = phone,
+                                countryCode = selectedCountryCode,
                                 gender = gender,
                                 dob = dob,
                                 location = location,
+                                originalUser = originalUser,
                                 userViewModel = userViewModel,
-                                onSuccess = { showSuccessDialog = true }
+                                context = context,
+                                onSuccess = {
+                                    showSuccessDialog = true
+                                    isSaving = false
+                                },
+                                onError = { errorMessage ->
+                                    Toast.makeText(context, errorMessage, Toast.LENGTH_SHORT).show()
+                                    isSaving = false
+                                }
                             )
                         },
                     contentAlignment = Alignment.Center
                 ) {
-                    Text("Save Changes", color = Color.White, fontSize = 16.sp)
+                    if (isSaving) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(24.dp),
+                            color = Color.White,
+                            strokeWidth = 2.dp
+                        )
+                    } else {
+                        Text("Save Changes", color = Color.White, fontSize = 16.sp)
+                    }
                 }
             }
         }
@@ -314,9 +356,16 @@ fun GenderField(gender: String, onGenderChange: (String) -> Unit) {
 }
 
 @Composable
-fun PhoneNumberField(phone: String, onPhoneChange: (String) -> Unit) {
+fun PhoneNumberField(
+    phone: String,
+    selectedCountryCode: String,
+    onPhoneChange: (String) -> Unit,
+    onCountryCodeChange: (String) -> Unit
+) {
     var expanded by remember { mutableStateOf(false) }
-    var selectedCountry by remember { mutableStateOf(countries[0]) }
+
+    // Find the selected country based on code
+    val selectedCountry = countries.find { it.code == selectedCountryCode } ?: countries[0]
 
     Row(
         modifier = Modifier
@@ -341,11 +390,11 @@ fun PhoneNumberField(phone: String, onPhoneChange: (String) -> Unit) {
                 expanded = expanded,
                 onDismissRequest = { expanded = false }
             ) {
-                countries.forEach {
+                countries.forEach { country ->
                     DropdownMenuItem(
-                        text = { Text("${it.flag}  ${it.name}") },
+                        text = { Text("${country.flag}  ${country.name} (${country.code})") },
                         onClick = {
-                            selectedCountry = it
+                            onCountryCodeChange(country.code)
                             expanded = false
                         }
                     )
@@ -355,6 +404,7 @@ fun PhoneNumberField(phone: String, onPhoneChange: (String) -> Unit) {
 
         Spacer(Modifier.width(12.dp))
 
+        // Use TextField without keyboardOptions for now - simpler approach
         TextField(
             value = phone,
             onValueChange = onPhoneChange,
@@ -396,11 +446,11 @@ fun LocationField(currentLocation: String, onLocationSelected: (String) -> Unit)
             expanded = expanded,
             onDismissRequest = { expanded = false }
         ) {
-            countries.forEach {
+            countries.forEach { country ->
                 DropdownMenuItem(
-                    text = { Text("${it.flag}  ${it.name}") },
+                    text = { Text("${country.flag}  ${country.name}") },
                     onClick = {
-                        onLocationSelected(it.name)
+                        onLocationSelected(country.name)
                         expanded = false
                     }
                 )
@@ -409,13 +459,18 @@ fun LocationField(currentLocation: String, onLocationSelected: (String) -> Unit)
     }
 }
 
-// Helper function to extract just the phone number (remove country code)
-fun extractPhoneNumber(fullPhone: String): String {
-    return if (fullPhone.length > 3) {
-        // Remove country code (assuming it's at the beginning)
-        fullPhone.substring(3)
+// Helper function to extract phone number and country code
+fun extractPhoneNumber(fullPhone: String): Pair<String, String> {
+    // Find if the phone starts with any country code
+    val matchingCountry = countries.find { fullPhone.startsWith(it.code) }
+
+    return if (matchingCountry != null) {
+        // Extract phone number without country code
+        val phoneNumber = fullPhone.substring(matchingCountry.code.length)
+        Pair(phoneNumber, matchingCountry.code)
     } else {
-        fullPhone
+        // If no country code found, return as-is with default country code
+        Pair(fullPhone, "+977") // Default to Nepal
     }
 }
 
@@ -424,15 +479,57 @@ fun saveProfileChanges(
     userId: String,
     name: String,
     phone: String,
+    countryCode: String,
     gender: String,
     dob: String,
     location: String,
+    originalUser: com.example.tradeflow.model.UserModel?,
     userViewModel: UserViewModel,
-    onSuccess: () -> Unit
+    context: android.content.Context,
+    onSuccess: () -> Unit,
+    onError: (String) -> Unit
 ) {
-    if (userId.isEmpty()) return
-    userViewModel.getUserById(userId)
-    onSuccess()
+    if (userId.isEmpty()) {
+        onError("User ID is empty")
+        return
+    }
+
+    if (name.isBlank()) {
+        onError("Name cannot be empty")
+        return
+    }
+
+    if (phone.isBlank()) {
+        onError("Phone number cannot be empty")
+        return
+    }
+
+    // Create full phone number with country code
+    val fullPhone = countryCode + phone
+
+    // Create updated user model
+    val updatedUser = com.example.tradeflow.model.UserModel(
+        userId = userId,
+        name = name,
+        email = originalUser?.email ?: "",
+        phone = fullPhone,
+        gender = gender,
+        dob = dob,
+        location = location,
+        profilePhotoUrl = originalUser?.profilePhotoUrl ?: "",
+        isBlocked = originalUser?.isBlocked ?: false,
+        isRestricted = originalUser?.isRestricted ?: false,
+        points = originalUser?.points ?: 0L
+    )
+
+    // Update user in Firebase
+    userViewModel.updateUser(userId, updatedUser) { success, message ->
+        if (success) {
+            onSuccess()
+        } else {
+            onError(message)
+        }
+    }
 }
 
 @Preview(showBackground = true)
