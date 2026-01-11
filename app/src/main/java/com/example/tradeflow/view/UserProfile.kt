@@ -73,7 +73,9 @@ fun UserProfileScreen(
     LaunchedEffect(userId) {
         if (userId.isNotEmpty()) {
             Log.d("ProfileScreen", "Fetching user data for userId: $userId")
-            userViewModel.getUserById(userId)
+            userViewModel.getUserById(userId) { success, _, user ->
+                // User data loaded
+            }
             productViewModel.getProductsByOwner(userId)
         } else {
             Log.d("ProfileScreen", "userId is empty: $userId")

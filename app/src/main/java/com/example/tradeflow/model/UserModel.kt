@@ -5,6 +5,7 @@ data class UserModel(
     var name: String = "",
     var email: String = "",
     var phone: String = "",
+    var profileImageUrl: String = "",
     var isBlocked: Boolean = false,
     var isRestricted: Boolean = false,
     var points: Long = 0L
@@ -15,6 +16,7 @@ data class UserModel(
             "name" to name,
             "email" to email,
             "phone" to phone,
+            "profileImageUrl" to profileImageUrl,
             "isBlocked" to isBlocked,
             "isRestricted" to isRestricted,
             "points" to points

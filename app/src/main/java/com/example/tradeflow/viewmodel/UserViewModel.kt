@@ -51,14 +51,17 @@ class UserViewModel( val repo: UserRepo): ViewModel(){
 
 
     fun getUserById(
-        userId: String
+        userId: String,
+        callback: (Boolean, String, UserModel?) -> Unit
     ){
         viewModelScope.launch {
             repo.getUserById(userId) { success, msg, data ->
                 if(success){
                     _users.value = data
+                    callback(success, msg, data)
                 }else{
                     _users.value = null
+                    callback(success, msg, null)
                 }
             }
         }

@@ -14,6 +14,7 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -36,14 +37,19 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.example.tradeflow.R
+import com.example.tradeflow.model.ProductModel
+import com.example.tradeflow.model.UserModel
 import com.example.tradeflow.repository.ProductRepoImpl
 import com.example.tradeflow.repository.ReviewRepoImpl
 import com.example.tradeflow.repository.UserRepoImpl
+import com.example.tradeflow.repository.UserNotificationRepoImpl
 import com.example.tradeflow.ui.theme.Greenish
 import com.example.tradeflow.ui.theme.White
 import com.example.tradeflow.viewmodel.ProductViewModel
 import com.example.tradeflow.viewmodel.ReviewViewModel
 import com.example.tradeflow.viewmodel.UserViewModel
+import com.example.tradeflow.viewmodel.UserNotificationViewModel
+import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
 
 class UserItemDetails : ComponentActivity() {
@@ -82,7 +88,9 @@ fun ItemDetailsScreen() {
     LaunchedEffect(product) {
         product?.ownerId?.let { ownerId ->
             if (ownerId.isNotEmpty()) {
-                userViewModel.getUserById(ownerId)
+                userViewModel.getUserById(ownerId) { success, _, user ->
+                    // User data is handled in the ViewModel
+                }
             }
         }
     }
@@ -331,7 +339,7 @@ fun ItemDetailsScreen() {
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = productItem.description,
+                            text = product?.description ?: "",
                             fontSize = 14.sp,
                             color = Color.DarkGray,
                             lineHeight = 20.sp
@@ -420,6 +428,240 @@ fun ContainerTag(text: String, color: Color, textColor: Color) {
             .padding(horizontal = 8.dp, vertical = 4.dp)
     ) {
         Text(text = text, fontSize = 12.sp, color = textColor)
+    }
+}
+@Composable
+fun ItemDetailsScreenWithRequest(
+    product: ProductModel,
+    onBackClick: () -> Unit
+) {
+    val notificationViewModel = remember { UserNotificationViewModel(UserNotificationRepoImpl()) }
+    val userViewModel = remember { UserViewModel(UserRepoImpl()) }
+
+    val currentUser = FirebaseAuth.getInstance().currentUser
+    val currentUserId = currentUser?.uid ?: ""
+
+    var showRequestDialog by remember { mutableStateOf(false) }
+    var requestMessage by remember { mutableStateOf("") }
+    var showSuccessDialog by remember { mutableStateOf(false) }
+    var showErrorDialog by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf("") }
+    var isLoading by remember { mutableStateOf(false) }
+    var currentUserData by remember { mutableStateOf<UserModel?>(null) }
+
+    // Load current user data
+    LaunchedEffect(currentUserId) {
+        if (currentUserId.isNotEmpty()) {
+            userViewModel.getUserById(currentUserId) { success, _, user ->
+                if (success && user != null) {
+                    currentUserData = user
+                }
+            }
+        }
+    }
+
+    // Check if current user is the owner
+    val isOwner = currentUserId == product.ownerId
+
+    Scaffold(
+        topBar = {
+            TradeFlowTopBar(
+                title = { Text("Item Details", color = White, fontWeight = FontWeight.Bold) },
+                onBackClick = onBackClick
+            )
+        },
+        bottomBar = {
+            // Only show request button if user is not the owner
+            if (!isOwner && currentUserId.isNotEmpty()) {
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shadowElevation = 8.dp
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        OutlinedButton(
+                            onClick = { /* Message action */ },
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(50.dp),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Icon(
+                                painter = painterResource(R.drawable.baseline_call_24),
+                                contentDescription = "Message",
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Message")
+                        }
+
+                        Button(
+                            onClick = { showRequestDialog = true },
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(50.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Greenish),
+                            shape = RoundedCornerShape(12.dp),
+                            enabled = !isLoading
+                        ) {
+                            if (isLoading) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(20.dp),
+                                    color = White
+                                )
+                            } else {
+                                Text(
+                                    text = if (product.type == "Barter") "Request Barter"
+                                    else if (product.type == "Rent") "Request Rent"
+                                    else "Send Request",
+                                    fontSize = 14.sp
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    ) { padding ->
+        // Your existing item details UI here
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+        ) {
+            // Product images, details, owner info, description, etc.
+            // ... your existing UI code ...
+        }
+    }
+
+    // Request Dialog
+    if (showRequestDialog) {
+        AlertDialog(
+            onDismissRequest = { showRequestDialog = false },
+            title = {
+                Text(
+                    "Send Request",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 18.sp
+                )
+            },
+            text = {
+                Column {
+                    Text(
+                        "You're requesting: ${product.name}",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        "Type: ${product.type}",
+                        fontSize = 12.sp,
+                        color = Color.Gray
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    OutlinedTextField(
+                        value = requestMessage,
+                        onValueChange = { requestMessage = it },
+                        label = { Text("Add a message (optional)", fontSize = 12.sp) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(120.dp),
+                        maxLines = 4,
+                        colors = TextFieldDefaults.colors(
+                            focusedContainerColor = White,
+                            unfocusedContainerColor = White,
+                            focusedIndicatorColor = Greenish,
+                            cursorColor = Greenish
+                        ),
+                        shape = RoundedCornerShape(8.dp)
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        if (currentUserData != null) {
+                            isLoading = true
+                            notificationViewModel.createItemRequest(
+                                product = product,
+                                requester = currentUserData!!,
+                                message = requestMessage
+                            ) { success, message ->
+                                isLoading = false
+                                showRequestDialog = false
+                                if (success) {
+                                    showSuccessDialog = true
+                                    requestMessage = ""
+                                } else {
+                                    errorMessage = message
+                                    showErrorDialog = true
+                                }
+                            }
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Greenish),
+                    enabled = !isLoading
+                ) {
+                    if (isLoading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            color = White
+                        )
+                    } else {
+                        Text("Send Request")
+                    }
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showRequestDialog = false
+                        requestMessage = ""
+                    }
+                ) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
+    // Success Dialog
+    if (showSuccessDialog) {
+        AlertDialog(
+            onDismissRequest = { showSuccessDialog = false },
+            title = { Text("Success!", fontWeight = FontWeight.Bold) },
+            text = { Text("Your request has been sent to the owner. They will be notified.") },
+            confirmButton = {
+                Button(
+                    onClick = { showSuccessDialog = false },
+                    colors = ButtonDefaults.buttonColors(containerColor = Greenish)
+                ) {
+                    Text("OK")
+                }
+            }
+        )
+    }
+
+    // Error Dialog
+    if (showErrorDialog) {
+        AlertDialog(
+            onDismissRequest = { showErrorDialog = false },
+            title = { Text("Error", fontWeight = FontWeight.Bold, color = Color.Red) },
+            text = { Text(errorMessage) },
+            confirmButton = {
+                Button(
+                    onClick = { showErrorDialog = false },
+                    colors = ButtonDefaults.buttonColors(containerColor = Greenish)
+                ) {
+                    Text("OK")
+                }
+            }
+        )
     }
 }
 

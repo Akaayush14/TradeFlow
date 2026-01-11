@@ -96,7 +96,9 @@ fun UserExploreScreen() {
     LaunchedEffect(Unit) {
         productViewModel.getAllProduct()
         if (userId.isNotEmpty()) {
-            userViewModel.getUserById(userId)
+            userViewModel.getUserById(userId) { success, _, user ->
+                // User data loaded
+            }
         }
     }
 

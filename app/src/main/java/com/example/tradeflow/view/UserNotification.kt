@@ -22,11 +22,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.example.tradeflow.R
-import com.example.tradeflow.model.NotificationModel
-import com.example.tradeflow.repository.NotificationRepoImpl
+import com.example.tradeflow.model.UserNotificationModel
+import com.example.tradeflow.repository.UserNotificationRepoImpl
 import com.example.tradeflow.ui.theme.Greenish
 import com.example.tradeflow.ui.theme.White
-import com.example.tradeflow.viewmodel.NotificationViewModel
+import com.example.tradeflow.viewmodel.UserNotificationViewModel
 import com.google.firebase.auth.FirebaseAuth
 import java.text.SimpleDateFormat
 import java.util.*
@@ -35,16 +35,16 @@ import java.util.*
 @Composable
 fun UserNotificationScreen(
     onBackClick: () -> Unit = {},
-    onNotificationClick: (NotificationModel) -> Unit = {}
+    onNotificationClick: (UserNotificationModel) -> Unit = {}
 ) {
-    val viewModel = remember { NotificationViewModel(NotificationRepoImpl()) }
+    val viewModel = remember { UserNotificationViewModel(UserNotificationRepoImpl()) }
     val notifications by viewModel.notifications.collectAsState()
     val currentUser = FirebaseAuth.getInstance().currentUser
     val userId = currentUser?.uid ?: ""
 
     var showAcceptDialog by remember { mutableStateOf(false) }
     var showRejectDialog by remember { mutableStateOf(false) }
-    var selectedNotification by remember { mutableStateOf<NotificationModel?>(null) }
+    var selectedNotification by remember { mutableStateOf<UserNotificationModel?>(null) }
 
     LaunchedEffect(userId) {
         if (userId.isNotEmpty()) {
@@ -180,7 +180,7 @@ fun UserNotificationScreen(
 
 @Composable
 fun NotificationItem(
-    notification: NotificationModel,
+    notification: UserNotificationModel,
     onClick: () -> Unit,
     onAccept: () -> Unit = {},
     onReject: () -> Unit = {}
