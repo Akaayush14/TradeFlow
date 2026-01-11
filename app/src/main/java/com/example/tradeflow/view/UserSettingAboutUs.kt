@@ -67,6 +67,7 @@ fun UserSettingAboutUsScreen(navController: NavController) {
         contentPadding = PaddingValues(2.dp),
         verticalArrangement = Arrangement.spacedBy(5.dp)
     ) {
+
         item {
             Box(
                 modifier = Modifier

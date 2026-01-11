@@ -155,7 +155,7 @@ fun AdminDealCard(deal: PointDealModel, onDelete: () -> Unit) {
 fun AddDealDialog(onDismiss: () -> Unit, onAdd: (PointDealModel) -> Unit) {
     var offer by remember { mutableStateOf("") }
     var tier by remember { mutableStateOf("Bronze") }
-    var category by remember { mutableStateOf("BIKE") }
+    var category by remember { mutableStateOf("") }
     var points by remember { mutableStateOf("") }
     var discountAmount by remember { mutableStateOf("") }  // ADD THIS
     var discountType by remember { mutableStateOf("FLAT") }  // ADD THIS

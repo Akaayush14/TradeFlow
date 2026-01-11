@@ -137,7 +137,7 @@ class PointDealRepoImpl : PointDealRepo {
         callback: (Boolean, String, List<PointDealModel>?) -> Unit
     ) {
         ref.orderByChild("tier").equalTo(tier)
-            .addValueEventListener(object : ValueEventListener {
+            .addListenerForSingleValueEvent(object : ValueEventListener {
                 override fun onDataChange(snapshot: DataSnapshot) {
                     if (snapshot.exists()) {
                         val tierDeals = mutableListOf<PointDealModel>()
@@ -159,9 +159,6 @@ class PointDealRepoImpl : PointDealRepo {
                 }
             })
     }
-
-
 }
-
 
 

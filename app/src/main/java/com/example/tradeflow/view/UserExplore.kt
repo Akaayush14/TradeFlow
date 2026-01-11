@@ -105,110 +105,104 @@ fun UserExploreScreen() {
     Scaffold(
         topBar = {
             Column {
-                // Points display row
-                Row(
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .background(Greenish)
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.End,
-                    verticalAlignment = Alignment.CenterVertically
+                        .padding(top = 12.dp, bottom = 16.dp)
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(Color.White.copy(alpha = 0.2f))
-                            .clickable {
-                                val intent = Intent(activity, UserPointsActivity::class.java)
-                                activity.startActivity(intent)
-                            }
-                            .padding(horizontal = 12.dp, vertical = 6.dp),
-                        contentAlignment = Alignment.Center
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically
+
+                        // ⭐ CENTERED POINTS BUTTON
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth() // make Box take full width
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(Color.White.copy(alpha = 0.1f))
+                                .clickable {
+                                    val intent = Intent(activity, UserPointsActivity::class.java)
+                                    activity.startActivity(intent)
+                                }
+                                .padding(horizontal = 20.dp, vertical = 8.dp),
+                            contentAlignment = Alignment.CenterEnd
                         ) {
                             Text(
-                                text = "$userPoints Points",
-                                color = White,
-                                fontSize = 14.sp,
+                                text = "$userPoints Points  ›",
+                                color = Color.White,
+                                fontSize = 16.sp,
                                 fontWeight = FontWeight.Bold
                             )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                text = "Use >",
-                                color = White,
-                                fontSize = 12.sp
-                            )
                         }
-                    }
-                }
-                // Search bar
-                TradeFlowTopBar(
-                    title = {
-                        TextField(
-                            value = searchQuery,
-                            onValueChange = { searchQuery = it },
-                            placeholder = {
-                                Text(
-                                    "Search items...",
-                                    color = Color.White.copy(alpha = 0.7f),
-                                    fontSize = 16.sp
-                                )
-                            },
-                            leadingIcon = {
-                                Icon(
-                                    imageVector = Icons.Default.Search,
-                                    contentDescription = "Search Icon",
-                                    tint = White
-                                )
-                            },
-                            trailingIcon = {
-                                if (searchQuery.isNotEmpty()) {
-                                    IconButton(onClick = { searchQuery = "" }) {
-                                        Icon(
-                                            imageVector = Icons.Default.Close,
-                                            contentDescription = "Clear Search",
-                                            tint = White
-                                        )
-                                    }
-                                }
-                            },
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        // 🔍 SEARCH BAR WITH SETTINGS INSIDE
+                        Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(end = 8.dp),
-                            colors = TextFieldDefaults.colors(
-                                focusedContainerColor = Color.White.copy(alpha = 0.2f),
-                                unfocusedContainerColor = Color.White.copy(alpha = 0.15f),
-                                disabledContainerColor = Color.White.copy(alpha = 0.15f),
-                                focusedIndicatorColor = Color.Transparent,
-                                unfocusedIndicatorColor = Color.Transparent,
-                                cursorColor = White,
-                                focusedTextColor = White,
-                                unfocusedTextColor = White
-                            ),
-                            textStyle = TextStyle(
-                                color = White,
-                                fontSize = 16.sp
-                            ),
-                            shape = RoundedCornerShape(24.dp),
-                            singleLine = true)
-                    },
-                    actions = {
-                        IconButton(onClick = {
-                            val intent = Intent(activity, UserSetting::class.java)
-                            activity.startActivity(intent)
-                        }) {
-                            // Use Icons.Default.Menu or your custom resource
-                            Icon(
-                                imageVector = Icons.Default.Settings,
-                                contentDescription = null
-                            )
+                                .padding(horizontal = 16.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            // 🔍 Search Bar
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f) // takes all remaining width
+                                    .height(50.dp)
+                                    .clip(RoundedCornerShape(30.dp))
+                                    .background(Color.White)
+                                    .padding(horizontal = 16.dp, vertical = 0.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxSize(),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Search,
+                                        contentDescription = null,
+                                        tint = Color.Gray
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    TextField(
+                                        value = searchQuery,
+                                        onValueChange = { searchQuery = it },
+                                        placeholder = { Text("Search for products…", color = Color.Gray) },
+                                        modifier = Modifier.weight(1f),
+                                        colors = TextFieldDefaults.colors(
+                                            focusedContainerColor = Color.Transparent,
+                                            unfocusedContainerColor = Color.Transparent,
+                                            focusedIndicatorColor = Color.Transparent,
+                                            unfocusedIndicatorColor = Color.Transparent,
+                                            cursorColor = Greenish
+                                        ),
+                                        singleLine = true
+                                    )
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.width(12.dp))
+
+                            // ⚙️ Settings Icon (Outside Search Bar)
+                            IconButton(onClick = {
+                                val intent = Intent(activity, UserSetting::class.java)
+                                activity.startActivity(intent)
+                            }) {
+                                Icon(
+                                    imageVector = Icons.Default.Settings,
+                                    contentDescription = null,
+                                    tint = White
+                                )
+                            }
                         }
+
                     }
-                )
+                }
             }
         }
+
+
 
     ) { paddingValues ->
         // The main content uses the padding provided by the Scaffold (for the top bar)
