@@ -25,4 +25,11 @@
     <string name="title_activity_notification_screen">NotificationScreen</string>
     <string name="title_activity_profile_screen">ProfileScreen</string>
     <string name="title_activity_splash">SplashActivity</string>
+    <string name="title_activity_setting_screen">SettingScreen</string>
+    <string name="title_activity_user_notification_screen">UserNotificationScreen</string>
+    <string name="title_activity_user_about_us_screen">UserAboutUsScreen</string>
+    <string name="title_activity_user_edit_profile_screen">UserEditProfileScreen</string>
+    <string name="title_activity_user_profile">UserProfile</string>
+    <string name="title_activity_user_setting_notification">UserSettingNotification</string>
+    <string name="title_activity_user_chat_bot">UserChatBotActivity</string>
 </resources>

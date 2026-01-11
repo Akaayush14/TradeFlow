@@ -21,7 +21,7 @@ import com.example.tradeflow.ui.theme.White
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun NotificationScreen(onBackClick: () -> Unit = {}) {
+fun UserNotificationScreen(onBackClick: () -> Unit = {}) {
 
 
     Scaffold(

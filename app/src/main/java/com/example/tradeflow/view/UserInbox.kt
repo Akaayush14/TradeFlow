@@ -20,7 +20,6 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Badge
-import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -28,7 +27,6 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextFieldDefaults
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -38,11 +36,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.tradeflow.R
 import com.example.tradeflow.ui.theme.Greenish
 import com.example.tradeflow.ui.theme.White
 
@@ -56,7 +52,7 @@ data class MessagePreview(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun InboxScreen(onBackClick: () -> Unit = {}) {
+fun UserInboxScreen(onBackClick: () -> Unit = {}) {
     var searchQuery by remember { mutableStateOf("") }
     val messages = remember { getMockMessages() }
 
@@ -124,8 +120,8 @@ fun InboxScreen(onBackClick: () -> Unit = {}) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun InboxTopAppBar(onBackClick: () -> Unit = {}) {
-    // Use CenterAlignedTopAppBar for a centered title
-    CenterAlignedTopAppBar(
+    // Use TradeFlowTopBar for consistent styling
+    TradeFlowTopBar(
         title = {
             Text(
                 "Inbox",
@@ -133,21 +129,7 @@ fun InboxTopAppBar(onBackClick: () -> Unit = {}) {
                 fontWeight = FontWeight.Bold
             )
         },
-        navigationIcon = {
-            IconButton(onClick = onBackClick) {
-                Icon(
-                    painter = painterResource(R.drawable.outline_arrow_back_ios_new_24),
-                    contentDescription = "Back",
-                    tint = White
-                )
-            }
-        },
-        // Use the appropriate TopAppBarDefaults colors function
-        colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-            containerColor = Greenish,
-            titleContentColor = White,
-            navigationIconContentColor = White
-        )
+        onBackClick = onBackClick
     )
 }
 
