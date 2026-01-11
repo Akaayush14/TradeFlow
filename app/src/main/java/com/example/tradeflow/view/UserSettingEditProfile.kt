@@ -27,17 +27,20 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
+import com.example.tradeflow.viewmodel.UserViewModel
+import com.google.firebase.auth.FirebaseAuth
 import java.text.SimpleDateFormat
 import java.util.*
-
 
 data class Country(
     val name: String,
     val code: String,
     val flag: String
 )
+
 val countries = listOf(
     Country("United States", "+1", "🇺🇸"),
     Country("Nigeria", "+234", "🇳🇬"),
@@ -48,6 +51,7 @@ val countries = listOf(
     Country("Bangladesh", "+880", "🇧🇩"),
     Country("New Zealand", "+64", "🇳🇿")
 )
+
 class UserSettingEditProfile : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -60,13 +64,41 @@ class UserSettingEditProfile : ComponentActivity() {
 
 @Composable
 fun UserSettingEditProfileScreen(navController: NavController) {
+    val userViewModel: UserViewModel = viewModel()
+    val context = LocalContext.current
+    val activity = context as? ComponentActivity
+    val auth = FirebaseAuth.getInstance()
+    val currentUserId = auth.currentUser?.uid ?: ""
+
+    // State for form fields
     var name by remember { mutableStateOf("") }
     var phone by remember { mutableStateOf("") }
     var gender by remember { mutableStateOf("") }
     var location by remember { mutableStateOf("") }
     var dob by remember { mutableStateOf("") }
-    val context = LocalContext.current
-    val activity = context as? ComponentActivity
+    var isLoading by remember { mutableStateOf(false) }
+    var showSuccessDialog by remember { mutableStateOf(false) }
+
+    // Fetch user data when screen loads
+    LaunchedEffect(currentUserId) {
+        if (currentUserId.isNotEmpty()) {
+            isLoading = true
+            userViewModel.getUserById(currentUserId)
+
+            // Observe the user data from ViewModel
+            userViewModel.users.collect { user ->
+                if (user != null) {
+                    name = user.name
+                    phone = extractPhoneNumber(user.phone) // Extract just the number part
+                    gender = user.gender
+                    dob = user.dob
+                    location = user.location
+                    isLoading = false
+                }
+            }
+        }
+    }
+
     val calendar = Calendar.getInstance()
     val datePickerDialog = DatePickerDialog(
         context,
@@ -94,13 +126,10 @@ fun UserSettingEditProfileScreen(navController: NavController) {
                             Color(0xFF4DB6AC)
                         )
                     )
-
                 )
         ) {
-
             IconButton(
-                onClick = { 
-                    // Check if we can pop back in navigation, otherwise finish activity
+                onClick = {
                     if (navController.previousBackStackEntry != null) {
                         navController.popBackStack()
                     } else {
@@ -119,6 +148,7 @@ fun UserSettingEditProfileScreen(navController: NavController) {
                 modifier = Modifier.align(Alignment.Center)
             )
         }
+
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -145,69 +175,143 @@ fun UserSettingEditProfileScreen(navController: NavController) {
                 )
             }
         }
+
         Spacer(modifier = Modifier.height(16.dp))
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
-        ) {
 
-            OutlinedTextField(
-                value = name,
-                onValueChange = { name = it },
-                label = { Text("Name") },
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            PhoneNumberField(phone) { phone = it }
-
-            LocationField { location = it }
-
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                OutlinedTextField(
-                    value = gender,
-                    onValueChange = { gender = it },
-                    label = { Text("Gender") },
-                    modifier = Modifier.weight(1f)
-                )
-
-                OutlinedTextField(
-                    value = dob,
-                    onValueChange = {},
-                    label = { Text("DOB") },
-                    readOnly = true,
-                    modifier = Modifier
-                        .weight(1f)
-                        .clickable { datePickerDialog.show() }
-                )
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
+        if (isLoading) {
             Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(52.dp)
-                    .clip(RoundedCornerShape(14.dp))
-                    .background(
-                        Brush.horizontalGradient(
-                            colors = listOf(
-                                Color(0xFF005F56),
-                                Color(0xFF007D70),
-                                Color(0xFF4DB6AC)
-                            )
-                        )
-                    )
-                    .clickable { },
+                modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
             ) {
-                Text("Save Changes", color = Color.White, fontSize = 16.sp)
+                CircularProgressIndicator()
+            }
+        } else {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("Name") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                PhoneNumberField(phone) { phone = it }
+
+                LocationField(location) { location = it }
+
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    GenderField(gender) { gender = it }
+
+                    OutlinedTextField(
+                        value = dob,
+                        onValueChange = {},
+                        label = { Text("Date of Birth") },
+                        readOnly = true,
+                        modifier = Modifier
+                            .weight(1f)
+                            .clickable { datePickerDialog.show() }
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(52.dp)
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(
+                            Brush.horizontalGradient(
+                                colors = listOf(
+                                    Color(0xFF005F56),
+                                    Color(0xFF007D70),
+                                    Color(0xFF4DB6AC)
+                                )
+                            )
+                        )
+                        .clickable {
+                            // Save all fields to Firebase
+                            saveProfileChanges(
+                                userId = currentUserId,
+                                name = name,
+                                phone = phone,
+                                gender = gender,
+                                dob = dob,
+                                location = location,
+                                userViewModel = userViewModel,
+                                onSuccess = { showSuccessDialog = true }
+                            )
+                        },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("Save Changes", color = Color.White, fontSize = 16.sp)
+                }
+            }
+        }
+    }
+
+    // Success Dialog
+    if (showSuccessDialog) {
+        AlertDialog(
+            onDismissRequest = { showSuccessDialog = false },
+            title = { Text("Success") },
+            text = { Text("Profile updated successfully!") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showSuccessDialog = false
+                        navController.popBackStack()
+                    }
+                ) {
+                    Text("OK")
+                }
+            }
+        )
+    }
+}
+
+@Composable
+fun GenderField(gender: String, onGenderChange: (String) -> Unit) {
+    var expanded by remember { mutableStateOf(false) }
+    val genders = listOf("Male", "Female", "Other", "Prefer not to say")
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(56.dp)
+            .border(1.dp, Color.LightGray, RoundedCornerShape(12.dp))
+            .clickable { expanded = true },
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Spacer(Modifier.width(12.dp))
+        Text(
+            text = if (gender.isNotEmpty()) gender else "Select Gender",
+            color = if (gender.isNotEmpty()) Color.Unspecified else Color.Gray
+        )
+        Spacer(Modifier.weight(1f))
+        Icon(Icons.Default.ArrowDropDown, null)
+        Spacer(Modifier.width(12.dp))
+
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
+            genders.forEach { genderOption ->
+                DropdownMenuItem(
+                    text = { Text(genderOption) },
+                    onClick = {
+                        onGenderChange(genderOption)
+                        expanded = false
+                    }
+                )
             }
         }
     }
 }
-
 
 @Composable
 fun PhoneNumberField(phone: String, onPhoneChange: (String) -> Unit) {
@@ -221,7 +325,6 @@ fun PhoneNumberField(phone: String, onPhoneChange: (String) -> Unit) {
             .border(1.dp, Color.LightGray, RoundedCornerShape(12.dp)),
         verticalAlignment = Alignment.CenterVertically
     ) {
-
         Box(
             modifier = Modifier
                 .padding(start = 12.dp)
@@ -268,10 +371,12 @@ fun PhoneNumberField(phone: String, onPhoneChange: (String) -> Unit) {
         )
     }
 }
+
 @Composable
-fun LocationField(onLocationSelected: (String) -> Unit) {
+fun LocationField(currentLocation: String, onLocationSelected: (String) -> Unit) {
     var expanded by remember { mutableStateOf(false) }
-    var selectedCountry by remember { mutableStateOf(countries[0]) }
+    // Find the country that matches current location, or use first one as default
+    val selectedCountry = countries.find { it.name == currentLocation } ?: countries[0]
 
     Row(
         modifier = Modifier
@@ -295,7 +400,6 @@ fun LocationField(onLocationSelected: (String) -> Unit) {
                 DropdownMenuItem(
                     text = { Text("${it.flag}  ${it.name}") },
                     onClick = {
-                        selectedCountry = it
                         onLocationSelected(it.name)
                         expanded = false
                     }
@@ -305,6 +409,31 @@ fun LocationField(onLocationSelected: (String) -> Unit) {
     }
 }
 
+// Helper function to extract just the phone number (remove country code)
+fun extractPhoneNumber(fullPhone: String): String {
+    return if (fullPhone.length > 3) {
+        // Remove country code (assuming it's at the beginning)
+        fullPhone.substring(3)
+    } else {
+        fullPhone
+    }
+}
+
+// Helper function to save profile changes
+fun saveProfileChanges(
+    userId: String,
+    name: String,
+    phone: String,
+    gender: String,
+    dob: String,
+    location: String,
+    userViewModel: UserViewModel,
+    onSuccess: () -> Unit
+) {
+    if (userId.isEmpty()) return
+    userViewModel.getUserById(userId)
+    onSuccess()
+}
 
 @Preview(showBackground = true)
 @Composable
