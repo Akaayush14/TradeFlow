@@ -235,20 +235,5 @@ class UserRepoImpl: UserRepo{
             }
         }
     }
-    override fun updateUser(
-        userId: String,
-        userModel: UserModel,
-        callback: (Boolean, String) -> Unit
-    ) {
-        // Convert UserModel to map for Firebase
-        val userMap = userModel.toMap()
 
-        ref.child(userId).setValue(userMap).addOnCompleteListener { task ->
-            if (task.isSuccessful) {
-                callback(true, "Profile updated successfully")
-            } else {
-                callback(false, "Failed to update profile: ${task.exception?.message}")
-            }
-        }
-    }
 }

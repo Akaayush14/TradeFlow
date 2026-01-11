@@ -169,12 +169,4 @@ class UserViewModel( val repo: UserRepo): ViewModel(){
     ) {
         repo.updateUserPoints(userId, pointsToAdd, callback)
     }
-
-    fun updateUser(
-        userId: String,
-        userModel: UserModel,
-        callback: (Boolean, String) -> Unit
-    ) {
-        repo.updateUser(userId, userModel, callback)
-    }
 }

@@ -58,9 +58,6 @@ interface UserRepo {
         pointsToAdd: Long,
         callback: (Boolean, String) -> Unit
     )
-    fun updateUser(
-        userId: String,
-        userModel: UserModel,
-        callback: (Boolean, String) -> Unit
-    )
+
+
 }
