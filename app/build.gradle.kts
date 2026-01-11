@@ -74,5 +74,8 @@ dependencies {
     //use for videocam//
     implementation(libs.androidx.compose.material)
     implementation(libs.androidx.compose.material.icons.extended)
+    // use for maps //
+    implementation("com.google.maps.android:maps-compose:4.3.3")
+    implementation("com.google.android.gms:play-services-maps:19.0.0")
 
 }
