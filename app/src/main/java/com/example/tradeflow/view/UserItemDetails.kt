@@ -21,7 +21,6 @@ import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -63,10 +62,11 @@ fun ItemDetailsScreen() {
     val userViewModel = remember { UserViewModel(UserRepoImpl()) }
     val reviewViewModel = remember { ReviewViewModel(ReviewRepoImpl()) }
 
-    val product by productViewModel.products.observeAsState()
-    val owner by userViewModel.users.observeAsState()
-    val reviews by reviewViewModel.reviews.observeAsState(emptyList())
-    val loading by productViewModel.loading.observeAsState(false)
+    // Use collectAsState() for StateFlow (not observeAsState for LiveData)
+    val product by productViewModel.product.collectAsState()
+    val owner by userViewModel.users.collectAsState()
+    val reviews by reviewViewModel.reviews.collectAsState()
+    val loading by productViewModel.loading.collectAsState()
 
     LaunchedEffect(productId) {
         if (productId.isNotEmpty()) {
@@ -89,7 +89,11 @@ fun ItemDetailsScreen() {
                 title = { Text("Item Details", color = White) },
                 navigationIcon = {
                     IconButton(onClick = { activity?.finish() }) {
-                        Icon(painterResource(id = R.drawable.outline_arrow_back_ios_new_24), contentDescription = "Back", tint = White)
+                        Icon(
+                            painterResource(id = R.drawable.outline_arrow_back_ios_new_24),
+                            contentDescription = "Back",
+                            tint = White
+                        )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -150,43 +154,44 @@ fun ItemDetailsScreen() {
                 }
 
                 // Image Gallery (Thumbnails)
-                if (product != null) {
-                    val images = listOf(
-                        product!!.imageUrl,
-                        product!!.imageUrl2,
-                        product!!.imageUrl3,
-                        product!!.imageUrl4
+                // Use safe call and let to handle null safely
+                val images = product?.let { productItem ->
+                    listOf(
+                        productItem.imageUrl,
+                        productItem.imageUrl2,
+                        productItem.imageUrl3,
+                        productItem.imageUrl4
                     ).filter { it.isNotEmpty() }
+                } ?: emptyList()
 
-                    if (images.size > 1) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(8.dp)
-                                .horizontalScroll(rememberScrollState()),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            images.forEach { url ->
-                                Box(
-                                    modifier = Modifier
-                                        .size(70.dp)
-                                        .border(
-                                            width = if (selectedImageUrl == url) 2.dp else 1.dp,
-                                            color = if (selectedImageUrl == url) Greenish else Color.Gray,
-                                            shape = RoundedCornerShape(8.dp)
-                                        )
-                                        .clip(RoundedCornerShape(8.dp))
-                                        .clickable { selectedImageUrl = url }
-                                ) {
-                                    AsyncImage(
-                                        model = url,
-                                        contentDescription = "Thumbnail",
-                                        modifier = Modifier.fillMaxSize(),
-                                        contentScale = ContentScale.Crop,
-                                        placeholder = painterResource(R.drawable.placeholderimage),
-                                        error = painterResource(R.drawable.placeholderimage)
+                if (images.size > 1) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(8.dp)
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        images.forEach { url ->
+                            Box(
+                                modifier = Modifier
+                                    .size(70.dp)
+                                    .border(
+                                        width = if (selectedImageUrl == url) 2.dp else 1.dp,
+                                        color = if (selectedImageUrl == url) Greenish else Color.Gray,
+                                        shape = RoundedCornerShape(8.dp)
                                     )
-                                }
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .clickable { selectedImageUrl = url }
+                            ) {
+                                AsyncImage(
+                                    model = url,
+                                    contentDescription = "Thumbnail",
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = ContentScale.Crop,
+                                    placeholder = painterResource(R.drawable.placeholderimage),
+                                    error = painterResource(R.drawable.placeholderimage)
+                                )
                             }
                         }
                     }
@@ -194,156 +199,175 @@ fun ItemDetailsScreen() {
 
                 Column(modifier = Modifier.padding(16.dp)) {
                     // 2. Item Title, Price, Type
-                    Text(
-                        text = product!!.name,
-                        fontSize = 24.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.Black
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
+                    // Use safe call with let
+                    product?.let { productItem ->
                         Text(
-                            text = "$${product!!.price}",
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = Greenish
+                            text = productItem.name,
+                            fontSize = 24.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.Black
                         )
-                        ContainerTag(
-                            text = product!!.type,
-                            color = if (product!!.type == "Rent") Color(0xFFE0F7FA) else Color(0xFFFFF3E0),
-                            textColor = if (product!!.type == "Rent") Color(0xFF006064) else Color(0xFFE65100)
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "Status: ${product!!.status}",
-                        fontSize = 14.sp,
-                        color = Color.Gray
-                    )
-
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Divider(color = Color.LightGray, thickness = 0.5.dp)
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    // 3. Owner Info
-                    Text(
-                        text = "Owner",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.Black
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Image(
-                            painter = painterResource(id = R.drawable.ic_launcher_foreground),
-                            contentDescription = "Owner Profile",
-                            modifier = Modifier
-                                .size(50.dp)
-                                .clip(CircleShape)
-                                .border(1.dp, Color.Gray, CircleShape)
-                                .background(Color.LightGray),
-                            contentScale = ContentScale.Crop
-                        )
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Column(modifier = Modifier.weight(1f)) {
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
                             Text(
-                                text = owner?.name ?: "Loading...",
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.SemiBold
+                                text = "$${productItem.price}",
+                                fontSize = 20.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = Greenish
                             )
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Default.Star, contentDescription = null, tint = Color(0xFFFFD700), modifier = Modifier.size(16.dp))
+                            ContainerTag(
+                                text = productItem.type,
+                                color = if (productItem.type == "Rent") Color(0xFFE0F7FA) else Color(0xFFFFF3E0),
+                                textColor = if (productItem.type == "Rent") Color(0xFF006064) else Color(0xFFE65100)
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "Status: ${productItem.status}",
+                            fontSize = 14.sp,
+                            color = Color.Gray
+                        )
+
+                        Spacer(modifier = Modifier.height(16.dp))
+                        HorizontalDivider(color = Color.LightGray, thickness = 0.5.dp)
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        // 3. Owner Info
+                        Text(
+                            text = "Owner",
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.Black
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Image(
+                                painter = painterResource(id = R.drawable.ic_launcher_foreground),
+                                contentDescription = "Owner Profile",
+                                modifier = Modifier
+                                    .size(50.dp)
+                                    .clip(CircleShape)
+                                    .border(1.dp, Color.Gray, CircleShape)
+                                    .background(Color.LightGray),
+                                contentScale = ContentScale.Crop
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column(modifier = Modifier.weight(1f)) {
                                 Text(
-                                    text = "4.8 (24 reviews)", // Placeholder rating for user
-                                    fontSize = 14.sp,
-                                    color = Color.Gray,
-                                    modifier = Modifier.padding(start = 4.dp)
+                                    text = owner?.name ?: "Loading...",
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        Icons.Default.Star,
+                                        contentDescription = null,
+                                        tint = Color(0xFFFFD700),
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Text(
+                                        text = "4.8 (24 reviews)", // Placeholder rating for user
+                                        fontSize = 14.sp,
+                                        color = Color.Gray,
+                                        modifier = Modifier.padding(start = 4.dp)
+                                    )
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(16.dp))
+                        HorizontalDivider(color = Color.LightGray, thickness = 0.5.dp)
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        // 4. Description
+                        Text(
+                            text = "Description",
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.Black
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = productItem.description,
+                            fontSize = 14.sp,
+                            color = Color.DarkGray,
+                            lineHeight = 20.sp
+                        )
+
+                        Spacer(modifier = Modifier.height(16.dp))
+                        HorizontalDivider(color = Color.LightGray, thickness = 0.5.dp)
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        // 5. Reviews
+                        Text(
+                            text = "Reviews (${reviews.size})",
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.Black
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        if (reviews.isEmpty()) {
+                            Text("No reviews yet.", fontSize = 14.sp, color = Color.Gray)
+                        } else {
+                            reviews.forEach { review ->
+                                ReviewItem(
+                                    username = review.userName,
+                                    rating = review.rating.toInt(),
+                                    comment = review.comment
                                 )
                             }
                         }
-                    }
 
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Divider(color = Color.LightGray, thickness = 0.5.dp)
-                    Spacer(modifier = Modifier.height(16.dp))
+                        Spacer(modifier = Modifier.height(24.dp))
 
-                    // 4. Description
-                    Text(
-                        text = "Description",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.Black
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = product!!.description,
-                        fontSize = 14.sp,
-                        color = Color.DarkGray,
-                        lineHeight = 20.sp
-                    )
-
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Divider(color = Color.LightGray, thickness = 0.5.dp)
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    // 5. Reviews
-                    Text(
-                        text = "Reviews (${reviews?.size ?: 0})",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.Black
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    if (reviews.isNullOrEmpty()) {
-                        Text("No reviews yet.", fontSize = 14.sp, color = Color.Gray)
-                    } else {
-                        reviews!!.forEach { review ->
-                            ReviewItem(
-                                username = review.userName,
-                                rating = review.rating.toInt(),
-                                comment = review.comment
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(24.dp))
-
-                    // 6. Action Buttons
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
-                        Button(
-                            onClick = { Toast.makeText(context, "Opening Chat...", Toast.LENGTH_SHORT).show() },
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(50.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = Color.Gray),
-                            shape = RoundedCornerShape(8.dp)
+                        // 6. Action Buttons
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(16.dp)
                         ) {
-                            Icon(Icons.Default.Email,
-                                contentDescription = null, tint = White)
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text("Message", color = White)
-                        }
+                            Button(
+                                onClick = {
+                                    Toast.makeText(context, "Opening Chat...", Toast.LENGTH_SHORT).show()
+                                },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(50.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = Color.Gray),
+                                shape = RoundedCornerShape(8.dp)
+                            ) {
+                                Icon(
+                                    Icons.Default.Email,
+                                    contentDescription = null,
+                                    tint = White
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("Message", color = White)
+                            }
 
-                        Button(
-                            onClick = { Toast.makeText(context, "Requesting ${product!!.type}...", Toast.LENGTH_SHORT).show() },
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(50.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = Greenish),
-                            shape = RoundedCornerShape(8.dp)
-                        ) {
-                            Text("${product!!.type} Now", color = White)
+                            Button(
+                                onClick = {
+                                    Toast.makeText(
+                                        context,
+                                        "Requesting ${productItem.type}...",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(50.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = Greenish),
+                                shape = RoundedCornerShape(8.dp)
+                            ) {
+                                Text("${productItem.type} Now", color = White)
+                            }
                         }
                     }
                 }

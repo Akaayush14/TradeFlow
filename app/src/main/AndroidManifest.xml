@@ -121,7 +121,16 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-
+        <activity
+            android:name=".view.ChatBotActivity"
+            android:exported="true"
+            android:theme="@style/Theme.TradeFlow"
+            android:windowSoftInputMode="adjustResize">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
         <activity
             android:name=".view.AdminDashExp"
             android:exported="true"
@@ -166,7 +175,29 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <activity
+            android:name=".view.AdminUserMetric"
+            android:exported="true"
+            android:theme="@style/Theme.TradeFlow" />
 
+        <activity
+            android:name=".view.AdminAdminMetric"
+            android:exported="true"
+            android:theme="@style/Theme.TradeFlow" />
+
+        <activity
+            android:name=".view.AdminProductMetric"
+            android:exported="true"
+            android:theme="@style/Theme.TradeFlow" />
+
+        <activity
+            android:name=".view.AdminProductPriceMetric"
+            android:exported="true"
+            android:theme="@style/Theme.TradeFlow" />
+        <activity
+            android:name=".view.AdminAdmin"
+            android:exported="false"
+            android:theme="@style/Theme.TradeFlow" />
 
         <activity
             android:name=".view.AdminSettings"
@@ -190,6 +221,14 @@
             android:theme="@style/Theme.TradeFlow" />
         <activity
             android:name=".view.AdminDashItem"
+            android:exported="false"
+            android:theme="@style/Theme.TradeFlow" />
+        <activity
+            android:name=".view.UserPointsActivity"
+            android:exported="false"
+            android:theme="@style/Theme.TradeFlow" />
+        <activity
+            android:name=".view.AdminPointDeals"
             android:exported="false"
             android:theme="@style/Theme.TradeFlow" />
     </application>

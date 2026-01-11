@@ -53,7 +53,7 @@ fun AppNav() {
     NavHost(navController, startDestination = "settings") {
         composable("settings") { UserSettingsScreen(navController) }
         composable("notifications") { UserSettingNotificationScreen(navController) }
-        composable("edit_profile") { UserSettingNotificationScreen(navController) }
+        composable("edit_profile") { UserSettingEditProfileScreen(navController) }
         composable("privacy") { UserSettingPrivacyScreen(navController) }
         composable("aboutus") { UserSettingAboutUsScreen(navController) }
     }
