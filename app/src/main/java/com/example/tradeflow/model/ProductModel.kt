@@ -14,10 +14,10 @@ data class ProductModel(
     var createdAt: Long = System.currentTimeMillis(),
     var isDeleted: Boolean = false,
     var completedAt: Long? = null,
-    var image:String="",
     var imageUrl2: String = "",
     var imageUrl3: String = "",
     var imageUrl4: String = "",
+    var imageUrls: List<String> = emptyList(),
     var isListed: Boolean = false
 
 ){
@@ -30,6 +30,7 @@ data class ProductModel(
             "imageUrl2" to imageUrl2,
             "imageUrl3" to imageUrl3,
             "imageUrl4" to imageUrl4,
+            "imageUrls" to imageUrls,
             "category" to category,
             "location" to location,
             "description" to description,

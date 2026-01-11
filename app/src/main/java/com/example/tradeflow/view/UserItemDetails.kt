@@ -2,6 +2,7 @@ package com.example.tradeflow.view
 
 import android.app.Activity
 import android.os.Bundle
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -10,6 +11,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -41,6 +44,7 @@ import com.example.tradeflow.ui.theme.White
 import com.example.tradeflow.viewmodel.ProductViewModel
 import com.example.tradeflow.viewmodel.ReviewViewModel
 import com.example.tradeflow.viewmodel.UserViewModel
+import kotlinx.coroutines.launch
 
 class UserItemDetails : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -111,13 +115,22 @@ fun ItemDetailsScreen() {
                 Text("Product not found")
             }
         } else {
-            var selectedImageUrl by remember { mutableStateOf("") }
-
-            LaunchedEffect(product) {
-                if (product != null) {
-                    selectedImageUrl = product!!.imageUrl
-                }
+            val allImages = remember(product) {
+                product?.let { productItem ->
+                    val list = mutableListOf<String>()
+                    if (productItem.imageUrl.isNotEmpty()) list.add(productItem.imageUrl)
+                    if (productItem.imageUrls.isNotEmpty()) list.addAll(productItem.imageUrls)
+                    if (productItem.imageUrl2.isNotEmpty()) list.add(productItem.imageUrl2)
+                    if (productItem.imageUrl3.isNotEmpty()) list.add(productItem.imageUrl3)
+                    if (productItem.imageUrl4.isNotEmpty()) list.add(productItem.imageUrl4)
+                    list.filter { it.isNotEmpty() }.distinct()
+                } ?: emptyList()
             }
+
+
+
+            val pagerState = rememberPagerState(pageCount = { if (allImages.isEmpty()) 1 else allImages.size })
+            val scope = rememberCoroutineScope()
 
             Column(
                 modifier = Modifier
@@ -134,37 +147,56 @@ fun ItemDetailsScreen() {
                         .background(Color.LightGray),
                     contentAlignment = Alignment.Center
                 ) {
-                    if (selectedImageUrl.isNotEmpty()) {
-                        AsyncImage(
-                            model = selectedImageUrl,
-                            contentDescription = "Item Image",
-                            modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Crop,
-                            placeholder = painterResource(R.drawable.placeholderimage),
-                            error = painterResource(R.drawable.placeholderimage)
-                        )
-                    } else {
-                        Image(
-                            painter = painterResource(id = R.drawable.placeholderimage),
-                            contentDescription = "Placeholder",
-                            modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Crop
-                        )
+                    HorizontalPager(
+                        state = pagerState,
+                        modifier = Modifier.fillMaxSize()
+                    ) { page ->
+                        if (allImages.isNotEmpty()) {
+                            AsyncImage(
+                                model = allImages[page],
+                                contentDescription = "Item Image",
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop,
+                                placeholder = painterResource(R.drawable.placeholderimage),
+                                error = painterResource(R.drawable.placeholderimage),
+                                onSuccess = {
+                                    Log.d("TF_UI_IMAGE", "Details main image loaded productId=${product?.productId} page=$page")
+                                },
+                                onError = {
+                                    Log.e("TF_UI_IMAGE", "Details main image failed productId=${product?.productId} url=${allImages[page]}")
+                                }
+                            )
+                        } else {
+                            Image(
+                                painter = painterResource(id = R.drawable.placeholderimage),
+                                contentDescription = "Placeholder",
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
+                            )
+                        }
+                    }
+                        
+                    // Image Indicator (e.g., 1/4)
+                    if (allImages.size > 1) {
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.BottomEnd)
+                                .padding(16.dp)
+                                .background(Color.Black.copy(alpha = 0.6f), RoundedCornerShape(16.dp))
+                                .padding(horizontal = 12.dp, vertical = 6.dp)
+                        ) {
+                            Text(
+                                text = "${pagerState.currentPage + 1}/${allImages.size}",
+                                color = White,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
                     }
                 }
 
                 // Image Gallery (Thumbnails)
-                // Use safe call and let to handle null safely
-                val images = product?.let { productItem ->
-                    listOf(
-                        productItem.imageUrl,
-                        productItem.imageUrl2,
-                        productItem.imageUrl3,
-                        productItem.imageUrl4
-                    ).filter { it.isNotEmpty() }
-                } ?: emptyList()
-
-                if (images.size > 1) {
+                if (allImages.size > 1) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -172,17 +204,21 @@ fun ItemDetailsScreen() {
                             .horizontalScroll(rememberScrollState()),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        images.forEach { url ->
+                        allImages.forEachIndexed { index, url ->
                             Box(
                                 modifier = Modifier
                                     .size(70.dp)
                                     .border(
-                                        width = if (selectedImageUrl == url) 2.dp else 1.dp,
-                                        color = if (selectedImageUrl == url) Greenish else Color.Gray,
+                                        width = if (pagerState.currentPage == index) 2.dp else 1.dp,
+                                        color = if (pagerState.currentPage == index) Greenish else Color.Gray,
                                         shape = RoundedCornerShape(8.dp)
                                     )
                                     .clip(RoundedCornerShape(8.dp))
-                                    .clickable { selectedImageUrl = url }
+                                    .clickable { 
+                                        scope.launch {
+                                            pagerState.animateScrollToPage(index)
+                                        }
+                                    }
                             ) {
                                 AsyncImage(
                                     model = url,
