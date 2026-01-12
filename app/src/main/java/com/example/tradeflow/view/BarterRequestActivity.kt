@@ -20,10 +20,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import coil.compose.rememberAsyncImagePainter
+import com.example.tradeflow.R
 import com.example.tradeflow.model.ProductModel
 import com.example.tradeflow.model.UserModel
 import com.example.tradeflow.repository.ProductRepoImpl
@@ -32,6 +36,7 @@ import com.example.tradeflow.ui.theme.White
 import com.example.tradeflow.viewmodel.ProductViewModel
 import com.example.tradeflow.viewmodel.UserNotificationViewModel
 import com.google.firebase.auth.FirebaseAuth
+import androidx.compose.ui.res.painterResource
 
 class BarterRequestActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -45,12 +50,12 @@ class BarterRequestActivity : ComponentActivity() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BarterRequestScreen() {
-    val context = androidx.compose.ui.platform.LocalContext.current
+    val context = LocalContext.current
     val activity = context as? BarterRequestActivity
     
     // Get passed data from intent
-    val product = intent.getSerializableExtra("product") as? ProductModel
-    val owner = intent.getSerializableExtra("owner") as? UserModel
+    val product = (context as? BarterRequestActivity)?.intent?.getSerializableExtra("product") as? ProductModel
+    val owner = (context as? BarterRequestActivity)?.intent?.getSerializableExtra("owner") as? UserModel
     
     val notificationViewModel = UserNotificationViewModel(
         com.example.tradeflow.repository.UserNotificationRepoImpl()
@@ -175,35 +180,37 @@ fun BarterRequestScreen() {
                 isLoading = isLoading,
                 selectedCount = selectedItems.size,
                 onClick = {
-                    val selectedProductList = userProducts.filter { 
-                        selectedItems.contains(it.productId) 
-                    }
-                    
-                    if (selectedProductList.isNotEmpty()) {
-                        isLoading = true
-                        // For now, we'll use the first selected item
-                        // In future, you could support multiple items
-                        val offerProduct = selectedProductList.first()
+                    if (product != null && owner != null && selectedItems.isNotEmpty()) {
+                        val selectedProductList = userProducts.filter { 
+                            selectedItems.contains(it.productId) 
+                        }
                         
-                        notificationViewModel.createItemRequest(
-                            product = product ?: return@BarterActionButton,
-                            owner = owner ?: return@BarterActionButton,
-                            requester = UserModel(
-                                userId = currentUserId,
-                                name = currentUser?.displayName ?: "",
-                                email = currentUser?.email ?: "",
-                                profileImageUrl = currentUser?.photoUrl?.toString() ?: ""
-                            ),
-                            requestType = "BARTER",
-                            message = message,
-                            offerProduct = offerProduct
-                        ) { success, msg ->
-                            isLoading = false
-                            if (success) {
-                                showSuccessDialog = true
-                            } else {
-                                errorMessage = msg
-                                showErrorDialog = true
+                        if (selectedProductList.isNotEmpty()) {
+                            isLoading = true
+                            // For now, we'll use the first selected item
+                            // In future, you could support multiple items
+                            val offerProduct = selectedProductList.first()
+                            
+                            notificationViewModel.createItemRequest(
+                                    product = product!!,
+                                    owner = owner!!,
+                                    requester = UserModel(
+                                        userId = currentUserId,
+                                        name = currentUser?.displayName ?: "",
+                                        email = currentUser?.email ?: "",
+                                        profileImageUrl = currentUser?.photoUrl?.toString() ?: ""
+                                    ),
+                                    requestType = "BARTER",
+                                    message = message,
+                                    offerProduct = offerProduct
+                                ) { success, msg ->
+                                isLoading = false
+                                if (success) {
+                                    showSuccessDialog = true
+                                } else {
+                                    errorMessage = msg
+                                    showErrorDialog = true
+                                }
                             }
                         }
                     }

@@ -25,6 +25,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import com.example.tradeflow.R
 import com.example.tradeflow.model.ProductModel
 import com.example.tradeflow.model.UserModel
 import com.example.tradeflow.ui.theme.Greenish
@@ -33,6 +34,7 @@ import com.example.tradeflow.viewmodel.UserNotificationViewModel
 import com.google.firebase.auth.FirebaseAuth
 import java.text.SimpleDateFormat
 import java.util.*
+import androidx.compose.ui.res.painterResource
 
 class RentalRequestActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -50,8 +52,8 @@ fun RentalRequestScreen() {
     val activity = context as? RentalRequestActivity
     
     // Get passed data from intent
-    val product = intent.getSerializableExtra("product") as? ProductModel
-    val owner = intent.getSerializableExtra("owner") as? UserModel
+    val product = (context as? RentalRequestActivity)?.intent?.getSerializableExtra("product") as? ProductModel
+    val owner = (context as? RentalRequestActivity)?.intent?.getSerializableExtra("owner") as? UserModel
     
     val notificationViewModel = UserNotificationViewModel(
         com.example.tradeflow.repository.UserNotificationRepoImpl()
@@ -182,8 +184,8 @@ fun RentalRequestScreen() {
                         if (product != null && owner != null) {
                             isLoading = true
                             notificationViewModel.createItemRequest(
-                                product = product,
-                                owner = owner,
+                                product = product!!,
+                                owner = owner!!,
                                 requester = UserModel(
                                     userId = currentUserId,
                                     name = currentUser?.displayName ?: "",
@@ -194,7 +196,7 @@ fun RentalRequestScreen() {
                                 message = message,
                                 rentalStartDate = selectedStartDate ?: 0L,
                                 rentalEndDate = selectedEndDate ?: 0L,
-                                rentalPricePerDay = product.price
+                                rentalPricePerDay = product!!.price
                             ) { success, msg ->
                                 isLoading = false
                                 if (success) {

@@ -23,6 +23,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import com.example.tradeflow.R
 import com.example.tradeflow.ui.theme.Greenish
 import com.example.tradeflow.ui.theme.Transparent
@@ -82,11 +85,14 @@ fun DashboardPageBody() {
     var editingProduct by remember { mutableStateOf<ProductModel?>(null) }
     var showEditSuccess by remember { mutableStateOf(false) }
 
+    // Add navigation guard to prevent rapid switching
+    var isNavigating by remember { mutableStateOf(false) }
+    
     val listItem = listOf(
         NavItem(label = "Explore", R.drawable.explore, R.drawable.explore_filled),
         NavItem(label = "Inbox", R.drawable.inbox, R.drawable.inbox_filled),
-        NavItem(label = "AddItem", R.drawable.additem, R.drawable.additem_filled),
-        NavItem(label = "Notice", R.drawable.notification, R.drawable.notification_filled),
+        NavItem(label = "Add", R.drawable.additem, R.drawable.additem_filled),
+        NavItem(label = "Notifications", R.drawable.notification, R.drawable.notification_filled),
         NavItem(label = "profile", R.drawable.profile, R.drawable.profile_filled),
     )
 
@@ -99,7 +105,17 @@ fun DashboardPageBody() {
                     val isSelected = selectedIndex == index
                     NavigationBarItem(
                         selected = isSelected,
-                        onClick = { selectedIndex = index },
+                        onClick = {
+                            if (!isNavigating) {
+                                isNavigating = true
+                                selectedIndex = index
+                                // Reset navigation guard after a delay
+                                kotlinx.coroutines.GlobalScope.launch {
+                                    kotlinx.coroutines.delay(300)
+                                    isNavigating = false
+                                }
+                            }
+                        },
                         icon = {
                             Icon(
                                 painter = painterResource(if (isSelected) item.iconFilled else item.iconOutlined),

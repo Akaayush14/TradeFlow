@@ -51,6 +51,7 @@ import com.example.tradeflow.viewmodel.UserViewModel
 import com.example.tradeflow.viewmodel.UserNotificationViewModel
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
+import android.content.Intent
 
 class UserItemDetails : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -58,6 +59,40 @@ class UserItemDetails : ComponentActivity() {
         setContent {
             ItemDetailsScreen()
         }
+    }
+}
+@Composable
+fun ContainerTag(text: String, color: Color, textColor: Color) {
+    Box(
+        modifier = Modifier
+            .background(color, RoundedCornerShape(4.dp))
+            .padding(horizontal = 8.dp, vertical = 4.dp)
+    ) {
+        Text(text = text, fontSize = 12.sp, color = textColor)
+    }
+}
+@Composable
+fun ReviewItem(username: String, rating: Int, comment: String) {
+    Column(modifier = Modifier.padding(vertical = 8.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = username,
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 14.sp
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Row {
+                repeat(5) { index ->
+                    Icon(
+                        imageVector = if (index < rating) Icons.Default.Star else Icons.Outlined.Star,
+                        contentDescription = null,
+                        tint = Color(0xFFFFD700),
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+            }
+        }
+        Text(text = comment, fontSize = 14.sp, color = Color.Gray)
     }
 }
 
@@ -136,8 +171,8 @@ fun ItemDetailsScreen() {
             }
 
 
-
-            val pagerState = rememberPagerState(pageCount = { if (allImages.isEmpty()) 1 else allImages.size })
+            val pagerState =
+                rememberPagerState(pageCount = { if (allImages.isEmpty()) 1 else allImages.size })
             val scope = rememberCoroutineScope()
 
             Column(
@@ -168,10 +203,16 @@ fun ItemDetailsScreen() {
                                 placeholder = painterResource(R.drawable.placeholderimage),
                                 error = painterResource(R.drawable.placeholderimage),
                                 onSuccess = {
-                                    Log.d("TF_UI_IMAGE", "Details main image loaded productId=${product?.productId} page=$page")
+                                    Log.d(
+                                        "TF_UI_IMAGE",
+                                        "Details main image loaded productId=${product?.productId} page=$page"
+                                    )
                                 },
                                 onError = {
-                                    Log.e("TF_UI_IMAGE", "Details main image failed productId=${product?.productId} url=${allImages[page]}")
+                                    Log.e(
+                                        "TF_UI_IMAGE",
+                                        "Details main image failed productId=${product?.productId} url=${allImages[page]}"
+                                    )
                                 }
                             )
                         } else {
@@ -183,14 +224,17 @@ fun ItemDetailsScreen() {
                             )
                         }
                     }
-                        
+
                     // Image Indicator (e.g., 1/4)
                     if (allImages.size > 1) {
                         Box(
                             modifier = Modifier
                                 .align(Alignment.BottomEnd)
                                 .padding(16.dp)
-                                .background(Color.Black.copy(alpha = 0.6f), RoundedCornerShape(16.dp))
+                                .background(
+                                    Color.Black.copy(alpha = 0.6f),
+                                    RoundedCornerShape(16.dp)
+                                )
                                 .padding(horizontal = 12.dp, vertical = 6.dp)
                         ) {
                             Text(
@@ -222,7 +266,7 @@ fun ItemDetailsScreen() {
                                         shape = RoundedCornerShape(8.dp)
                                     )
                                     .clip(RoundedCornerShape(8.dp))
-                                    .clickable { 
+                                    .clickable {
                                         scope.launch {
                                             pagerState.animateScrollToPage(index)
                                         }
@@ -265,8 +309,12 @@ fun ItemDetailsScreen() {
                             )
                             ContainerTag(
                                 text = productItem.type,
-                                color = if (productItem.type == "Rent") Color(0xFFE0F7FA) else Color(0xFFFFF3E0),
-                                textColor = if (productItem.type == "Rent") Color(0xFF006064) else Color(0xFFE65100)
+                                color = if (productItem.type == "Rent") Color(0xFFE0F7FA) else Color(
+                                    0xFFFFF3E0
+                                ),
+                                textColor = if (productItem.type == "Rent") Color(0xFF006064) else Color(
+                                    0xFFE65100
+                                )
                             )
                         }
                         Spacer(modifier = Modifier.height(8.dp))
@@ -379,7 +427,8 @@ fun ItemDetailsScreen() {
                         ) {
                             Button(
                                 onClick = {
-                                    Toast.makeText(context, "Opening Chat...", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(context, "Opening Chat...", Toast.LENGTH_SHORT)
+                                        .show()
                                 },
                                 modifier = Modifier
                                     .weight(1f)
@@ -392,296 +441,302 @@ fun ItemDetailsScreen() {
                                     contentDescription = null,
                                     tint = White
                                 )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text("Message", color = White)
                             }
+                        }
 
-                            Button(
-                                onClick = {
-                                    Toast.makeText(
-                                        context,
-                                        "Requesting ${productItem.type}...",
-                                        Toast.LENGTH_SHORT
-                                    ).show()
-                                },
+                        @Composable
+                        fun ContainerTag(text: String, color: Color, textColor: Color) {
+                            Box(
                                 modifier = Modifier
-                                    .weight(1f)
-                                    .height(50.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = Greenish),
-                                shape = RoundedCornerShape(8.dp)
+                                    .background(color, RoundedCornerShape(4.dp))
+                                    .padding(horizontal = 8.dp, vertical = 4.dp)
                             ) {
-                                Text("${productItem.type} Now", color = White)
+                                Text(text = text, fontSize = 12.sp, color = textColor)
                             }
                         }
-                    }
-                }
-            }
-        }
-    }
-}
 
-@Composable
-fun ContainerTag(text: String, color: Color, textColor: Color) {
-    Box(
-        modifier = Modifier
-            .background(color, RoundedCornerShape(4.dp))
-            .padding(horizontal = 8.dp, vertical = 4.dp)
-    ) {
-        Text(text = text, fontSize = 12.sp, color = textColor)
-    }
-}
-@Composable
-fun ItemDetailsScreenWithRequest(
-    product: ProductModel,
-    onBackClick: () -> Unit
-) {
-    val notificationViewModel = remember { UserNotificationViewModel(UserNotificationRepoImpl()) }
-    val userViewModel = remember { UserViewModel(UserRepoImpl()) }
-
-    val currentUser = FirebaseAuth.getInstance().currentUser
-    val currentUserId = currentUser?.uid ?: ""
-
-    var showRequestDialog by remember { mutableStateOf(false) }
-    var requestMessage by remember { mutableStateOf("") }
-    var showSuccessDialog by remember { mutableStateOf(false) }
-    var showErrorDialog by remember { mutableStateOf(false) }
-    var errorMessage by remember { mutableStateOf("") }
-    var isLoading by remember { mutableStateOf(false) }
-    var currentUserData by remember { mutableStateOf<UserModel?>(null) }
-
-    // Load current user data
-    LaunchedEffect(currentUserId) {
-        if (currentUserId.isNotEmpty()) {
-            userViewModel.getUserById(currentUserId) { success, _, user ->
-                if (success && user != null) {
-                    currentUserData = user
-                }
-            }
-        }
-    }
-
-    // Check if current user is the owner
-    val isOwner = currentUserId == product.ownerId
-
-    Scaffold(
-        topBar = {
-            TradeFlowTopBar(
-                title = { Text("Item Details", color = White, fontWeight = FontWeight.Bold) },
-                onBackClick = onBackClick
-            )
-        },
-        bottomBar = {
-            // Only show request button if user is not the owner
-            if (!isOwner && currentUserId.isNotEmpty()) {
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    shadowElevation = 8.dp
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        OutlinedButton(
-                            onClick = { /* Message action */ },
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(50.dp),
-                            shape = RoundedCornerShape(12.dp)
+                        @Composable
+                        fun ItemDetailsScreenWithRequest(
+                            product: ProductModel,
+                            onBackClick: () -> Unit
                         ) {
-                            Icon(
-                                painter = painterResource(R.drawable.baseline_call_24),
-                                contentDescription = "Message",
-                                modifier = Modifier.size(20.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text("Message")
-                        }
+                            val notificationViewModel =
+                                remember { UserNotificationViewModel(UserNotificationRepoImpl()) }
+                            val userViewModel = remember { UserViewModel(UserRepoImpl()) }
 
-                        Button(
-                            onClick = { showRequestDialog = true },
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(50.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = Greenish),
-                            shape = RoundedCornerShape(12.dp),
-                            enabled = !isLoading
-                        ) {
-                            if (isLoading) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(20.dp),
-                                    color = White
-                                )
-                            } else {
-                                Text(
-                                    text = if (product.type == "Barter") "Request Barter"
-                                    else if (product.type == "Rent") "Request Rent"
-                                    else "Send Request",
-                                    fontSize = 14.sp
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    ) { padding ->
-        // Your existing item details UI here
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-        ) {
-            // Product images, details, owner info, description, etc.
-            // ... your existing UI code ...
-        }
-    }
+                            val currentUser = FirebaseAuth.getInstance().currentUser
+                            val currentUserId = currentUser?.uid ?: ""
 
-    // Request Dialog
-    if (showRequestDialog) {
-        AlertDialog(
-            onDismissRequest = { showRequestDialog = false },
-            title = {
-                Text(
-                    "Send Request",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 18.sp
-                )
-            },
-            text = {
-                Column {
-                    Text(
-                        "You're requesting: ${product.name}",
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Medium
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        "Type: ${product.type}",
-                        fontSize = 12.sp,
-                        color = Color.Gray
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
+                            var showRequestDialog by remember { mutableStateOf(false) }
+                            var requestMessage by remember { mutableStateOf("") }
+                            var showSuccessDialog by remember { mutableStateOf(false) }
+                            var showErrorDialog by remember { mutableStateOf(false) }
+                            var errorMessage by remember { mutableStateOf("") }
+                            var isLoading by remember { mutableStateOf(false) }
+                            var currentUserData by remember { mutableStateOf<UserModel?>(null) }
 
-                    OutlinedTextField(
-                        value = requestMessage,
-                        onValueChange = { requestMessage = it },
-                        label = { Text("Add a message (optional)", fontSize = 12.sp) },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(120.dp),
-                        maxLines = 4,
-                        colors = TextFieldDefaults.colors(
-                            focusedContainerColor = White,
-                            unfocusedContainerColor = White,
-                            focusedIndicatorColor = Greenish,
-                            cursorColor = Greenish
-                        ),
-                        shape = RoundedCornerShape(8.dp)
-                    )
-                }
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        if (currentUserData != null) {
-                            isLoading = true
-                            notificationViewModel.createItemRequest(
-                                product = product,
-                                requester = currentUserData!!,
-                                message = requestMessage
-                            ) { success, message ->
-                                isLoading = false
-                                showRequestDialog = false
-                                if (success) {
-                                    showSuccessDialog = true
-                                    requestMessage = ""
-                                } else {
-                                    errorMessage = message
-                                    showErrorDialog = true
+                            // Load current user data
+                            LaunchedEffect(currentUserId) {
+                                if (currentUserId.isNotEmpty()) {
+                                    userViewModel.getUserById(currentUserId) { success, _, user ->
+                                        if (success && user != null) {
+                                            currentUserData = user
+                                        }
+                                    }
                                 }
                             }
+
+                            // Check if current user is the owner
+                            val isOwner = currentUserId == product.ownerId
+
+                            Scaffold(
+                                topBar = {
+                                    TradeFlowTopBar(
+                                        title = {
+                                            Text(
+                                                "Item Details",
+                                                color = White,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                        },
+                                        onBackClick = onBackClick
+                                    )
+                                },
+                                bottomBar = {
+                                    // Only show request button if user is not the owner
+                                    if (!isOwner && currentUserId.isNotEmpty()) {
+                                        Surface(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            shadowElevation = 8.dp
+                                        ) {
+                                            Row(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .padding(16.dp),
+                                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                            ) {
+                                                OutlinedButton(
+                                                    onClick = { /* Message action */ },
+                                                    modifier = Modifier
+                                                        .weight(1f)
+                                                        .height(50.dp),
+                                                    shape = RoundedCornerShape(12.dp)
+                                                ) {
+                                                    Icon(
+                                                        painter = painterResource(R.drawable.baseline_call_24),
+                                                        contentDescription = "Message",
+                                                        modifier = Modifier.size(20.dp)
+                                                    )
+                                                    Spacer(modifier = Modifier.width(8.dp))
+                                                    Text("Message")
+                                                }
+
+                                                Button(
+                                                    onClick = {
+                                                        if (product.type == "Rent") {
+                                                            // Launch Rental Request Activity
+                                                            val intent = Intent(
+                                                                context,
+                                                                RentalRequestActivity::class.java
+                                                            )
+                                                            intent.putExtra("product", product)
+                                                            intent.putExtra("owner", owner)
+                                                            context.startActivity(intent)
+                                                        } else {
+                                                            // Launch Barter Request Activity
+                                                            val intent = Intent(
+                                                                context,
+                                                                BarterRequestActivity::class.java
+                                                            )
+                                                            intent.putExtra("product", product)
+                                                            intent.putExtra("owner", owner)
+                                                            context.startActivity(intent)
+                                                        }
+                                                    },
+                                                    modifier = Modifier
+                                                        .weight(1f)
+                                                        .height(50.dp),
+                                                    colors = ButtonDefaults.buttonColors(
+                                                        containerColor = Greenish
+                                                    ),
+                                                    shape = RoundedCornerShape(12.dp),
+                                                    enabled = !isLoading
+                                                ) {
+                                                    if (isLoading) {
+                                                        CircularProgressIndicator(
+                                                            modifier = Modifier.size(20.dp),
+                                                            color = White
+                                                        )
+                                                    } else {
+                                                        Text(
+                                                            text = if (product.type == "Barter") "Barter Now"
+                                                            else if (product.type == "Rent") "Rent Now"
+                                                            else "Send Request",
+                                                            fontSize = 14.sp
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            ) { padding ->
+                                // Your existing item details UI here
+                                LazyColumn(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .padding(padding)
+                                ) {
+                                    // Product images, details, owner info, description, etc.
+                                    // ... your existing UI code ...
+                                }
+                            }
+
+                            // Request Dialog
+                            if (showRequestDialog) {
+                                AlertDialog(
+                                    onDismissRequest = { showRequestDialog = false },
+                                    title = {
+                                        Text(
+                                            "Send Request",
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 18.sp
+                                        )
+                                    },
+                                    text = {
+                                        Column {
+                                            Text(
+                                                "You're requesting: ${product.name}",
+                                                fontSize = 14.sp,
+                                                fontWeight = FontWeight.Medium
+                                            )
+                                            Spacer(modifier = Modifier.height(8.dp))
+                                            Text(
+                                                "Type: ${product.type}",
+                                                fontSize = 12.sp,
+                                                color = Color.Gray
+                                            )
+                                            Spacer(modifier = Modifier.height(16.dp))
+
+                                            OutlinedTextField(
+                                                value = requestMessage,
+                                                onValueChange = { requestMessage = it },
+                                                label = {
+                                                    Text(
+                                                        "Add a message (optional)",
+                                                        fontSize = 12.sp
+                                                    )
+                                                },
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .height(120.dp),
+                                                maxLines = 4,
+                                                colors = TextFieldDefaults.colors(
+                                                    focusedContainerColor = White,
+                                                    unfocusedContainerColor = White,
+                                                    focusedIndicatorColor = Greenish,
+                                                    cursorColor = Greenish
+                                                ),
+                                                shape = RoundedCornerShape(8.dp)
+                                            )
+                                        }
+                                    },
+                                    confirmButton = {
+                                        Button(
+                                            onClick = {
+                                                if (currentUserData != null) {
+                                                    isLoading = true
+                                                    notificationViewModel.createItemRequest(
+                                                        product = product,
+                                                        owner = owner,
+                                                        requester = currentUserData!!,
+                                                        requestType = if (product.type == "Rent") "RENT" else "BARTER",
+                                                        message = requestMessage
+                                                    ) { success, message ->
+                                                        isLoading = false
+                                                        showRequestDialog = false
+                                                        if (success) {
+                                                            showSuccessDialog = true
+                                                            requestMessage = ""
+                                                        } else {
+                                                            errorMessage = message
+                                                            showErrorDialog = true
+                                                        }
+                                                    }
+                                                }
+                                            },
+                                            colors = ButtonDefaults.buttonColors(containerColor = Greenish),
+                                            enabled = !isLoading
+                                        ) {
+                                            if (isLoading) {
+                                                CircularProgressIndicator(
+                                                    modifier = Modifier.size(16.dp),
+                                                    color = White
+                                                )
+                                            } else {
+                                                Text("Send Request")
+                                            }
+                                        }
+                                    },
+                                    dismissButton = {
+                                        TextButton(
+                                            onClick = {
+                                                showRequestDialog = false
+                                                requestMessage = ""
+                                            }
+                                        ) {
+                                            Text("Cancel")
+                                        }
+                                    }
+                                )
+                            }
+
+                            // Success Dialog
+                            if (showSuccessDialog) {
+                                AlertDialog(
+                                    onDismissRequest = { showSuccessDialog = false },
+                                    title = { Text("Success!", fontWeight = FontWeight.Bold) },
+                                    text = { Text("Your request has been sent to the owner. They will be notified.") },
+                                    confirmButton = {
+                                        Button(
+                                            onClick = { showSuccessDialog = false },
+                                            colors = ButtonDefaults.buttonColors(containerColor = Greenish)
+                                        ) {
+                                            Text("OK")
+                                        }
+                                    }
+                                )
+                            }
+
+                            // Error Dialog
+                            if (showErrorDialog) {
+                                AlertDialog(
+                                    onDismissRequest = { showErrorDialog = false },
+                                    title = {
+                                        Text(
+                                            "Error",
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color.Red
+                                        )
+                                    },
+                                    text = { Text(errorMessage) },
+                                    confirmButton = {
+                                        Button(
+                                            onClick = { showErrorDialog = false },
+                                            colors = ButtonDefaults.buttonColors(containerColor = Greenish)
+                                        ) {
+                                            Text("OK")
+                                        }
+                                    }
+                                )
+                            }
                         }
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = Greenish),
-                    enabled = !isLoading
-                ) {
-                    if (isLoading) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(16.dp),
-                            color = White
-                        )
-                    } else {
-                        Text("Send Request")
+
+
                     }
-                }
-            },
-            dismissButton = {
-                TextButton(
-                    onClick = {
-                        showRequestDialog = false
-                        requestMessage = ""
-                    }
-                ) {
-                    Text("Cancel")
-                }
-            }
-        )
-    }
 
-    // Success Dialog
-    if (showSuccessDialog) {
-        AlertDialog(
-            onDismissRequest = { showSuccessDialog = false },
-            title = { Text("Success!", fontWeight = FontWeight.Bold) },
-            text = { Text("Your request has been sent to the owner. They will be notified.") },
-            confirmButton = {
-                Button(
-                    onClick = { showSuccessDialog = false },
-                    colors = ButtonDefaults.buttonColors(containerColor = Greenish)
-                ) {
-                    Text("OK")
-                }
-            }
-        )
-    }
-
-    // Error Dialog
-    if (showErrorDialog) {
-        AlertDialog(
-            onDismissRequest = { showErrorDialog = false },
-            title = { Text("Error", fontWeight = FontWeight.Bold, color = Color.Red) },
-            text = { Text(errorMessage) },
-            confirmButton = {
-                Button(
-                    onClick = { showErrorDialog = false },
-                    colors = ButtonDefaults.buttonColors(containerColor = Greenish)
-                ) {
-                    Text("OK")
-                }
-            }
-        )
-    }
-}
-
-@Composable
-fun ReviewItem(username: String, rating: Int, comment: String) {
-    Column(modifier = Modifier.padding(vertical = 8.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(text = username, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
-            Spacer(modifier = Modifier.width(8.dp))
-            Row {
-                repeat(5) { index ->
-                    Icon(
-                        imageVector = if (index < rating) Icons.Default.Star else Icons.Outlined.Star,
-                        contentDescription = null,
-                        tint = Color(0xFFFFD700),
-                        modifier = Modifier.size(16.dp)
-                    )
                 }
             }
         }
-        Text(text = comment, fontSize = 14.sp, color = Color.Gray)
     }
 }
