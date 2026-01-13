@@ -1,3 +1,4 @@
+
 package com.example.tradeflow.view
 
 import android.os.Bundle
@@ -6,7 +7,6 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -15,7 +15,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -69,12 +68,12 @@ fun PointsScreen() {
     LaunchedEffect(Unit) {
         if (userId.isNotEmpty()) {
             userViewModel.getUserById(userId)
+            pointDealViewModel.getActivePointDeals()
         }
-        pointDealViewModel.getActivePointDeals()
     }
 
     val userData by userViewModel.users.collectAsState()
-    val activeDeals by pointDealViewModel.activeDeals.observeAsState()
+    val activeDeals by pointDealViewModel.activeDeals.observeAsState(initial = emptyList())
 
     val userPoints = userData?.points ?: 0L
 
@@ -88,19 +87,19 @@ fun PointsScreen() {
         userPoints < 1000 -> {
             currentTier = "Bronze"
             nextTier = "Silver"
-            pointsToNextTier = 1000 - userPoints
+            pointsToNextTier = 1000L - userPoints
             progress = userPoints.toFloat() / 1000f
         }
         userPoints < 5000 -> {
             currentTier = "Silver"
             nextTier = "Gold"
-            pointsToNextTier = 5000 - userPoints
+            pointsToNextTier = 5000L - userPoints
             progress = (userPoints - 1000).toFloat() / 4000f
         }
         else -> {
             currentTier = "Gold"
             nextTier = "Platinum"
-            pointsToNextTier = 0
+            pointsToNextTier = 0L
             progress = 1f
         }
     }
@@ -147,7 +146,8 @@ fun PointsScreen() {
 
             // Content based on selected tab
             if (selectedTab == "Point Deals") {
-                if (activeDeals == null) {
+                val dealsList = activeDeals ?: emptyList()
+                if (dealsList.isEmpty()) {
                     item {
                         Box(
                             modifier = Modifier
@@ -155,41 +155,27 @@ fun PointsScreen() {
                                 .padding(16.dp),
                             contentAlignment = Alignment.Center
                         ) {
-                            CircularProgressIndicator(color = Greenish)
+                            Text(
+                                text = "No active deals available",
+                                fontSize = 14.sp,
+                                color = Color.Gray
+                            )
                         }
                     }
                 } else {
-                    val dealsList = activeDeals ?: emptyList()
-                    if (dealsList.isEmpty()) {
-                        item {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(16.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = "No active deals available",
-                                    fontSize = 14.sp,
-                                    color = Color.Gray
-                                )
-                            }
-                        }
-                    } else {
-                        items(dealsList) { deal ->
-                            PointDealCard(deal = deal, userPoints = userPoints)
-                            Spacer(modifier = Modifier.height(12.dp))
-                        }
+                    items(dealsList) { deal ->
+                        PointDealCard(deal = deal, userPoints = userPoints)
+                        Spacer(modifier = Modifier.height(12.dp))
                     }
                 }
             }
-            
+
             if (selectedTab == "How it works?") {
                 item {
                     HowItWorksContent()
                 }
             }
-            
+
             if (selectedTab == "Point history") {
                 item {
                     PointHistoryContent()
@@ -207,8 +193,12 @@ private fun PointsSummaryCard(
     pointsToNextTier: Long,
     progress: Float
 ) {
-    // Colors matching the reference image (Reddish-Orange Gradient)
-    val gradientColors = listOf(Color(0xFFE64A19), Color(0xFFFF7043)) // Deep Orange to Light Orange
+    val tierColors = when (currentTier) {
+        "Bronze" -> Pair(Color(0xFFFF6B35), Color(0xFFFF8C42))
+        "Silver" -> Pair(Color(0xFFC0C0C0), Color(0xFFE8E8E8))
+        "Gold" -> Pair(Color(0xFFFFD700), Color(0xFFFFF8DC))
+        else -> Pair(Greenish, Color(0xFF90EE90))
+    }
 
     Box(
         modifier = Modifier
@@ -217,86 +207,74 @@ private fun PointsSummaryCard(
             .clip(RoundedCornerShape(16.dp))
             .background(
                 Brush.horizontalGradient(
-                    colors = gradientColors
+                    colors = listOf(tierColors.first, tierColors.second)
                 )
             )
             .padding(20.dp)
     ) {
-        Column {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // Tier Icon (Hexagon)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column {
+                // Tier Icon Placeholder
                 Box(
                     modifier = Modifier
-                        .size(48.dp)
-                        .clip(androidx.compose.foundation.shape.GenericShape { size, _ ->
-                            val width = size.width
-                            val height = size.height
-                            val radius = width.coerceAtMost(height) / 2
-                            val centerX = width / 2
-                            val centerY = height / 2
-
-                            moveTo(centerX + radius * kotlin.math.cos(0.0).toFloat(), centerY + radius * kotlin.math.sin(0.0).toFloat())
-                            for (i in 1 until 6) {
-                                val angle = Math.toRadians(60.0 * i).toFloat()
-                                lineTo(centerX + radius * kotlin.math.cos(angle.toDouble()).toFloat(), centerY + radius * kotlin.math.sin(angle.toDouble()).toFloat())
-                            }
-                            close()
-                        })
-                        .background(Color.White.copy(alpha = 0.2f)),
+                        .size(60.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(Color.White.copy(alpha = 0.3f)),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Star,
-                        contentDescription = null,
-                        tint = Color.White,
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
-
-                Spacer(modifier = Modifier.width(16.dp))
-
-                Column {
                     Text(
-                        text = currentTier,
-                        fontSize = 14.sp,
-                        color = White.copy(alpha = 0.9f)
-                    )
-                    Text(
-                        text = "$userPoints Points",
-                        fontSize = 28.sp,
+                        text = currentTier.first().toString(),
+                        fontSize = 24.sp,
                         fontWeight = FontWeight.Bold,
                         color = White
                     )
                 }
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = currentTier,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = White
+                )
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
-
-            if (pointsToNextTier > 0) {
+            Column(
+                horizontalAlignment = Alignment.End
+            ) {
                 Text(
-                    text = "Earn $pointsToNextTier more point(s) to reach $nextTier",
-                    fontSize = 14.sp,
-                    color = White.copy(alpha = 0.9f)
+                    text = "$userPoints Points",
+                    fontSize = 32.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = White
                 )
                 Spacer(modifier = Modifier.height(8.dp))
-                LinearProgressIndicator(
-                    progress = progress,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(6.dp)
-                        .clip(RoundedCornerShape(3.dp)),
-                    color = White,
-                    trackColor = White.copy(alpha = 0.3f)
-                )
-            } else {
-                Text(
-                    text = "You've reached the highest tier!",
-                    fontSize = 14.sp,
-                    color = White.copy(alpha = 0.9f)
-                )
+                if (pointsToNextTier > 0) {
+                    Text(
+                        text = "Earn $pointsToNextTier more point(s) to reach $nextTier.",
+                        fontSize = 12.sp,
+                        color = White.copy(alpha = 0.9f)
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    LinearProgressIndicator(
+                        progress = progress,
+                        modifier = Modifier
+                            .width(200.dp)
+                            .height(8.dp)
+                            .clip(RoundedCornerShape(4.dp)),
+                        color = White,
+                        trackColor = White.copy(alpha = 0.3f)
+                    )
+                } else {
+                    Text(
+                        text = "You've reached the highest tier!",
+                        fontSize = 12.sp,
+                        color = White.copy(alpha = 0.9f)
+                    )
+                }
             }
         }
     }
@@ -376,22 +354,6 @@ private fun PointDealCard(deal: PointDealModel, userPoints: Long) {
         "Gold" -> Color(0xFFFFD700)
         else -> Greenish
     }
-    
-    // Define Hexagon Shape
-    val hexagonShape = androidx.compose.foundation.shape.GenericShape { size, _ ->
-        val width = size.width
-        val height = size.height
-        val radius = width.coerceAtMost(height) / 2
-        val centerX = width / 2
-        val centerY = height / 2
-
-        moveTo(centerX + radius * kotlin.math.cos(0.0).toFloat(), centerY + radius * kotlin.math.sin(0.0).toFloat())
-        for (i in 1 until 6) {
-            val angle = Math.toRadians(60.0 * i).toFloat()
-            lineTo(centerX + radius * kotlin.math.cos(angle.toDouble()).toFloat(), centerY + radius * kotlin.math.sin(angle.toDouble()).toFloat())
-        }
-        close()
-    }
 
     Card(
         modifier = Modifier
@@ -401,96 +363,95 @@ private fun PointDealCard(deal: PointDealModel, userPoints: Long) {
         colors = CardDefaults.cardColors(containerColor = White),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
-        Box(modifier = Modifier.padding(16.dp)) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.weight(1f),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Tier Icon (Hexagon)
+                // Tier Icon
                 Box(
                     modifier = Modifier
-                        .size(60.dp)
-                        .clip(hexagonShape)
-                        .background(tierColor),
+                        .size(50.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(tierColor.copy(alpha = 0.2f)),
                     contentAlignment = Alignment.Center
                 ) {
-                    // Star Icon inside
-                     Icon(
-                        imageVector = Icons.Default.Star,
-                        contentDescription = null,
-                        tint = Color.White,
-                        modifier = Modifier.size(24.dp)
+                    Text(
+                        text = deal.tier.first().toString(),
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = tierColor
                     )
                 }
 
-                Spacer(modifier = Modifier.width(16.dp))
+                Spacer(modifier = Modifier.width(12.dp))
 
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "${deal.tier} DEAL".uppercase(),
+                        text = "${deal.tier} DEAL",
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFFFF6B35) // Reddish orange
+                        color = Color.Gray
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         text = deal.offer,
-                        fontSize = 18.sp,
+                        fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color.Black
                     )
                     Spacer(modifier = Modifier.height(4.dp))
-                    // Validity Pill
-                    Box(
-                        modifier = Modifier
-                            .background(Color(0xFFF0F0F0), RoundedCornerShape(4.dp))
-                            .padding(horizontal = 8.dp, vertical = 4.dp)
-                    ) {
-                        Text(
-                            text = "Valid till $validTillDate",
-                            fontSize = 10.sp,
-                            color = Color.Gray
-                        )
-                    }
+                    Text(
+                        text = "Valid till $validTillDate",
+                        fontSize = 10.sp,
+                        color = Color.Gray
+                    )
                 }
             }
-            
-            // Category Badge (Top Right)
-            Box(
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .background(Color(0xFFFFE0E0), RoundedCornerShape(4.dp)) // Light pink background
-                    .padding(horizontal = 8.dp, vertical = 2.dp)
-            ) {
-                Text(
-                    text = deal.serviceCategory.uppercase(),
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFFD32F2F) // Red text
-                )
-            }
 
-            // Points Button (Bottom Right)
-            Button(
-                onClick = { /* Handle redemption */ },
-                enabled = canRedeem,
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(top = 40.dp) // Push down to avoid overlap
-                    .height(32.dp),
-                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFFFF8A80), // Salmon/Red color
-                    disabledContainerColor = Color.LightGray
-                ),
-                shape = RoundedCornerShape(16.dp)
+            Column(
+                horizontalAlignment = Alignment.End,
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Text(
-                    text = "${deal.pointsRequired} Points",
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = White
-                )
+                // Service Category Badge
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(Greenish.copy(alpha = 0.1f))
+                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                ) {
+                    Text(
+                        text = deal.serviceCategory,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Greenish
+                    )
+                }
+
+                // Points Required Button
+                Button(
+                    onClick = { /* Handle redemption */ },
+                    enabled = canRedeem,
+                    modifier = Modifier.width(100.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (canRedeem) Greenish else Color.Gray,
+                        disabledContainerColor = Color.LightGray
+                    ),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text(
+                        text = "${deal.pointsRequired} Points",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = White
+                    )
+                }
             }
         }
     }

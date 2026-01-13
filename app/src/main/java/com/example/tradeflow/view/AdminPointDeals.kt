@@ -224,7 +224,7 @@ fun AddDealDialog(onDismiss: () -> Unit, onAdd: (PointDealModel) -> Unit) {
                 OutlinedTextField(
                     value = discountAmount,
                     onValueChange = { discountAmount = it },
-                    label = { Text("Discount Amount") },
+                    label = { Text("Deal") },
                     modifier = Modifier.fillMaxWidth()
                 )
 

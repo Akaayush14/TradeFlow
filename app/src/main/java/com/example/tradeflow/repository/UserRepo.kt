@@ -1,5 +1,6 @@
 package com.example.tradeflow.repository
 
+import com.google.firebase.database.ValueEventListener
 import com.example.tradeflow.model.UserModel
 import com.google.firebase.auth.FirebaseUser
 
@@ -33,9 +34,12 @@ interface UserRepo {
     fun getUserById(
         userId: String,
         callback:(Boolean, String, UserModel?) -> Unit
-    )
+    ): ValueEventListener
 
-    fun getAllUser(callback: (Boolean, String, List<UserModel>?) -> Unit)
+    fun getAllUser(callback: (Boolean, String, List<UserModel>?) -> Unit): ValueEventListener
+
+
+    fun removeUserListener(listener: ValueEventListener)
 
     fun deleteUser(
         userId: String,
@@ -58,6 +62,8 @@ interface UserRepo {
         pointsToAdd: Long,
         callback: (Boolean, String) -> Unit
     )
+
+
 
 
 }

@@ -51,6 +51,9 @@ dependencies {
     implementation("androidx.media3:media3-ui:1.2.0")
     implementation("com.cloudinary:cloudinary-android:2.1.0")
 
+
+
+
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
@@ -64,6 +67,7 @@ dependencies {
     implementation(libs.firebase.storage)
     implementation(libs.androidx.navigation.compose)
     implementation(libs.firebase.storage.ktx)
+    implementation(libs.androidx.room.ktx)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -74,5 +78,7 @@ dependencies {
     //use for videocam//
     implementation(libs.androidx.compose.material)
     implementation(libs.androidx.compose.material.icons.extended)
+    //
+
 
 }

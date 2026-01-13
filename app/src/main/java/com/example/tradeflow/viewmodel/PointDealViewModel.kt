@@ -6,7 +6,7 @@ import com.example.tradeflow.model.PointDealModel
 import com.example.tradeflow.repository.PointDealRepo
 
 class PointDealViewModel(val repo: PointDealRepo) : ViewModel() {
-    
+
     private val _allDeals = MutableLiveData<List<PointDealModel>?>()
     val allDeals: MutableLiveData<List<PointDealModel>?> get() = _allDeals
 
@@ -55,6 +55,3 @@ class PointDealViewModel(val repo: PointDealRepo) : ViewModel() {
         }
     }
 }
-
-
-

@@ -28,6 +28,7 @@ import com.example.tradeflow.ui.theme.Greenish
 import com.example.tradeflow.ui.theme.Transparent
 import com.example.tradeflow.ui.theme.White
 import com.example.tradeflow.model.ProductModel
+import com.example.tradeflow.view.ChatScreen
 
 class UserDashboard : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -81,6 +82,7 @@ fun DashboardPageBody() {
     var addItemMode by remember { mutableStateOf(AddItemMode.ADD) }
     var editingProduct by remember { mutableStateOf<ProductModel?>(null) }
     var showEditSuccess by remember { mutableStateOf(false) }
+    var chatUserId by remember { mutableStateOf("") }
 
     val listItem = listOf(
         NavItem(label = "Explore", R.drawable.explore, R.drawable.explore_filled),
@@ -127,7 +129,14 @@ fun DashboardPageBody() {
         ) {
             when (selectedIndex) {
                 0 -> UserExploreScreen()
-                1 -> UserInboxScreen(onBackClick = { selectedIndex = 0 })
+                //changes
+                1 -> UserInboxScreen(
+                    onBackClick = { selectedIndex = 0 },
+                    onChatClick = { userId ->
+                        chatUserId = userId
+                        selectedIndex = 5
+                    }
+                )
                 2 -> UserAddItemScreen(
                     mode = addItemMode,
                     initialProduct = editingProduct,
@@ -153,6 +162,12 @@ fun DashboardPageBody() {
                     },
                     showEditSuccess = showEditSuccess,
                     onSnackbarShown = { showEditSuccess = false }
+                )
+
+                //add this for chatscreen
+                5 -> ChatScreen(
+                    receiverId = chatUserId,
+                    onBackClick = { selectedIndex = 1 }
                 )
                 else -> UserExploreScreen()
             }

@@ -15,6 +15,7 @@ firebaseDatabase = "22.0.1"
 firebaseFirestoreKtx = "26.0.2"
 firebaseStorage = "21.0.1"
 firebaseStorageKtx = "21.0.1"
+roomKtx = "2.8.4"
 
 
 [libraries]
@@ -41,6 +42,7 @@ androidx-compose-material = { group = "androidx.compose.material", name = "mater
 androidx-compose-material-icons-extended = { group = "androidx.compose.material", name = "material-icons-extended" }
 firebase-firestore-ktx = { group = "com.google.firebase", name = "firebase-firestore-ktx", version.ref = "firebaseFirestoreKtx" }
 firebase-storage-ktx = { group = "com.google.firebase", name = "firebase-storage-ktx", version.ref = "firebaseStorageKtx" }
+androidx-room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "roomKtx" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

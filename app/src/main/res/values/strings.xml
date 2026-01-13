@@ -32,4 +32,7 @@
     <string name="title_activity_user_profile">UserProfile</string>
     <string name="title_activity_user_setting_notification">UserSettingNotification</string>
     <string name="title_activity_user_chat_bot">UserChatBotActivity</string>
+    <string name="title_activity_chat_list">ChatList</string>
+    <string name="title_activity_chat_screen">ChatScreen</string>
+    <string name="title_activity_call_screen">CallScreen</string>
 </resources>

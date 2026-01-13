@@ -9,8 +9,12 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import com.google.firebase.database.ValueEventListener
 
 class UserViewModel( val repo: UserRepo): ViewModel(){
+    private var userListener: ValueEventListener? = null
+    private var allUsersListener: ValueEventListener? = null
+
     fun login(
         email:String, password:String,
         callback:(Boolean, String) -> Unit
@@ -53,8 +57,11 @@ class UserViewModel( val repo: UserRepo): ViewModel(){
     fun getUserById(
         userId: String
     ){
+        // Remove previous listener if any
+        userListener?.let { repo.removeUserListener(it) }
+
         viewModelScope.launch {
-            repo.getUserById(userId) { success, msg, data ->
+            userListener = repo.getUserById(userId) { success, msg, data ->
                 if(success){
                     _users.value = data
                 }else{
@@ -66,8 +73,10 @@ class UserViewModel( val repo: UserRepo): ViewModel(){
 
     fun getAllUser()
     {
+        if (allUsersListener != null) return // Already listening
+
         viewModelScope.launch {
-            repo.getAllUser { success, message, data ->
+            allUsersListener = repo.getAllUser { success, message, data ->
                 if(success){
                     _allUsers.value = data
                 }else{
@@ -75,6 +84,12 @@ class UserViewModel( val repo: UserRepo): ViewModel(){
                 }
             }
         }
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        userListener?.let { repo.removeUserListener(it) }
+        allUsersListener?.let { repo.removeUserListener(it) }
     }
 
     fun deleteUser(

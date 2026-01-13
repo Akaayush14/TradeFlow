@@ -83,8 +83,8 @@ class UserRepoImpl: UserRepo{
     override fun getUserById(
         userId: String,
         callback: (Boolean, String, UserModel?) -> Unit
-    ) {
-        ref.child(userId).addValueEventListener(object: ValueEventListener{
+    ): ValueEventListener {
+        val listener = object: ValueEventListener{
             override fun onDataChange(snapshot: DataSnapshot) {
                 if (snapshot.exists()) {
                     val user=snapshot.getValue(UserModel::class.java)
@@ -100,11 +100,13 @@ class UserRepoImpl: UserRepo{
             override fun onCancelled(error: DatabaseError) {
                 callback(false,error.message,null)
             }
-        })
+        }
+        ref.child(userId).addValueEventListener(listener)
+        return listener
     }
 
-    override fun getAllUser(callback: (Boolean, String, List<UserModel>?) -> Unit) {
-        ref.addValueEventListener(object : ValueEventListener {
+    override fun getAllUser(callback: (Boolean, String, List<UserModel>?) -> Unit): ValueEventListener {
+        val listener = object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 try {
                     if(snapshot.exists()){
@@ -163,7 +165,13 @@ class UserRepoImpl: UserRepo{
             override fun onCancelled(error: DatabaseError) {
                 callback(false, error.message ?: "Unknown error", null)
             }
-        })
+        }
+        ref.addValueEventListener(listener)
+        return listener
+    }
+
+    override fun removeUserListener(listener: ValueEventListener) {
+        ref.removeEventListener(listener)
     }
 
     override fun deleteUser(
