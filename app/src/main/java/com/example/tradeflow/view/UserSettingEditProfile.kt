@@ -17,7 +17,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -36,26 +35,13 @@ import androidx.compose.ui.window.Dialog
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.example.tradeflow.R
+import com.example.tradeflow.countries
+import com.example.tradeflow.viewmodel.UserViewModel
+import com.example.tradeflow.repository.UserRepoImpl
+import com.google.firebase.auth.FirebaseAuth
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
-
-// Data class for country codes (similar to RegisterActivity)
-data class Country(
-    val name: String,
-    val code: String,
-    val flag: String
-)
-
-val countries = listOf(
-    Country("United States", "+1", "🇺🇸"),
-    Country("Nigeria", "+234", "🇳🇬"),
-    Country("United Kingdom", "+44", "🇬🇧"),
-    Country("India", "+91", "🇮🇳"),
-    Country("Nepal", "+977", "🇳🇵"),
-    Country("China", "+86", "🇨🇳"),
-    Country("Bangladesh", "+880", "🇧🇩"),
-    Country("New Zealand", "+64", "🇳🇿")
-)
 
 class UserSettingEditProfile : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -69,20 +55,36 @@ class UserSettingEditProfile : ComponentActivity() {
 
 @Composable
 fun UserSettingEditProfileScreen(navController: NavController) {
-    var name by remember { mutableStateOf("") }
-    var phone by remember { mutableStateOf("") }
-    var gender by remember { mutableStateOf("") }
-    var location by remember { mutableStateOf("") } // Changed from country to location
-    var dob by remember { mutableStateOf("") }
-    var selectedCountry by remember {
-        mutableStateOf(
-            countries.first { it.name == "Nepal" } // Default to Nepal
-        )
-    }
-    var showCountryDialog by remember { mutableStateOf(false) }
-
     val context = LocalContext.current
     val activity = context as? ComponentActivity
+
+    // Initialize ViewModel
+    val userViewModel = remember { UserViewModel(UserRepoImpl()) }
+    val coroutineScope = rememberCoroutineScope()
+
+    // Get current user
+    val currentUser = FirebaseAuth.getInstance().currentUser
+    val userId = currentUser?.uid ?: ""
+
+    // User data state
+    val userData by userViewModel.users.collectAsState()
+
+    // Form states
+    var name by remember { mutableStateOf("") }
+    var phoneNumber by remember { mutableStateOf("") } // Just the number part
+    var location by remember { mutableStateOf("") }
+    var gender by remember { mutableStateOf("") }
+    var dob by remember { mutableStateOf("") }
+    var selectedCountry by remember { mutableStateOf(countries.first { it.name == "Nepal" }) }
+    var showCountryDialog by remember { mutableStateOf(false) }
+
+    // UI states
+    var isLoading by remember { mutableStateOf(false) }
+    var showSuccessDialog by remember { mutableStateOf(false) }
+    var showErrorDialog by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf("") }
+
+    // Date picker
     val calendar = Calendar.getInstance()
     val datePickerDialog = DatePickerDialog(
         context,
@@ -96,6 +98,97 @@ fun UserSettingEditProfileScreen(navController: NavController) {
         calendar.get(Calendar.MONTH),
         calendar.get(Calendar.DAY_OF_MONTH)
     )
+
+    // Fetch user data when screen loads
+    LaunchedEffect(userId) {
+        if (userId.isNotEmpty()) {
+            userViewModel.getUserById(userId)
+        }
+    }
+
+    // Populate form when user data is fetched
+    LaunchedEffect(userData) {
+        userData?.let { user ->
+            // Set name
+            name = user.name
+
+            // Parse phone number
+            if (user.phone.isNotEmpty()) {
+                val (country, number) = PhoneParser.parseFullPhone(user.phone)
+                selectedCountry = country
+                phoneNumber = number
+            }
+
+            // Note: Add location field to UserModel if you want to store it
+            // For now, we'll leave it empty or add it to your UserModel
+            // location = user.location ?: ""
+        }
+    }
+
+    // Validation function
+    fun validateForm(): Boolean {
+        var isValid = true
+
+        if (name.isBlank()) {
+            // You could show error message here
+            isValid = false
+        }
+
+        if (phoneNumber.isBlank() || !PhoneParser.isValidPhoneNumber(phoneNumber)) {
+            isValid = false
+        }
+
+        return isValid
+    }
+
+    // Save function
+    fun saveProfile() {
+        if (!validateForm()) {
+            errorMessage = "Please fill all required fields correctly"
+            showErrorDialog = true
+            return
+        }
+
+        isLoading = true
+
+        // Prepare updates (only changed fields)
+        val updates = mutableMapOf<String, Any>()
+
+        // Check and add name if changed
+        if (userData?.name != name) {
+            updates["name"] = name.trim()
+        }
+
+        // Check and add phone if changed
+        val fullPhone = PhoneParser.combinePhone(selectedCountry, phoneNumber)
+        if (userData?.phone != fullPhone) {
+            updates["phone"] = fullPhone
+        }
+
+        // Add location if you have it in UserModel
+        // if (userData?.location != location) {
+        //     updates["location"] = location.trim()
+        // }
+
+        // Only update if there are changes
+        if (updates.isNotEmpty()) {
+            userViewModel.updateUserProfile(userId, updates) { success, message ->
+                isLoading = false
+
+                if (success) {
+                    // Refresh user data to get updated values
+                    userViewModel.getUserById(userId)
+                    showSuccessDialog = true
+                } else {
+                    errorMessage = message
+                    showErrorDialog = true
+                }
+            }
+        } else {
+            isLoading = false
+            showSuccessDialog = true // No changes needed
+        }
+    }
 
     Column(modifier = Modifier.fillMaxSize()) {
         Box(
@@ -114,7 +207,6 @@ fun UserSettingEditProfileScreen(navController: NavController) {
         ) {
             IconButton(
                 onClick = {
-                    // Check if we can pop back in navigation, otherwise finish activity
                     if (navController.previousBackStackEntry != null) {
                         navController.popBackStack()
                     } else {
@@ -133,6 +225,7 @@ fun UserSettingEditProfileScreen(navController: NavController) {
                 modifier = Modifier.align(Alignment.Center)
             )
         }
+
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -165,7 +258,9 @@ fun UserSettingEditProfileScreen(navController: NavController) {
                 )
             }
         }
+
         Spacer(modifier = Modifier.height(16.dp))
+
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -177,14 +272,15 @@ fun UserSettingEditProfileScreen(navController: NavController) {
                 value = name,
                 onValueChange = { name = it },
                 label = { Text("Name") },
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                enabled = !isLoading
             )
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Country Code Picker Button (similar to RegisterActivity)
+                // Country Code Picker Button
                 Box(
                     modifier = Modifier
                         .width(100.dp)
@@ -193,7 +289,7 @@ fun UserSettingEditProfileScreen(navController: NavController) {
                             color = Color(0xFFF5F5F5),
                             shape = RoundedCornerShape(10.dp)
                         )
-                        .clickable {
+                        .clickable(enabled = !isLoading) {
                             showCountryDialog = true
                         },
                     contentAlignment = Alignment.Center
@@ -209,21 +305,23 @@ fun UserSettingEditProfileScreen(navController: NavController) {
 
                 // Phone Number Input
                 OutlinedTextField(
-                    value = phone,
-                    onValueChange = { phone = it },
+                    value = phoneNumber,
+                    onValueChange = { phoneNumber = it },
                     modifier = Modifier.weight(1f),
                     shape = RoundedCornerShape(10.dp),
-                    placeholder = { Text(text = "Enter phone number") }
+                    placeholder = { Text(text = "Enter phone number") },
+                    enabled = !isLoading
                 )
             }
 
-            // Location Field (replacing country selection)
+            // Location Field
             OutlinedTextField(
                 value = location,
                 onValueChange = { location = it },
                 label = { Text("Location") },
                 modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text("Enter your location") }
+                placeholder = { Text("Enter your location") },
+                enabled = !isLoading
             )
 
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -231,7 +329,8 @@ fun UserSettingEditProfileScreen(navController: NavController) {
                     value = gender,
                     onValueChange = { gender = it },
                     label = { Text("Gender") },
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
+                    enabled = !isLoading
                 )
 
                 OutlinedTextField(
@@ -241,37 +340,35 @@ fun UserSettingEditProfileScreen(navController: NavController) {
                     readOnly = true,
                     modifier = Modifier
                         .weight(1f)
-                        .clickable { datePickerDialog.show() }
+                        .clickable(enabled = !isLoading) { datePickerDialog.show() },
+                    enabled = !isLoading
                 )
             }
 
             Spacer(modifier = Modifier.height(24.dp))
 
+            // Save Button
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(52.dp)
                     .clip(RoundedCornerShape(14.dp))
-                    .background(
-                        Brush.horizontalGradient(
-                            colors = listOf(
-                                Color(0xFF005F56),
-                                Color(0xFF007D70),
-                                Color(0xFF4DB6AC)
-                            )
-                        )
-                    )
-                    .clickable {
-                        // Save changes logic here
+                    .background(Color(0xFF005F56))
+                    .clickable(enabled = !isLoading) {
+                        saveProfile()
                     },
                 contentAlignment = Alignment.Center
             ) {
-                Text("Save Changes", color = Color.White, fontSize = 16.sp)
+                if (isLoading) {
+                    Text("Saving...", color = Color.White, fontSize = 16.sp)
+                } else {
+                    Text("Save Changes", color = Color.White, fontSize = 16.sp)
+                }
             }
         }
     }
 
-    // Country Dialog (similar to RegisterActivity)
+    // Country Dialog
     if (showCountryDialog) {
         Dialog(onDismissRequest = { showCountryDialog = false }) {
             Column(
@@ -312,6 +409,41 @@ fun UserSettingEditProfileScreen(navController: NavController) {
                 }
             }
         }
+    }
+
+    // Success Dialog
+    if (showSuccessDialog) {
+        AlertDialog(
+            onDismissRequest = { showSuccessDialog = false },
+            title = { Text("Success") },
+            text = { Text("Profile updated successfully!") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showSuccessDialog = false
+                        navController.popBackStack()
+                    }
+                ) {
+                    Text("OK")
+                }
+            }
+        )
+    }
+
+    // Error Dialog
+    if (showErrorDialog) {
+        AlertDialog(
+            onDismissRequest = { showErrorDialog = false },
+            title = { Text("Error") },
+            text = { Text(errorMessage) },
+            confirmButton = {
+                Button(
+                    onClick = { showErrorDialog = false }
+                ) {
+                    Text("OK")
+                }
+            }
+        )
     }
 }
 

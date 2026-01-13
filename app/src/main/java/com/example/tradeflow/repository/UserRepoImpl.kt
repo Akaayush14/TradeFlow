@@ -235,5 +235,19 @@ class UserRepoImpl: UserRepo{
             }
         }
     }
+    override fun updateUserProfile(
+        userId: String,
+        updates: Map<String, Any>,
+        callback: (Boolean, String) -> Unit
+    ) {
+        ref.child(userId).updateChildren(updates)
+            .addOnCompleteListener { task ->
+                if (task.isSuccessful) {
+                    callback(true, "Profile updated successfully")
+                } else {
+                    callback(false, task.exception?.message ?: "Update failed")
+                }
+            }
+    }
 
 }
