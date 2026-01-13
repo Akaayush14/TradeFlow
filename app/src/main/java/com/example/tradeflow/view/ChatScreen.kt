@@ -1,5 +1,3 @@
-
-
 package com.example.tradeflow.view
 
 import androidx.compose.foundation.background
