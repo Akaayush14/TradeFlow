@@ -5,11 +5,9 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -28,9 +26,12 @@ import coil.compose.AsyncImage
 import com.example.tradeflow.R
 import com.example.tradeflow.model.ProductModel
 import com.example.tradeflow.model.UserModel
+import com.example.tradeflow.repository.UserNotificationRepoImpl
+import com.example.tradeflow.repository.UserRepoImpl
 import com.example.tradeflow.ui.theme.Greenish
 import com.example.tradeflow.ui.theme.White
 import com.example.tradeflow.viewmodel.UserNotificationViewModel
+import com.example.tradeflow.viewmodel.UserViewModel
 import com.google.firebase.auth.FirebaseAuth
 import java.text.SimpleDateFormat
 import java.util.*
@@ -50,19 +51,24 @@ class RentalRequestActivity : ComponentActivity() {
 fun RentalRequestScreen() {
     val context = LocalContext.current
     val activity = context as? RentalRequestActivity
-    
+
     // Get passed data from intent
-    val product = (context as? RentalRequestActivity)?.intent?.getSerializableExtra("product") as? ProductModel
-    val owner = (context as? RentalRequestActivity)?.intent?.getSerializableExtra("owner") as? UserModel
-    
-    val notificationViewModel = UserNotificationViewModel(
-        com.example.tradeflow.repository.UserNotificationRepoImpl()
-    )
-    
+    val product = activity?.intent?.getSerializableExtra("product") as? ProductModel
+    val owner = activity?.intent?.getSerializableExtra("owner") as? UserModel
+
+    // Initialize ViewModels
+    val notificationViewModel = remember {
+        UserNotificationViewModel(UserNotificationRepoImpl())
+    }
+    val userViewModel = remember {
+        UserViewModel(UserRepoImpl())
+    }
+
     val currentUser = FirebaseAuth.getInstance().currentUser
     val currentUserId = currentUser?.uid ?: ""
-    
+
     // State management
+    var currentUserData by remember { mutableStateOf<UserModel?>(null) }
     var selectedStartDate by remember { mutableStateOf<Long?>(null) }
     var selectedEndDate by remember { mutableStateOf<Long?>(null) }
     var rentalDays by remember { mutableStateOf(0) }
@@ -72,7 +78,18 @@ fun RentalRequestScreen() {
     var showSuccessDialog by remember { mutableStateOf(false) }
     var showErrorDialog by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf("") }
-    
+
+    // Load current user data
+    LaunchedEffect(currentUserId) {
+        if (currentUserId.isNotEmpty()) {
+            userViewModel.getUserById(currentUserId) { success, _, user ->
+                if (success && user != null) {
+                    currentUserData = user
+                }
+            }
+        }
+    }
+
     // Calculate rental details when dates change
     LaunchedEffect(selectedStartDate, selectedEndDate) {
         if (selectedStartDate != null && selectedEndDate != null) {
@@ -80,7 +97,7 @@ fun RentalRequestScreen() {
             totalPrice = (product?.price ?: 0.0) * rentalDays
         }
     }
-    
+
     // Date pickers
     val startDatePicker = DatePickerDialog(
         context,
@@ -97,7 +114,7 @@ fun RentalRequestScreen() {
         Calendar.getInstance().get(Calendar.MONTH),
         Calendar.getInstance().get(Calendar.DAY_OF_MONTH)
     )
-    
+
     val endDatePicker = DatePickerDialog(
         context,
         { _, year, month, day ->
@@ -109,22 +126,22 @@ fun RentalRequestScreen() {
         Calendar.getInstance().get(Calendar.MONTH),
         Calendar.getInstance().get(Calendar.DAY_OF_MONTH)
     )
-    
+
     // Disable past dates
     startDatePicker.datePicker.minDate = System.currentTimeMillis() - 1000
     if (selectedStartDate != null) {
         endDatePicker.datePicker.minDate = selectedStartDate!! + 1000
     }
-    
+
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { 
+                title = {
                     Text(
-                        "Rental Request", 
-                        color = White, 
+                        "Rental Request",
+                        color = White,
                         fontWeight = FontWeight.Bold
-                    ) 
+                    )
                 },
                 navigationIcon = {
                     IconButton(onClick = { activity?.finish() }) {
@@ -148,7 +165,7 @@ fun RentalRequestScreen() {
             item {
                 ProductSummaryCard(product = product)
             }
-            
+
             // Duration Selection
             item {
                 DurationSelectionSection(
@@ -157,14 +174,14 @@ fun RentalRequestScreen() {
                     rentalDays = rentalDays,
                     totalPrice = totalPrice,
                     onStartDateClick = { startDatePicker.show() },
-                    onEndDateClick = { 
+                    onEndDateClick = {
                         if (selectedStartDate != null) {
                             endDatePicker.show()
                         }
                     }
                 )
             }
-            
+
             // Message
             item {
                 MessageSection(
@@ -172,7 +189,7 @@ fun RentalRequestScreen() {
                     onMessageChange = { message = it }
                 )
             }
-            
+
             // Action Button
             item {
                 ActionButton(
@@ -181,22 +198,34 @@ fun RentalRequestScreen() {
                     rentalDays = rentalDays,
                     totalPrice = totalPrice,
                     onClick = {
-                        if (product != null && owner != null) {
+                        val productData = product
+                        val ownerData = owner
+                        val userData = currentUserData
+
+                        // Null checks before sending request
+                        if (productData == null) {
+                            errorMessage = "Product information not available"
+                            showErrorDialog = true
+                        } else if (ownerData == null) {
+                            errorMessage = "Owner information not available"
+                            showErrorDialog = true
+                        } else if (userData == null) {
+                            errorMessage = "User information not available. Please try again."
+                            showErrorDialog = true
+                        } else if (selectedStartDate == null || selectedEndDate == null) {
+                            errorMessage = "Please select start and end dates"
+                            showErrorDialog = true
+                        } else {
                             isLoading = true
                             notificationViewModel.createItemRequest(
-                                product = product!!,
-                                owner = owner!!,
-                                requester = UserModel(
-                                    userId = currentUserId,
-                                    name = currentUser?.displayName ?: "",
-                                    email = currentUser?.email ?: "",
-                                    profileImageUrl = currentUser?.photoUrl?.toString() ?: ""
-                                ),
+                                product = productData,
+                                owner = ownerData,
+                                requester = userData,
                                 requestType = "RENT",
                                 message = message,
-                                rentalStartDate = selectedStartDate ?: 0L,
-                                rentalEndDate = selectedEndDate ?: 0L,
-                                rentalPricePerDay = product!!.price
+                                rentalStartDate = selectedStartDate!!,
+                                rentalEndDate = selectedEndDate!!,
+                                rentalPricePerDay = productData.price
                             ) { success, msg ->
                                 isLoading = false
                                 if (success) {
@@ -212,35 +241,58 @@ fun RentalRequestScreen() {
             }
         }
     }
-    
+
     // Success Dialog
     if (showSuccessDialog) {
         AlertDialog(
-            onDismissRequest = { 
+            onDismissRequest = {
                 showSuccessDialog = false
                 activity?.finish()
             },
-            title = { Text("Request Sent!") },
-            text = { Text("Your rental request has been sent to the owner. You'll be notified when they respond.") },
+            title = {
+                Text(
+                    "Request Sent!",
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Text("Your rental request has been sent to the owner. You'll be notified when they respond.")
+            },
             confirmButton = {
-                TextButton(onClick = { 
-                    showSuccessDialog = false
-                    activity?.finish()
-                }) {
+                Button(
+                    onClick = {
+                        showSuccessDialog = false
+                        activity?.finish()
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Greenish
+                    )
+                ) {
                     Text("OK")
                 }
             }
         )
     }
-    
+
     // Error Dialog
     if (showErrorDialog) {
         AlertDialog(
             onDismissRequest = { showErrorDialog = false },
-            title = { Text("Error") },
+            title = {
+                Text(
+                    "Error",
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Red
+                )
+            },
             text = { Text(errorMessage) },
             confirmButton = {
-                TextButton(onClick = { showErrorDialog = false }) {
+                Button(
+                    onClick = { showErrorDialog = false },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Greenish
+                    )
+                ) {
                     Text("OK")
                 }
             }
@@ -269,7 +321,7 @@ fun ProductSummaryCard(product: ProductModel?) {
                     .clip(RoundedCornerShape(8.dp)),
                 error = painterResource(R.drawable.placeholderimage)
             )
-            
+
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = product?.name ?: "",
@@ -318,7 +370,7 @@ fun DurationSelectionSection(
                 fontWeight = FontWeight.Bold,
                 fontSize = 18.sp
             )
-            
+
             // Start Date
             DateSelectionRow(
                 label = "Start Date",
@@ -326,7 +378,7 @@ fun DurationSelectionSection(
                 onClick = onStartDateClick,
                 isEnabled = true
             )
-            
+
             // End Date
             DateSelectionRow(
                 label = "End Date",
@@ -334,7 +386,7 @@ fun DurationSelectionSection(
                 onClick = onEndDateClick,
                 isEnabled = selectedStartDate != null
             )
-            
+
             // Summary
             if (rentalDays > 0) {
                 Card(
@@ -361,9 +413,11 @@ fun DurationSelectionSection(
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Text("Total Price:")
-                            Text("$${String.format("%.2f", totalPrice)}", 
+                            Text(
+                                "$${String.format("%.2f", totalPrice)}",
                                 color = Greenish,
-                                fontWeight = FontWeight.Bold)
+                                fontWeight = FontWeight.Bold
+                            )
                         }
                     }
                 }
@@ -381,7 +435,7 @@ fun DateSelectionRow(
 ) {
     val dateFormat = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
     val dateStr = date?.let { dateFormat.format(Date(it)) } ?: "Select date"
-    
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -404,7 +458,7 @@ fun DateSelectionRow(
                 color = if (isEnabled) Color.Black else Color.Gray
             )
         }
-        
+
         Icon(
             Icons.Default.CalendarToday,
             contentDescription = "Calendar",
@@ -433,13 +487,18 @@ fun MessageSection(
                 fontSize = 16.sp,
                 modifier = Modifier.padding(bottom = 12.dp)
             )
-            
+
             OutlinedTextField(
                 value = message,
                 onValueChange = onMessageChange,
                 placeholder = { Text("Add a message for the owner...") },
                 modifier = Modifier.fillMaxWidth(),
-                maxLines = 3
+                minLines = 3,
+                maxLines = 5,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = Greenish,
+                    cursorColor = Greenish
+                )
             )
         }
     }

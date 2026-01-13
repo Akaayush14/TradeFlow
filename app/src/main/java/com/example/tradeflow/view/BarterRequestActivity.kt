@@ -21,20 +21,21 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
-import coil.compose.rememberAsyncImagePainter
 import com.example.tradeflow.R
 import com.example.tradeflow.model.ProductModel
 import com.example.tradeflow.model.UserModel
 import com.example.tradeflow.repository.ProductRepoImpl
+import com.example.tradeflow.repository.UserNotificationRepoImpl
+import com.example.tradeflow.repository.UserRepoImpl
 import com.example.tradeflow.ui.theme.Greenish
 import com.example.tradeflow.ui.theme.White
 import com.example.tradeflow.viewmodel.ProductViewModel
 import com.example.tradeflow.viewmodel.UserNotificationViewModel
+import com.example.tradeflow.viewmodel.UserViewModel
 import com.google.firebase.auth.FirebaseAuth
 import androidx.compose.ui.res.painterResource
 
@@ -52,20 +53,27 @@ class BarterRequestActivity : ComponentActivity() {
 fun BarterRequestScreen() {
     val context = LocalContext.current
     val activity = context as? BarterRequestActivity
-    
+
     // Get passed data from intent
-    val product = (context as? BarterRequestActivity)?.intent?.getSerializableExtra("product") as? ProductModel
-    val owner = (context as? BarterRequestActivity)?.intent?.getSerializableExtra("owner") as? UserModel
-    
-    val notificationViewModel = UserNotificationViewModel(
-        com.example.tradeflow.repository.UserNotificationRepoImpl()
-    )
-    val productViewModel = ProductViewModel(ProductRepoImpl())
-    
+    val product = activity?.intent?.getSerializableExtra("product") as? ProductModel
+    val owner = activity?.intent?.getSerializableExtra("owner") as? UserModel
+
+    // Initialize ViewModels
+    val notificationViewModel = remember {
+        UserNotificationViewModel(UserNotificationRepoImpl())
+    }
+    val productViewModel = remember {
+        ProductViewModel(ProductRepoImpl())
+    }
+    val userViewModel = remember {
+        UserViewModel(UserRepoImpl())
+    }
+
     val currentUser = FirebaseAuth.getInstance().currentUser
     val currentUserId = currentUser?.uid ?: ""
-    
+
     // State management
+    var currentUserData by remember { mutableStateOf<UserModel?>(null) }
     var userProducts by remember { mutableStateOf<List<ProductModel>>(emptyList()) }
     var selectedItems by remember { mutableStateOf<Set<String>>(emptySet()) }
     var message by remember { mutableStateOf("") }
@@ -74,7 +82,18 @@ fun BarterRequestScreen() {
     var showSuccessDialog by remember { mutableStateOf(false) }
     var showErrorDialog by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf("") }
-    
+
+    // Load current user data
+    LaunchedEffect(currentUserId) {
+        if (currentUserId.isNotEmpty()) {
+            userViewModel.getUserById(currentUserId) { success, _, user ->
+                if (success && user != null) {
+                    currentUserData = user
+                }
+            }
+        }
+    }
+
     // Load user's products
     LaunchedEffect(currentUserId) {
         if (currentUserId.isNotEmpty()) {
@@ -82,27 +101,27 @@ fun BarterRequestScreen() {
             productViewModel.getProductsByOwner(currentUserId)
         }
     }
-    
+
     // Observe user products
     val allProducts by productViewModel.allProducts.collectAsState()
     LaunchedEffect(allProducts) {
-        userProducts = allProducts.filter { 
-            it.isDeleted != true && 
-            it.status == "Available" && 
-            it.type == "Barter" // Only show barter items
+        userProducts = allProducts.filter {
+            it.isDeleted != true &&
+                    it.status == "Available" &&
+                    it.type == "Barter"
         }
         isLoadingProducts = false
     }
-    
+
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { 
+                title = {
                     Text(
-                        "Barter Request", 
-                        color = White, 
+                        "Barter Request",
+                        color = White,
                         fontWeight = FontWeight.Bold
-                    ) 
+                    )
                 },
                 navigationIcon = {
                     IconButton(onClick = { activity?.finish() }) {
@@ -122,24 +141,24 @@ fun BarterRequestScreen() {
                 .padding(16.dp)
         ) {
             // Product they want
-            product?.let { 
+            product?.let {
                 ProductWantCard(product = it, owner = owner)
             }
-            
+
             Spacer(modifier = Modifier.height(20.dp))
-            
+
             // Selection instruction
             SelectionInstructionCard(selectedCount = selectedItems.size)
-            
+
             Spacer(modifier = Modifier.height(16.dp))
-            
+
             // User's products to offer
             if (isLoadingProducts) {
                 Box(
                     modifier = Modifier.fillMaxWidth(),
                     contentAlignment = Alignment.Center
                 ) {
-                    CircularProgressIndicator()
+                    CircularProgressIndicator(color = Greenish)
                 }
             } else if (userProducts.isEmpty()) {
                 EmptyStateCard()
@@ -163,47 +182,57 @@ fun BarterRequestScreen() {
                     }
                 }
             }
-            
+
             Spacer(modifier = Modifier.height(16.dp))
-            
+
             // Message section
-            MessageSection(
+            BarterMessageSection(
                 message = message,
                 onMessageChange = { message = it }
             )
-            
+
             Spacer(modifier = Modifier.height(16.dp))
-            
+
             // Action button
             BarterActionButton(
                 isEnabled = selectedItems.isNotEmpty() && !isLoading,
                 isLoading = isLoading,
                 selectedCount = selectedItems.size,
                 onClick = {
-                    if (product != null && owner != null && selectedItems.isNotEmpty()) {
-                        val selectedProductList = userProducts.filter { 
-                            selectedItems.contains(it.productId) 
+                    val productData = product
+                    val ownerData = owner
+                    val userData = currentUserData
+
+                    // Null checks before sending request
+                    if (productData == null) {
+                        errorMessage = "Product information not available"
+                        showErrorDialog = true
+                    } else if (ownerData == null) {
+                        errorMessage = "Owner information not available"
+                        showErrorDialog = true
+                    } else if (userData == null) {
+                        errorMessage = "User information not available. Please try again."
+                        showErrorDialog = true
+                    } else if (selectedItems.isEmpty()) {
+                        errorMessage = "Please select at least one item to offer"
+                        showErrorDialog = true
+                    } else {
+                        val selectedProductList = userProducts.filter {
+                            selectedItems.contains(it.productId)
                         }
-                        
+
                         if (selectedProductList.isNotEmpty()) {
                             isLoading = true
-                            // For now, we'll use the first selected item
-                            // In future, you could support multiple items
                             val offerProduct = selectedProductList.first()
-                            
+
                             notificationViewModel.createItemRequest(
-                                    product = product!!,
-                                    owner = owner!!,
-                                    requester = UserModel(
-                                        userId = currentUserId,
-                                        name = currentUser?.displayName ?: "",
-                                        email = currentUser?.email ?: "",
-                                        profileImageUrl = currentUser?.photoUrl?.toString() ?: ""
-                                    ),
-                                    requestType = "BARTER",
-                                    message = message,
-                                    offerProduct = offerProduct
-                                ) { success, msg ->
+                                product = productData,
+                                owner = ownerData,
+                                requester = userData,
+                                requestType = "BARTER",
+                                message = message,
+                                offerProduct = offerProduct
+                            ) { success, msg ->
                                 isLoading = false
                                 if (success) {
                                     showSuccessDialog = true
@@ -218,35 +247,58 @@ fun BarterRequestScreen() {
             )
         }
     }
-    
+
     // Success Dialog
     if (showSuccessDialog) {
         AlertDialog(
-            onDismissRequest = { 
+            onDismissRequest = {
                 showSuccessDialog = false
                 activity?.finish()
             },
-            title = { Text("Barter Request Sent!") },
-            text = { Text("Your barter request has been sent to the owner. You'll be notified when they respond.") },
+            title = {
+                Text(
+                    "Barter Request Sent!",
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Text("Your barter request has been sent to the owner. You'll be notified when they respond.")
+            },
             confirmButton = {
-                TextButton(onClick = { 
-                    showSuccessDialog = false
-                    activity?.finish()
-                }) {
+                Button(
+                    onClick = {
+                        showSuccessDialog = false
+                        activity?.finish()
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Greenish
+                    )
+                ) {
                     Text("OK")
                 }
             }
         )
     }
-    
+
     // Error Dialog
     if (showErrorDialog) {
         AlertDialog(
             onDismissRequest = { showErrorDialog = false },
-            title = { Text("Error") },
+            title = {
+                Text(
+                    "Error",
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Red
+                )
+            },
             text = { Text(errorMessage) },
             confirmButton = {
-                TextButton(onClick = { showErrorDialog = false }) {
+                Button(
+                    onClick = { showErrorDialog = false },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Greenish
+                    )
+                ) {
                     Text("OK")
                 }
             }
@@ -272,7 +324,7 @@ fun ProductWantCard(product: ProductModel, owner: UserModel?) {
                 color = Color.Gray,
                 modifier = Modifier.padding(bottom = 8.dp)
             )
-            
+
             Row(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.CenterVertically
@@ -285,7 +337,7 @@ fun ProductWantCard(product: ProductModel, owner: UserModel?) {
                         .clip(RoundedCornerShape(8.dp)),
                     error = painterResource(R.drawable.placeholderimage)
                 )
-                
+
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = product.name,
@@ -303,7 +355,7 @@ fun ProductWantCard(product: ProductModel, owner: UserModel?) {
                         fontWeight = FontWeight.SemiBold
                     )
                 }
-                
+
                 Icon(
                     Icons.Default.SwapHoriz,
                     contentDescription = "Swap",
@@ -335,7 +387,7 @@ fun SelectionInstructionCard(selectedCount: Int) {
                 contentDescription = "Swap",
                 tint = Color(0xFF856404)
             )
-            
+
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = "Select items to offer in exchange",
@@ -343,9 +395,9 @@ fun SelectionInstructionCard(selectedCount: Int) {
                     color = Color(0xFF856404)
                 )
                 Text(
-                    text = if (selectedCount == 0) 
-                        "Choose from your available barter items below" 
-                    else 
+                    text = if (selectedCount == 0)
+                        "Choose from your available barter items below"
+                    else
                         "$selectedCount item${if (selectedCount > 1) "s" else ""} selected",
                     fontSize = 12.sp,
                     color = Color(0xFF856404)
@@ -378,8 +430,7 @@ fun EmptyStateCard() {
             Text(
                 text = "You don't have any available barter items to offer.\nAdd some items to your profile first!",
                 fontSize = 12.sp,
-                color = Color.Gray,
-                modifier = Modifier.padding(horizontal = 16.dp)
+                color = Color.Gray
             )
         }
     }
@@ -412,7 +463,8 @@ fun UserProductCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
             // Selection checkbox
             IconButton(
@@ -426,7 +478,7 @@ fun UserProductCard(
                     modifier = Modifier.fillMaxSize()
                 )
             }
-            
+
             // Product image
             AsyncImage(
                 model = product.imageUrl,
@@ -436,7 +488,7 @@ fun UserProductCard(
                     .clip(RoundedCornerShape(8.dp)),
                 error = painterResource(R.drawable.placeholderimage)
             )
-            
+
             // Product details
             Column(modifier = Modifier.weight(1f)) {
                 Text(
@@ -463,7 +515,7 @@ fun UserProductCard(
 }
 
 @Composable
-fun MessageSection(
+fun BarterMessageSection(
     message: String,
     onMessageChange: (String) -> Unit
 ) {
@@ -482,13 +534,18 @@ fun MessageSection(
                 fontSize = 16.sp,
                 modifier = Modifier.padding(bottom = 12.dp)
             )
-            
+
             OutlinedTextField(
                 value = message,
                 onValueChange = onMessageChange,
                 placeholder = { Text("Add a message for the owner...") },
                 modifier = Modifier.fillMaxWidth(),
-                maxLines = 3
+                minLines = 3,
+                maxLines = 5,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = Greenish,
+                    cursorColor = Greenish
+                )
             )
         }
     }
@@ -525,10 +582,12 @@ fun BarterActionButton(
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold
                 )
-                Text(
-                    text = "$selectedCount item${if (selectedCount > 1) "s" else ""} offered",
-                    fontSize = 12.sp
-                )
+                if (selectedCount > 0) {
+                    Text(
+                        text = "$selectedCount item${if (selectedCount > 1) "s" else ""} offered",
+                        fontSize = 12.sp
+                    )
+                }
             }
         }
     }
