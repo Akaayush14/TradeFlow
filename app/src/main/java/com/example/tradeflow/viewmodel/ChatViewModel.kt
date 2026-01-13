@@ -13,7 +13,6 @@ class ChatViewModel(val repo: ChatRepo) : ViewModel() {
 
     private val _messages = MutableStateFlow<List<MessageModel>>(emptyList())
     val messages: StateFlow<List<MessageModel>> = _messages.asStateFlow()
-
     fun sendTextMessage(
         receiverId: String,
         text: String,
