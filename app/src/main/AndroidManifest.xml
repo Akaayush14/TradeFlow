@@ -101,6 +101,17 @@
         </activity>
 
         <activity
+            android:name=".view.UserSettingEditProfile"
+            android:exported="true"
+            android:theme="@style/Theme.TradeFlow">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <activity
             android:name=".view.UserSettingNotification"
             android:exported="true"
             android:label="@string/title_activity_user_setting_notification"
@@ -118,16 +129,6 @@
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity>
-        <activity
-            android:name=".view.ChatBotActivity"
-            android:exported="true"
-            android:theme="@style/Theme.TradeFlow"
-            android:windowSoftInputMode="adjustResize">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
