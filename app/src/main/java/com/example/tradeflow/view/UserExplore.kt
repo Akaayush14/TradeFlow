@@ -582,7 +582,11 @@ fun ExploreItemCard(product: ProductModel, onClick: () -> Unit) {
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text(
-                        text = "Rs${product.price}",
+                        text = if (product.type == "Rent") {
+                            "Rs${product.price} / Day"
+                        } else {
+                            "Rs${product.price}"
+                        },
                         fontSize = 14.sp,
                         color = Greenish,
                         fontWeight = FontWeight.SemiBold

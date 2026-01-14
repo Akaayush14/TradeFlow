@@ -385,11 +385,16 @@ fun ItemDetailsScreen() {
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Text(
-                                text = "$${productItem.price}",
+                                text = if (productItem.type == "Rent") {
+                                    "Rs${productItem.price} / Day"
+                                } else {
+                                    "Rs${productItem.price}"
+                                },
                                 fontSize = 20.sp,
                                 fontWeight = FontWeight.SemiBold,
                                 color = Greenish
                             )
+
                             ContainerTag(
                                 text = productItem.type,
                                 color = if (productItem.type == "Rent") Color(0xFFE0F7FA) else Color(0xFFFFF3E0),

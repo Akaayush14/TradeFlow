@@ -615,7 +615,11 @@ fun ProductItemCard(
 
                     // Price (Right)
                     Text(
-                        text = "Rs ${String.format("%.2f", product.price)}",
+                        text = if (product.type == "Rent") {
+                            "Rs ${String.format("%.2f", product.price)} / Day"
+                        } else {
+                            "Rs ${String.format("%.2f", product.price)}"
+                        },
                         fontWeight = FontWeight.Bold,
                         fontSize = 16.sp,
                         color = Color.Black
