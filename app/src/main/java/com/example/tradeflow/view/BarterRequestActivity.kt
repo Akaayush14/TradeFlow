@@ -75,7 +75,7 @@ fun BarterRequestScreen() {
     // State management
     var currentUserData by remember { mutableStateOf<UserModel?>(null) }
     var userProducts by remember { mutableStateOf<List<ProductModel>>(emptyList()) }
-    var selectedItems by remember { mutableStateOf<Set<String>>(emptySet()) }
+    var selectedItem by remember { mutableStateOf<String?>(null) }
     var message by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(false) }
     var isLoadingProducts by remember { mutableStateOf(true) }
@@ -148,7 +148,7 @@ fun BarterRequestScreen() {
             Spacer(modifier = Modifier.height(20.dp))
 
             // Selection instruction
-            SelectionInstructionCard(selectedCount = selectedItems.size)
+            SelectionInstructionCard(selectedCount = if (selectedItem != null) 1 else 0)
 
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -170,12 +170,12 @@ fun BarterRequestScreen() {
                     items(userProducts) { userProduct ->
                         UserProductCard(
                             product = userProduct,
-                            isSelected = selectedItems.contains(userProduct.productId),
+                            isSelected = selectedItem == userProduct.productId,
                             onSelectionChange = { isSelected ->
-                                selectedItems = if (isSelected) {
-                                    selectedItems + userProduct.productId
+                                selectedItem = if (isSelected) {
+                                    userProduct.productId
                                 } else {
-                                    selectedItems - userProduct.productId
+                                    null
                                 }
                             }
                         )
@@ -195,9 +195,9 @@ fun BarterRequestScreen() {
 
             // Action button
             BarterActionButton(
-                isEnabled = selectedItems.isNotEmpty() && !isLoading,
+                isEnabled = selectedItem != null && !isLoading,
                 isLoading = isLoading,
-                selectedCount = selectedItems.size,
+                selectedCount = if (selectedItem != null) 1 else 0,
                 onClick = {
                     val productData = product
                     val ownerData = owner
@@ -213,12 +213,12 @@ fun BarterRequestScreen() {
                     } else if (userData == null) {
                         errorMessage = "User information not available. Please try again."
                         showErrorDialog = true
-                    } else if (selectedItems.isEmpty()) {
+                    } else if (selectedItem == null) {
                         errorMessage = "Please select at least one item to offer"
                         showErrorDialog = true
                     } else {
                         val selectedProductList = userProducts.filter {
-                            selectedItems.contains(it.productId)
+                            it.productId == selectedItem
                         }
 
                         if (selectedProductList.isNotEmpty()) {
@@ -308,6 +308,16 @@ fun BarterRequestScreen() {
 
 @Composable
 fun ProductWantCard(product: ProductModel, owner: UserModel?) {
+    val allImages = remember(product) {
+        val list = mutableListOf<String>()
+        if (product.imageUrl.isNotEmpty()) list.add(product.imageUrl)
+        if (product.imageUrls.isNotEmpty()) list.addAll(product.imageUrls)
+        if (product.imageUrl2.isNotEmpty()) list.add(product.imageUrl2)
+        if (product.imageUrl3.isNotEmpty()) list.add(product.imageUrl3)
+        if (product.imageUrl4.isNotEmpty()) list.add(product.imageUrl4)
+        list.filter { it.isNotEmpty() }.distinct()
+    }
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
@@ -335,7 +345,8 @@ fun ProductWantCard(product: ProductModel, owner: UserModel?) {
                     modifier = Modifier
                         .size(60.dp)
                         .clip(RoundedCornerShape(8.dp)),
-                    error = painterResource(R.drawable.placeholderimage)
+                    error = painterResource(R.drawable.placeholderimage),
+                    contentScale = androidx.compose.ui.layout.ContentScale.Crop
                 )
 
                 Column(modifier = Modifier.weight(1f)) {
@@ -362,6 +373,32 @@ fun ProductWantCard(product: ProductModel, owner: UserModel?) {
                     tint = Greenish,
                     modifier = Modifier.size(32.dp)
                 )
+            }
+
+            if (allImages.size > 1) {
+                Spacer(modifier = Modifier.height(12.dp))
+                Text(
+                    text = "More images:",
+                    fontSize = 10.sp,
+                    color = Color.Gray,
+                    modifier = Modifier.padding(bottom = 4.dp)
+                )
+                androidx.compose.foundation.lazy.LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(allImages) { imgUrl ->
+                        AsyncImage(
+                            model = imgUrl,
+                            contentDescription = "Sub image",
+                            modifier = Modifier
+                                .size(60.dp)
+                                .clip(RoundedCornerShape(4.dp))
+                                .border(1.dp, Color.LightGray, RoundedCornerShape(4.dp)),
+                            contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                            error = painterResource(R.drawable.placeholderimage)
+                        )
+                    }
+                }
             }
         }
     }

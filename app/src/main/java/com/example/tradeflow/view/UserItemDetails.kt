@@ -48,7 +48,6 @@ import com.example.tradeflow.ui.theme.White
 import com.example.tradeflow.viewmodel.ProductViewModel
 import com.example.tradeflow.viewmodel.ReviewViewModel
 import com.example.tradeflow.viewmodel.UserViewModel
-import com.example.tradeflow.viewmodel.UserNotificationViewModel
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
 import android.content.Intent
@@ -108,10 +107,11 @@ fun ItemDetailsScreen() {
     val productViewModel = remember { ProductViewModel(ProductRepoImpl()) }
     val userViewModel = remember { UserViewModel(UserRepoImpl()) }
     val reviewViewModel = remember { ReviewViewModel(ReviewRepoImpl()) }
-    val notificationViewModel = remember { UserNotificationViewModel(UserNotificationRepoImpl()) }
 
     val currentUser = FirebaseAuth.getInstance().currentUser
     val currentUserId = currentUser?.uid ?: ""
+
+
 
     // State variables
     val product by productViewModel.product.collectAsState()
@@ -119,13 +119,8 @@ fun ItemDetailsScreen() {
     val reviews by reviewViewModel.reviews.collectAsState()
     val loading by productViewModel.loading.collectAsState()
 
-    var currentUserData by remember { mutableStateOf<UserModel?>(null) }
-    var showRequestDialog by remember { mutableStateOf(false) }
-    var requestMessage by remember { mutableStateOf("") }
-    var showSuccessDialog by remember { mutableStateOf(false) }
     var showErrorDialog by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf("") }
-    var isLoading by remember { mutableStateOf(false) }
 
     LaunchedEffect(productId) {
         if (productId.isNotEmpty()) {
@@ -139,17 +134,6 @@ fun ItemDetailsScreen() {
             if (ownerId.isNotEmpty()) {
                 userViewModel.getUserById(ownerId) { success, _, user ->
                     // User data is handled in the ViewModel
-                }
-            }
-        }
-    }
-
-    // Load current user data
-    LaunchedEffect(currentUserId) {
-        if (currentUserId.isNotEmpty()) {
-            userViewModel.getUserById(currentUserId) { success, _, user ->
-                if (success && user != null) {
-                    currentUserData = user
                 }
             }
         }
@@ -214,7 +198,20 @@ fun ItemDetailsScreen() {
                                     errorMessage = "Owner information not available. Please try again."
                                     showErrorDialog = true
                                 } else {
-                                    showRequestDialog = true
+                                    // Launch appropriate activity based on product type
+                                    if (product?.type == "Rent") {
+                                        // Launch Rental Request Activity
+                                        val intent = Intent(context, RentalRequestActivity::class.java)
+                                        intent.putExtra("product", product)
+                                        intent.putExtra("owner", owner)
+                                        context.startActivity(intent)
+                                    } else {
+                                        // Launch Barter Request Activity
+                                        val intent = Intent(context, BarterRequestActivity::class.java)
+                                        intent.putExtra("product", product)
+                                        intent.putExtra("owner", owner)
+                                        context.startActivity(intent)
+                                    }
                                 }
                             },
                             modifier = Modifier
@@ -504,139 +501,6 @@ fun ItemDetailsScreen() {
                     }
                 }
             }
-        }
-
-        // Request Dialog
-        if (showRequestDialog) {
-            AlertDialog(
-                onDismissRequest = { showRequestDialog = false },
-                title = {
-                    Text(
-                        "Send Request",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 18.sp
-                    )
-                },
-                text = {
-                    Column {
-                        Text(
-                            "You're requesting: ${product?.name}",
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Medium
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            "Type: ${product?.type}",
-                            fontSize = 12.sp,
-                            color = Color.Gray
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        OutlinedTextField(
-                            value = requestMessage,
-                            onValueChange = { requestMessage = it },
-                            label = {
-                                Text(
-                                    "Add a message (optional)",
-                                    fontSize = 12.sp
-                                )
-                            },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(120.dp),
-                            maxLines = 4,
-                            colors = TextFieldDefaults.colors(
-                                focusedContainerColor = White,
-                                unfocusedContainerColor = White,
-                                focusedIndicatorColor = Greenish,
-                                cursorColor = Greenish
-                            ),
-                            shape = RoundedCornerShape(8.dp)
-                        )
-                    }
-                },
-                confirmButton = {
-                    Button(
-                        onClick = {
-                            val ownerData = owner
-                            val userData = currentUserData
-                            val productData = product
-
-                            // Null checks before sending request
-                            if (ownerData == null) {
-                                errorMessage = "Owner information not available"
-                                showErrorDialog = true
-                                showRequestDialog = false
-                            } else if (userData == null) {
-                                errorMessage = "User information not available"
-                                showErrorDialog = true
-                                showRequestDialog = false
-                            } else if (productData == null) {
-                                errorMessage = "Product information not available"
-                                showErrorDialog = true
-                                showRequestDialog = false
-                            } else {
-                                isLoading = true
-                                notificationViewModel.createItemRequest(
-                                    product = productData,
-                                    owner = ownerData,
-                                    requester = userData,
-                                    requestType = if (productData.type == "Rent") "RENT" else "BARTER",
-                                    message = requestMessage
-                                ) { success, message ->
-                                    isLoading = false
-                                    showRequestDialog = false
-                                    if (success) {
-                                        showSuccessDialog = true
-                                        requestMessage = ""
-                                    } else {
-                                        errorMessage = message
-                                        showErrorDialog = true
-                                    }
-                                }
-                            }
-                        },
-                        colors = ButtonDefaults.buttonColors(containerColor = Greenish),
-                        enabled = !isLoading
-                    ) {
-                        if (isLoading) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(16.dp),
-                                color = White
-                            )
-                        } else {
-                            Text("Send Request")
-                        }
-                    }
-                },
-                dismissButton = {
-                    TextButton(
-                        onClick = {
-                            showRequestDialog = false
-                            requestMessage = ""
-                        }
-                    ) {
-                        Text("Cancel")
-                    }
-                }
-            )
-        }
-
-        // Success Dialog
-        if (showSuccessDialog) {
-            AlertDialog(
-                onDismissRequest = { showSuccessDialog = false },
-                title = { Text("Success!", fontWeight = FontWeight.Bold) },
-                text = { Text("Your request has been sent to the owner. They will be notified.") },
-                confirmButton = {
-                    Button(
-                        onClick = { showSuccessDialog = false },
-                        colors = ButtonDefaults.buttonColors(containerColor = Greenish)
-                    ) {
-                        Text("OK")
-                    }
-                }
-            )
         }
 
         // Error Dialog

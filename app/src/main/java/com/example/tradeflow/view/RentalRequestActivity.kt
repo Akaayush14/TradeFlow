@@ -5,9 +5,12 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -302,45 +305,78 @@ fun RentalRequestScreen() {
 
 @Composable
 fun ProductSummaryCard(product: ProductModel?) {
+    val allImages = remember(product) {
+        product?.let {
+            val list = mutableListOf<String>()
+            if (it.imageUrl.isNotEmpty()) list.add(it.imageUrl)
+            if (it.imageUrls.isNotEmpty()) list.addAll(it.imageUrls)
+            if (it.imageUrl2.isNotEmpty()) list.add(it.imageUrl2)
+            if (it.imageUrl3.isNotEmpty()) list.add(it.imageUrl3)
+            if (it.imageUrl4.isNotEmpty()) list.add(it.imageUrl4)
+            list.filter { url -> url.isNotEmpty() }.distinct()
+        } ?: emptyList()
+    }
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
         elevation = CardDefaults.cardElevation(4.dp)
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            AsyncImage(
-                model = product?.imageUrl ?: "",
-                contentDescription = "Product",
-                modifier = Modifier
-                    .size(80.dp)
-                    .clip(RoundedCornerShape(8.dp)),
-                error = painterResource(R.drawable.placeholderimage)
-            )
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                AsyncImage(
+                    model = product?.imageUrl ?: "",
+                    contentDescription = "Product",
+                    modifier = Modifier
+                        .size(80.dp)
+                        .clip(RoundedCornerShape(8.dp)),
+                    error = painterResource(R.drawable.placeholderimage),
+                    contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                )
 
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = product?.name ?: "",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 16.sp
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = "$${product?.price ?: 0}/day",
-                    color = Greenish,
-                    fontWeight = FontWeight.SemiBold
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = product?.description ?: "",
-                    fontSize = 12.sp,
-                    color = Color.Gray,
-                    maxLines = 2
-                )
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = product?.name ?: "",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "$${product?.price ?: 0}/day",
+                        color = Greenish,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = product?.description ?: "",
+                        fontSize = 12.sp,
+                        color = Color.Gray,
+                        maxLines = 2
+                    )
+                }
+            }
+
+            if (allImages.size > 1) {
+                Spacer(modifier = Modifier.height(12.dp))
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(allImages) { imgUrl ->
+                        AsyncImage(
+                            model = imgUrl,
+                            contentDescription = "Sub image",
+                            modifier = Modifier
+                                .size(60.dp)
+                                .clip(RoundedCornerShape(4.dp))
+                                .border(1.dp, Color.LightGray, RoundedCornerShape(4.dp)),
+                            contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                            error = painterResource(R.drawable.placeholderimage)
+                        )
+                    }
+                }
             }
         }
     }
