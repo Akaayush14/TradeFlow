@@ -18,9 +18,6 @@ class UserNotificationViewModel(private val repository: UserNotificationRepoImpl
     private val _notifications = MutableStateFlow<List<UserNotificationModel>>(emptyList())
     val notifications: StateFlow<List<UserNotificationModel>> = _notifications
 
-    private val _myRequests = MutableStateFlow<List<RequestModel>>(emptyList())
-    val myRequests: StateFlow<List<RequestModel>> = _myRequests
-
     private val _unreadCount = MutableStateFlow(0)
     val unreadCount: StateFlow<Int> = _unreadCount
 
@@ -169,16 +166,6 @@ class UserNotificationViewModel(private val repository: UserNotificationRepoImpl
                 if (success) {
                     _notifications.value = notificationList ?: emptyList()
                     _unreadCount.value = notificationList?.count { !it.isRead } ?: 0
-                }
-            }
-        }
-    }
-
-    fun loadMyRequests(userId: String) {
-        viewModelScope.launch {
-            repository.getRequestsByRequester(userId) { success, _, requestList ->
-                if (success) {
-                    _myRequests.value = requestList ?: emptyList()
                 }
             }
         }
@@ -367,33 +354,6 @@ class UserNotificationViewModel(private val repository: UserNotificationRepoImpl
                     _unreadCount.value = _notifications.value.count { !it.isRead }
                 }
                 onResult(success, message)
-            }
-        }
-    }
-
-    fun cancelRequest(
-        requestId: String,
-        onResult: (Boolean, String) -> Unit
-    ) {
-        viewModelScope.launch {
-            try {
-                repository.updateRequestStatus(requestId, "CANCELED") { updateSuccess, message ->
-                    if (updateSuccess) {
-                        _myRequests.value = _myRequests.value.map { request ->
-                            if (request.requestId == requestId) {
-                                request.copy(status = "CANCELED")
-                            } else {
-                                request
-                            }
-                        }
-                        onResult(true, "Request canceled")
-                    } else {
-                        onResult(false, message)
-                    }
-                }
-            } catch (e: Exception) {
-                Log.e("TF_REQUEST_FLOW", "Error canceling request: ${e.message}")
-                onResult(false, "Error: ${e.message}")
             }
         }
     }
