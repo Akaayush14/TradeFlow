@@ -64,7 +64,7 @@ fun PointsScreen() {
     val currentUser = FirebaseAuth.getInstance().currentUser
     val userId = currentUser?.uid ?: ""
 
-    var selectedTab by remember { mutableStateOf("Point Deals") }
+    var selectedTab by remember { mutableStateOf("Buy Deals") }
     var showRedeemConfirmation by remember { mutableStateOf(false) }
     var selectedDeal by remember { mutableStateOf<PointDealModel?>(null) }
 
@@ -206,7 +206,7 @@ fun PointsScreen() {
 
             // Content based on selected tab
             when (selectedTab) {
-                "Point Deals" -> {
+                "Buy Deals" -> {
                     val dealsList = activeDeals ?: emptyList()
                     if (dealsList.isEmpty()) {
                         item {
@@ -216,11 +216,7 @@ fun PointsScreen() {
                                     .padding(16.dp),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Text(
-                                    text = "No active deals available",
-                                    fontSize = 14.sp,
-                                    color = Color.Gray
-                                )
+                                Text("No active buy deals available")
                             }
                         }
                     } else {
@@ -354,7 +350,7 @@ private fun NavigationTabs(
     selectedTab: String,
     onTabSelected: (String) -> Unit
 ) {
-    val tabs = listOf("How it works?", "Point history", "Point Deals")
+    val tabs = listOf("How it works?", "Point history", "Buy Deals")
 
     Row(
         modifier = Modifier

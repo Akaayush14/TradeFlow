@@ -150,6 +150,7 @@ fun AdminExp() {
     val notificationViewModel = remember { NotificationViewModel(NotificationRepoImpl()) }
     val unreadCount by notificationViewModel.unreadCount.collectAsState()
 
+
     LaunchedEffect(Unit) {
         notificationViewModel.getUnreadCount()
     }
@@ -462,7 +463,7 @@ fun MetricsContent(onRequireAdminAccess: () -> Unit) {
     val productViewModel = remember { ProductViewModel(ProductRepoImpl()) }
     val notificationViewModel = remember { NotificationViewModel(NotificationRepoImpl()) }
     val adminViewModel = remember { AdminViewModel(AdminRepoImpl()) }
-    val pointDealViewModel = remember { PointDealViewModel(PointDealRepoImpl()) }
+    val pointDealViewModel = remember { PointDealViewModel(PointDealRepoImpl(), UserRepoImpl()) }
 
     val allUsers by userViewModel.allUsers.collectAsState()
     val allProducts by productViewModel.allProducts.collectAsState()

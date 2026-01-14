@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import com.example.tradeflow.model.PointDealModel
 import com.example.tradeflow.model.UserPointRedemModel
 import com.example.tradeflow.repository.PointDealRepo
+import com.example.tradeflow.repository.RedemptionRepoImpl
 import com.example.tradeflow.repository.UserRepo
 import com.google.firebase.auth.FirebaseAuth
 
@@ -98,8 +99,8 @@ class PointDealViewModel(
     }
 
     private fun saveRedemptionRecord(redemption: UserPointRedemModel) {
-        // TODO: Implement saving to Firebase
-        // You'll need to create a PointRedemptionRepo
+        val redemptionRepo = RedemptionRepoImpl()
+        redemptionRepo.saveRedemption(redemption) { _, _ -> }
     }
 
     fun clearRedemptionStatus() {

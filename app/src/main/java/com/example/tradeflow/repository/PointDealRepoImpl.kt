@@ -112,42 +112,31 @@ class PointDealRepoImpl : PointDealRepo {
     override fun getActivePointDeals(
         callback: (Boolean, String, List<PointDealModel>?) -> Unit
     ) {
-        println("DEBUG [REPO]: Fetching active deals from Firebase...")
-
-        ref.orderByChild("isActive").equalTo(true)
-            .addListenerForSingleValueEvent(object : ValueEventListener {
-                override fun onDataChange(snapshot: DataSnapshot) {
-                    println("DEBUG [REPO]: Firebase returned ${snapshot.childrenCount} items")
-
-                    if (snapshot.exists()) {
-                        val activeDeals = mutableListOf<PointDealModel>()
-                        val currentTime = System.currentTimeMillis()
-
-                        for (data in snapshot.children) {
-                            val deal = data.getValue(PointDealModel::class.java)
-                            println("DEBUG [REPO]: Checking deal: ${deal?.offer}")
-                            println("DEBUG [REPO]: Deal validTill: ${deal?.validTill}, Current: $currentTime")
-                            println("DEBUG [REPO]: Is active and valid: ${deal?.isActive} && ${deal?.validTill ?: 0 > currentTime}")
-
-                            if (deal != null && deal.validTill > currentTime) {
-                                println("DEBUG [REPO]: ✓ Adding deal: ${deal.offer}")
+        val currentTime = System.currentTimeMillis()
+        ref.addListenerForSingleValueEvent(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                if (snapshot.exists()) {
+                    val activeDeals = mutableListOf<PointDealModel>()
+                    for (data in snapshot.children) {
+                        val deal = data.getValue(PointDealModel::class.java)
+                        if (deal != null) {
+                            val isActive = deal.isActive
+                            val isValid = deal.validTill > currentTime
+                            if (isActive && isValid) {
                                 activeDeals.add(deal)
                             }
                         }
-
-                        println("DEBUG [REPO]: Total active deals found: ${activeDeals.size}")
-                        callback(true, "Active deals fetched", activeDeals)
-                    } else {
-                        println("DEBUG [REPO]: No deals found in Firebase")
-                        callback(true, "No active deals found", emptyList())
                     }
+                    callback(true, "Active deals fetched", activeDeals)
+                } else {
+                    callback(true, "No active deals found", emptyList())
                 }
+            }
 
-                override fun onCancelled(error: DatabaseError) {
-                    println("DEBUG [REPO]: Firebase error: ${error.message}")
-                    callback(false, error.message, null)
-                }
-            })
+            override fun onCancelled(error: DatabaseError) {
+                callback(false, error.message, null)
+            }
+        })
     }
 
     override fun getPointDealsByTier(

@@ -16,6 +16,7 @@ class ChatRepoImpl : ChatRepo {
     private val usersRef = database.getReference("Users")
 
     private val messageListeners = mutableMapOf<String, ValueEventListener>()
+    private val messageListenerRefs = mutableMapOf<String, DatabaseReference>()
 
     override fun sendMessage(
         receiverId: String,
@@ -75,18 +76,22 @@ class ChatRepoImpl : ChatRepo {
             }
         }
 
-        messagesRef.child(chatId).addValueEventListener(listener)
+        val chatRef = messagesRef.child(chatId)
+        chatRef.addValueEventListener(listener)
         messageListeners[receiverId] = listener
+        messageListenerRefs[receiverId] = chatRef
         callback(true, "Listening to messages")
     }
 
     override fun getCurrentUser(): FirebaseUser? = auth.currentUser
 
     override fun removeListeners() {
-        messageListeners.values.forEach { listener ->
-            messagesRef.removeEventListener(listener)
+        messageListeners.forEach { (receiverId, listener) ->
+            val ref = messageListenerRefs[receiverId] ?: messagesRef
+            ref.removeEventListener(listener)
         }
         messageListeners.clear()
+        messageListenerRefs.clear()
     }
 
     private fun generateChatId(u1: String, u2: String): String =
