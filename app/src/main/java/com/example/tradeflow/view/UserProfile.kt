@@ -133,8 +133,7 @@ fun UserProfileScreen(
                 title = {
                     Text(
                         "Profile",
-                        color = White,
-                        fontWeight = FontWeight.Bold
+                        color = White
                     )
                 },
                 onBackClick = onBackClick

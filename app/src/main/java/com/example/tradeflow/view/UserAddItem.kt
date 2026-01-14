@@ -317,8 +317,7 @@ fun UserAddItemScreen(
                 title = {
                     Text(
                         text = if (mode == AddItemMode.ADD) "Add New Item" else "Edit Item",
-                        color = White,
-                        fontWeight = FontWeight.Bold
+                        color = White
                     )
                 },
                 onBackClick = onBackClick

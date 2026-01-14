@@ -81,87 +81,103 @@ fun UserNotificationScreen(
         }
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0xFFF5F5F5))
-    ) {
-        // Filter Tabs
-        Row(
+    Scaffold(
+        topBar = {
+            TradeFlowTopBar(
+                title = {
+                    Text(
+                        "Notifications",
+                        color = White
+                    )
+                },
+                onBackClick = onBackClick
+            )
+        },
+        containerColor = Color(0xFFF5F5F5)
+    ) { innerPadding ->
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .background(White)
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                .fillMaxSize()
+                .padding(innerPadding)
+                .background(Color(0xFFF5F5F5))
         ) {
-            FilterChip(
-                selected = selectedFilter == "All",
-                onClick = { selectedFilter = "All" },
-                label = { Text("All", fontSize = 14.sp) },
-                colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = Color(0xFF2196F3),
-                    selectedLabelColor = White
-                )
-            )
-            FilterChip(
-                selected = selectedFilter == "Barter",
-                onClick = { selectedFilter = "Barter" },
-                label = { Text("Barter", fontSize = 14.sp) },
-                colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = Color(0xFF2196F3),
-                    selectedLabelColor = White
-                )
-            )
-            FilterChip(
-                selected = selectedFilter == "Rent",
-                onClick = { selectedFilter = "Rent" },
-                label = { Text("Rent", fontSize = 14.sp) },
-                colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = Color(0xFF2196F3),
-                    selectedLabelColor = White
-                )
-            )
-        }
-
-        if (filteredNotifications.isEmpty()) {
-            EmptyNotificationState()
-        } else {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+            // Filter Tabs
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(White)
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                // Display grouped notifications
-                listOf("TODAY", "YESTERDAY", "OLDER").forEach { section ->
-                    groupedNotifications[section]?.let { notificationList ->
-                        item {
-                            Text(
-                                text = section,
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = Color.Gray,
-                                modifier = Modifier.padding(bottom = 8.dp)
-                            )
-                        }
+                FilterChip(
+                    selected = selectedFilter == "All",
+                    onClick = { selectedFilter = "All" },
+                    label = { Text("All", fontSize = 14.sp) },
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = Color(0xFF2196F3),
+                        selectedLabelColor = White
+                    )
+                )
+                FilterChip(
+                    selected = selectedFilter == "Barter",
+                    onClick = { selectedFilter = "Barter" },
+                    label = { Text("Barter", fontSize = 14.sp) },
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = Color(0xFF2196F3),
+                        selectedLabelColor = White
+                    )
+                )
+                FilterChip(
+                    selected = selectedFilter == "Rent",
+                    onClick = { selectedFilter = "Rent" },
+                    label = { Text("Rent", fontSize = 14.sp) },
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = Color(0xFF2196F3),
+                        selectedLabelColor = White
+                    )
+                )
+            }
 
-                        items(notificationList) { notification ->
-                            EnhancedNotificationCard(
-                                notification = notification,
-                                onClick = {
-                                    viewModel.markAsRead(notification.notificationId)
-                                    onNotificationClick(notification)
-                                },
-                                onAccept = {
-                                    selectedNotification = notification
-                                    showAcceptDialog = true
-                                },
-                                onReject = {
-                                    selectedNotification = notification
-                                    showRejectDialog = true
-                                },
-                                onViewDetails = { onViewDetails(notification.requestId) },
-                                onMessage = { /* Handle messaging */ }
-                            )
+            if (filteredNotifications.isEmpty()) {
+                EmptyNotificationState()
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    // Display grouped notifications
+                    listOf("TODAY", "YESTERDAY", "OLDER").forEach { section ->
+                        groupedNotifications[section]?.let { notificationList ->
+                            item {
+                                Text(
+                                    text = section,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = Color.Gray,
+                                    modifier = Modifier.padding(bottom = 8.dp)
+                                )
+                            }
+
+                            items(notificationList) { notification ->
+                                EnhancedNotificationCard(
+                                    notification = notification,
+                                    onClick = {
+                                        viewModel.markAsRead(notification.notificationId)
+                                        onNotificationClick(notification)
+                                    },
+                                    onAccept = {
+                                        selectedNotification = notification
+                                        showAcceptDialog = true
+                                    },
+                                    onReject = {
+                                        selectedNotification = notification
+                                        showRejectDialog = true
+                                    },
+                                    onViewDetails = { onViewDetails(notification.requestId) },
+                                    onMessage = { /* Handle messaging */ }
+                                )
+                            }
                         }
                     }
                 }
