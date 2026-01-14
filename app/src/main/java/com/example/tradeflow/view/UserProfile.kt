@@ -37,10 +37,12 @@ import com.example.tradeflow.R
 import com.example.tradeflow.model.ProductModel
 import com.example.tradeflow.model.UserModel
 import com.example.tradeflow.repository.ProductRepoImpl
+import com.example.tradeflow.repository.UserNotificationRepoImpl
 import com.example.tradeflow.repository.UserRepoImpl
 import com.example.tradeflow.ui.theme.Greenish
 import com.example.tradeflow.ui.theme.White
 import com.example.tradeflow.viewmodel.ProductViewModel
+import com.example.tradeflow.viewmodel.UserNotificationViewModel
 import com.example.tradeflow.viewmodel.UserViewModel
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
@@ -76,17 +78,17 @@ fun UserProfileScreen(
 ) {
     val userViewModel: UserViewModel = remember { UserViewModel(UserRepoImpl()) }
     val productViewModel: ProductViewModel = remember { ProductViewModel(ProductRepoImpl()) }
+    val notificationViewModel: UserNotificationViewModel = remember { UserNotificationViewModel(UserNotificationRepoImpl()) }
     val context = LocalContext.current
 
     val currentUser = FirebaseAuth.getInstance().currentUser
     val currentUserId = currentUser?.uid ?: ""
     val targetUserId = profileUserId ?: currentUserId
 
-    // Use collectAsState() for StateFlow
     val userData by userViewModel.users.collectAsState()
     val allProducts by productViewModel.allProducts.collectAsState()
+    val myRequests by notificationViewModel.myRequests.collectAsState()
 
-    // State for the selected listing type and status
     var selectedTab by remember { mutableStateOf(ListingType.BOTH) }
     var selectedStatus by remember { mutableStateOf(ListingStatus.ALL) }
 
@@ -100,14 +102,18 @@ fun UserProfileScreen(
         }
     }
 
-    // Log user data changes for debugging
+    LaunchedEffect(currentUserId) {
+        if (currentUserId.isNotEmpty()) {
+            notificationViewModel.loadMyRequests(currentUserId)
+        }
+    }
+
     LaunchedEffect(userData) {
         Log.d("ProfileScreen", "User data updated: $userData")
         Log.d("ProfileScreen", "User name: ${userData?.name}")
         Log.d("ProfileScreen", "User email: ${userData?.email}")
     }
 
-    // Memoized filtering logic
     val filteredListings = remember(selectedTab, selectedStatus, allProducts) {
         val typeFiltered = when (selectedTab) {
             ListingType.BARTER -> allProducts.filter { it.type == "Barter" && it.isDeleted != true }
@@ -123,12 +129,10 @@ fun UserProfileScreen(
         }
     }
 
-    // Get user display info - prioritize database data over Firebase Auth display name
     val userName = userData?.name ?: currentUser?.displayName ?: "User"
     val userEmail = userData?.email ?: currentUser?.email ?: ""
     val userDisplayEmail = userEmail
 
-    // Debug logging
     Log.d("ProfileScreen", "Final userName: $userName")
     Log.d("ProfileScreen", "userData?.name: ${userData?.name}")
     Log.d("ProfileScreen", "currentUser?.displayName: ${currentUser?.displayName}")
@@ -261,39 +265,119 @@ fun UserProfileScreen(
                 )
             }
 
-            // Display products from database
-            val data = filteredListings
-            if (data.isEmpty()) {
-                item {
-                    Text(
-                        text = "No items match the current filters.",
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        color = Color.Gray,
-                        fontSize = 14.sp
-                    )
+            if (selectedStatus == ListingStatus.PENDING && targetUserId == currentUserId) {
+                val pendingRequests = myRequests.filter { it.status == "PENDING" }.filter { request ->
+                    when (selectedTab) {
+                        ListingType.BARTER -> request.productType == "BARTER"
+                        ListingType.RENTAL -> request.productType == "RENT"
+                        ListingType.BOTH -> true
+                    }
+                }
+
+                if (pendingRequests.isEmpty()) {
+                    item {
+                        Text(
+                            text = "No pending requests found.",
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            color = Color.Gray,
+                            fontSize = 14.sp
+                        )
+                    }
+                } else {
+                    items(pendingRequests) { request ->
+                        val mappedType = when (request.productType) {
+                            "BARTER" -> "Barter"
+                            "RENT" -> "Rent"
+                            else -> request.productType
+                        }
+
+                        val mappedProduct = ProductModel(
+                            productId = request.productId,
+                            name = request.productName,
+                            price = request.productPrice,
+                            imageUrl = request.productImage,
+                            type = mappedType,
+                            status = "Pending",
+                            ownerId = request.ownerId
+                        )
+
+                        ProductItemCard(
+                            product = mappedProduct,
+                            onClick = {
+                                val intent = Intent(context, UserItemDetails::class.java)
+                                intent.putExtra("productId", request.productId)
+                                context.startActivity(intent)
+                            },
+                            onEdit = {},
+                            isOwner = false,
+                            onDeleteRequest = {},
+                            onMarkTradedRequest = {},
+                            isPendingRequest = true,
+                            onCancelRequest = {
+                                if (request.status == "PENDING") {
+                                    notificationViewModel.cancelRequest(request.requestId) { success, message ->
+                                        coroutineScope.launch {
+                                            snackbarHostState.showSnackbar(
+                                                if (success) "Request canceled" else message
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        )
+                    }
                 }
             } else {
-                items(data) { product ->
-                    val isOwner = product.ownerId == targetUserId
-                    ProductItemCard(
-                        product = product,
-                        onClick = {
-                            val intent = Intent(context, UserItemDetails::class.java)
-                            intent.putExtra("productId", product.productId)
-                            context.startActivity(intent)
-                        },
-                        onEdit = { onEditProduct(it) },
-                        isOwner = isOwner,
-                        onDeleteRequest = { toDelete ->
-                            if (toDelete.status != "Available") return@ProductItemCard
-                            val id = toDelete.productId
-                            if (id.isNotEmpty()) {
-                                productViewModel.deleteProduct(id) { success, message ->
+                val data = filteredListings
+                if (data.isEmpty()) {
+                    item {
+                        Text(
+                            text = "No items match the current filters.",
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            color = Color.Gray,
+                            fontSize = 14.sp
+                        )
+                    }
+                } else {
+                    items(data) { product ->
+                        val isOwner = product.ownerId == targetUserId
+                        ProductItemCard(
+                            product = product,
+                            onClick = {
+                                val intent = Intent(context, UserItemDetails::class.java)
+                                intent.putExtra("productId", product.productId)
+                                context.startActivity(intent)
+                            },
+                            onEdit = { onEditProduct(it) },
+                            isOwner = isOwner,
+                            onDeleteRequest = { toDelete ->
+                                if (toDelete.status != "Available") return@ProductItemCard
+                                val id = toDelete.productId
+                                if (id.isNotEmpty()) {
+                                    productViewModel.deleteProduct(id) { success, message ->
+                                        if (success) {
+                                            coroutineScope.launch {
+                                                snackbarHostState.showSnackbar("Item deleted successfully")
+                                            }
+                                        } else {
+                                            coroutineScope.launch {
+                                                snackbarHostState.showSnackbar(message)
+                                            }
+                                        }
+                                    }
+                                }
+                            },
+                            onMarkTradedRequest = { toComplete ->
+                                if (toComplete.status != "Available") return@ProductItemCard
+                                val updated = toComplete.copy(status = "Completed", completedAt = System.currentTimeMillis())
+                                productViewModel.updateProduct(updated) { success, message ->
                                     if (success) {
                                         coroutineScope.launch {
-                                            snackbarHostState.showSnackbar("Item deleted successfully")
+                                            snackbarHostState.showSnackbar("Traded successfully")
                                         }
                                     } else {
                                         coroutineScope.launch {
@@ -302,23 +386,8 @@ fun UserProfileScreen(
                                     }
                                 }
                             }
-                        },
-                        onMarkTradedRequest = { toComplete ->
-                            if (toComplete.status != "Available") return@ProductItemCard
-                            val updated = toComplete.copy(status = "Completed", completedAt = System.currentTimeMillis())
-                            productViewModel.updateProduct(updated) { success, message ->
-                                if (success) {
-                                    coroutineScope.launch {
-                                        snackbarHostState.showSnackbar("Traded successfully")
-                                    }
-                                } else {
-                                    coroutineScope.launch {
-                                        snackbarHostState.showSnackbar(message)
-                                    }
-                                }
-                            }
-                        }
-                    )
+                        )
+                    }
                 }
             }
         }
@@ -499,7 +568,9 @@ fun ProductItemCard(
     onEdit: (ProductModel) -> Unit,
     isOwner: Boolean,
     onDeleteRequest: (ProductModel) -> Unit,
-    onMarkTradedRequest: (ProductModel) -> Unit
+    onMarkTradedRequest: (ProductModel) -> Unit,
+    isPendingRequest: Boolean = false,
+    onCancelRequest: (() -> Unit)? = null
 ) {
     Card(
         modifier = Modifier
@@ -550,7 +621,6 @@ fun ProductItemCard(
 
             // Status and Identity (Top Right/Center)
             Column(modifier = Modifier.weight(1f)) {
-                // Availability Badge at Top
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(12.dp))
@@ -574,12 +644,10 @@ fun ProductItemCard(
 
                 Spacer(modifier = Modifier.height(4.dp))
 
-                // Title
                 Text(product.name, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.Black)
 
                 Spacer(modifier = Modifier.height(2.dp))
 
-                // Description
                 Text(
                     product.description.takeIf { it.isNotEmpty() } ?: "No description",
                     fontSize = 14.sp,
@@ -589,13 +657,11 @@ fun ProductItemCard(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Transaction Details Row
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    // Trade Type Badge (Left)
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(12.dp))
@@ -613,7 +679,6 @@ fun ProductItemCard(
                         )
                     }
 
-                    // Price (Right)
                     Text(
                         text = if (product.type == "Rent") {
                             "Rs ${String.format("%.2f", product.price)} / Day"
@@ -628,12 +693,10 @@ fun ProductItemCard(
 
                 Spacer(modifier = Modifier.height(4.dp))
 
-                // Location Display
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    // Location Icon from drawable
                     Image(
                         painter = painterResource(R.drawable.location_on), // You'll need to add this drawable
                         contentDescription = "Location",
@@ -650,7 +713,6 @@ fun ProductItemCard(
 
                 Spacer(modifier = Modifier.height(4.dp))
 
-                // Gray divider line below location
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -660,8 +722,7 @@ fun ProductItemCard(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // Action Buttons (Bottom Row)
-                if (isOwner) {
+                if (isOwner || isPendingRequest) {
                     var showDeleteConfirm by remember { mutableStateOf(false) }
                     var showDeleteBlocked by remember { mutableStateOf(false) }
                     var showMarkConfirm by remember { mutableStateOf(false) }
@@ -670,7 +731,6 @@ fun ProductItemCard(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        // Edit Button
                         if (product.status != "Completed") {
                             Card(
                                 modifier = Modifier
@@ -705,7 +765,6 @@ fun ProductItemCard(
                             }
                         }
 
-                        // Mark as Traded Button
                         if (product.status != "Completed") {
                             Card(
                                 modifier = Modifier
@@ -721,14 +780,16 @@ fun ProductItemCard(
                                     modifier = Modifier
                                         .fillMaxSize()
                                         .clickable {
-                                            showMarkConfirm = product.status == "Available"
-                                            showMarkBlocked = product.status == "Pending" || product.status == "Completed"
+                                            if (!isPendingRequest) {
+                                                showMarkConfirm = product.status == "Available"
+                                                showMarkBlocked = product.status == "Pending" || product.status == "Completed"
+                                            }
                                         },
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.Center
                                 ) {
                                     Text(
-                                        text = " Traded",
+                                        text = if (isPendingRequest) "Pending" else " Traded",
                                         fontSize = 12.sp,
                                         fontWeight = FontWeight.Medium,
                                         color = Color.Black
@@ -743,7 +804,6 @@ fun ProductItemCard(
                             }
                         }
 
-                        // Delete Button
                         if (product.status != "Completed") {
                             Card(
                                 modifier = Modifier
@@ -759,14 +819,18 @@ fun ProductItemCard(
                                     modifier = Modifier
                                         .fillMaxSize()
                                         .clickable {
-                                            showDeleteConfirm = product.status == "Available"
-                                            showDeleteBlocked = product.status == "Pending" || product.status == "Completed"
+                                            if (isPendingRequest) {
+                                                onCancelRequest?.invoke()
+                                            } else {
+                                                showDeleteConfirm = product.status == "Available"
+                                                showDeleteBlocked = product.status == "Pending" || product.status == "Completed"
+                                            }
                                         },
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.Center
                                 ) {
                                     Text(
-                                        text = "Delete",
+                                        text = if (isPendingRequest) "Cancel" else "Delete",
                                         fontSize = 12.sp,
                                         fontWeight = FontWeight.Medium,
                                         color = Color.Black
