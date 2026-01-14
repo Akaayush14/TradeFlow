@@ -94,7 +94,7 @@ fun DashboardPageBody() {
         NavItem(label = "Explore", R.drawable.explore, R.drawable.explore_filled),
         NavItem(label = "Inbox", R.drawable.inbox, R.drawable.inbox_filled),
         NavItem(label = "Add", R.drawable.additem, R.drawable.additem_filled),
-        NavItem(label = "Notifications", R.drawable.notification, R.drawable.notification_filled),
+        NavItem(label = "Notification", R.drawable.notification, R.drawable.notification_filled),
         NavItem(label = "profile", R.drawable.profile, R.drawable.profile_filled),
     )
 

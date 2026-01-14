@@ -1,7 +1,11 @@
 package com.example.tradeflow.view
 
 import android.content.Intent
+import android.os.Bundle
 import android.util.Log
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -41,8 +45,23 @@ import com.example.tradeflow.viewmodel.UserViewModel
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
 
+class UserProfileActivity : ComponentActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
+        setContent {
+            val userId = intent.getStringExtra("userId")
+            UserProfileScreen(
+                onBackClick = { finish() },
+                onEditProduct = {},
+                showEditSuccess = false,
+                onSnackbarShown = {},
+                profileUserId = userId
+            )
+        }
+    }
+}
 
-// Enums to manage the state of the tabs
 enum class ListingType { BARTER, RENTAL, BOTH }
 enum class ListingStatus { ALL, AVAILABLE, PENDING, COMPLETED }
 
@@ -52,14 +71,16 @@ fun UserProfileScreen(
     onBackClick: () -> Unit = {},
     onEditProduct: (ProductModel) -> Unit = {},
     showEditSuccess: Boolean = false,
-    onSnackbarShown: () -> Unit = {}
+    onSnackbarShown: () -> Unit = {},
+    profileUserId: String? = null
 ) {
     val userViewModel: UserViewModel = remember { UserViewModel(UserRepoImpl()) }
     val productViewModel: ProductViewModel = remember { ProductViewModel(ProductRepoImpl()) }
     val context = LocalContext.current
 
     val currentUser = FirebaseAuth.getInstance().currentUser
-    val userId = currentUser?.uid ?: ""
+    val currentUserId = currentUser?.uid ?: ""
+    val targetUserId = profileUserId ?: currentUserId
 
     // Use collectAsState() for StateFlow
     val userData by userViewModel.users.collectAsState()
@@ -69,16 +90,13 @@ fun UserProfileScreen(
     var selectedTab by remember { mutableStateOf(ListingType.BOTH) }
     var selectedStatus by remember { mutableStateOf(ListingStatus.ALL) }
 
-    // Fetch user data when screen loads
-    LaunchedEffect(userId) {
-        if (userId.isNotEmpty()) {
-            Log.d("ProfileScreen", "Fetching user data for userId: $userId")
-            userViewModel.getUserById(userId) { success, _, user ->
-                // User data loaded
-            }
-            productViewModel.getProductsByOwner(userId)
+    LaunchedEffect(targetUserId) {
+        if (targetUserId.isNotEmpty()) {
+            Log.d("ProfileScreen", "Fetching user data for userId: $targetUserId")
+            userViewModel.getUserById(targetUserId) { _, _, _ -> }
+            productViewModel.getProductsByOwner(targetUserId)
         } else {
-            Log.d("ProfileScreen", "userId is empty: $userId")
+            Log.d("ProfileScreen", "userId is empty: $targetUserId")
         }
     }
 
@@ -108,7 +126,7 @@ fun UserProfileScreen(
     // Get user display info - prioritize database data over Firebase Auth display name
     val userName = userData?.name ?: currentUser?.displayName ?: "User"
     val userEmail = userData?.email ?: currentUser?.email ?: ""
-    val userDisplayEmail = userEmail  // Display full email instead of @username
+    val userDisplayEmail = userEmail
 
     // Debug logging
     Log.d("ProfileScreen", "Final userName: $userName")
@@ -258,7 +276,7 @@ fun UserProfileScreen(
                 }
             } else {
                 items(data) { product ->
-                    val isOwner = product.ownerId == userId
+                    val isOwner = product.ownerId == targetUserId
                     ProductItemCard(
                         product = product,
                         onClick = {

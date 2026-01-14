@@ -26,6 +26,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -61,6 +62,7 @@ import com.google.firebase.auth.FirebaseAuth
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.ui.text.style.TextOverflow
@@ -70,6 +72,7 @@ import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Divider
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -77,7 +80,6 @@ import coil.compose.AsyncImage
 import com.example.tradeflow.R
 
 
-// Add this annotation to use experimental Material 3 APIs
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun UserExploreScreen() {
@@ -95,6 +97,7 @@ fun UserExploreScreen() {
 
     LaunchedEffect(Unit) {
         productViewModel.getAllProduct()
+        userViewModel.getAllUser() // Fetch all users
         if (userId.isNotEmpty()) {
             userViewModel.getUserById(userId) { success, _, user ->
                 // User data loaded
@@ -104,7 +107,20 @@ fun UserExploreScreen() {
 
     val allProducts by productViewModel.allProducts.collectAsState()
     val userData by userViewModel.users.collectAsState()
+    val allUsers by userViewModel.allUsers.collectAsState()
     val userPoints = userData?.points ?: 0L
+
+    // Search for users when query is not empty
+    val searchedUsers = if (searchQuery.isNotEmpty()) {
+        allUsers?.filter { user ->
+            (user.name.contains(searchQuery, ignoreCase = true) ||
+                    user.email.contains(searchQuery, ignoreCase = true) ||
+                    user.phone.contains(searchQuery, ignoreCase = true)) &&
+                    user.userId != userId // Exclude current user from search results
+        } ?: emptyList()
+    } else {
+        emptyList()
+    }
 
     val filteredProducts = allProducts.filter { product ->
         val matchesTab = when (selectedTab) {
@@ -112,7 +128,8 @@ fun UserExploreScreen() {
             "Trade" -> product.type == "Barter"
             else -> true
         }
-        val matchesSearch = product.name.contains(searchQuery, ignoreCase = true)
+        val matchesSearch = product.name.contains(searchQuery, ignoreCase = true) ||
+                product.description.contains(searchQuery, ignoreCase = true)
         matchesTab && matchesSearch && !product.isDeleted
     }
 
@@ -165,7 +182,7 @@ fun UserExploreScreen() {
                             onValueChange = { searchQuery = it },
                             placeholder = {
                                 Text(
-                                    "Search items...",
+                                    "Search items or users...",
                                     color = Color.White.copy(alpha = 0.7f),
                                     fontSize = 16.sp
                                 )
@@ -213,7 +230,6 @@ fun UserExploreScreen() {
                             val intent = Intent(activity, UserSetting::class.java)
                             activity.startActivity(intent)
                         }) {
-                            // Use Icons.Default.Menu or your custom resource
                             Icon(
                                 imageVector = Icons.Default.Settings,
                                 contentDescription = null
@@ -225,11 +241,10 @@ fun UserExploreScreen() {
         }
 
     ) { paddingValues ->
-        // The main content uses the padding provided by the Scaffold (for the top bar)
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues) // Apply the padding here
+                .padding(paddingValues)
                 .background(color = White)
         ) {
 
@@ -264,24 +279,171 @@ fun UserExploreScreen() {
                 }
             }
 
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(2),
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(16.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                items(filteredProducts) { product ->
-                    ExploreItemCard(
-                        product = product,
-                        onClick = {
-                            val intent = Intent(context, UserItemDetails::class.java)
-                            intent.putExtra("productId", product.productId)
-                            context.startActivity(intent)
+            // Show users if search query exists and users are found
+            if (searchQuery.isNotEmpty() && searchedUsers.isNotEmpty()) {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    // User results section
+                    item {
+                        Text(
+                            text = "Users (${searchedUsers.size})",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(bottom = 8.dp)
+                        )
+                    }
+
+                    items(searchedUsers) { user ->
+                        UserSearchCard(
+                            user = user,
+                            onClick = {
+                                val intent = Intent(context, UserProfileActivity::class.java)
+                                intent.putExtra("userId", user.userId)
+                                context.startActivity(intent)
+                            }
+                        )
+                    }
+
+                    // Products section if there are matching products
+                    if (filteredProducts.isNotEmpty()) {
+                        item {
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text(
+                                text = "Items (${filteredProducts.size})",
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(bottom = 8.dp)
+                            )
                         }
+
+                        // Show products in grid within the LazyColumn
+                        items(filteredProducts.chunked(2)) { rowProducts ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                rowProducts.forEach { product ->
+                                    Box(modifier = Modifier.weight(1f)) {
+                                        ExploreItemCard(
+                                            product = product,
+                                            onClick = {
+                                                val intent = Intent(context, UserItemDetails::class.java)
+                                                intent.putExtra("productId", product.productId)
+                                                context.startActivity(intent)
+                                            }
+                                        )
+                                    }
+                                }
+                                // Add empty box if odd number of products in last row
+                                if (rowProducts.size == 1) {
+                                    Spacer(modifier = Modifier.weight(1f))
+                                }
+                            }
+                        }
+                    }
+                }
+            } else {
+                // Show products grid when no user search
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(2),
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    items(filteredProducts) { product ->
+                        ExploreItemCard(
+                            product = product,
+                            onClick = {
+                                val intent = Intent(context, UserItemDetails::class.java)
+                                intent.putExtra("productId", product.productId)
+                                context.startActivity(intent)
+                            }
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun UserSearchCard(user: UserModel, onClick: () -> Unit) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() },
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Profile Image
+            Box(
+                modifier = Modifier
+                    .size(56.dp)
+                    .clip(CircleShape)
+                    .background(Greenish.copy(alpha = 0.2f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Person,
+                    contentDescription = "Default Profile",
+                    tint = Greenish,
+                    modifier = Modifier.size(32.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.width(12.dp))
+
+            // User Info
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(
+                    text = user.name.ifEmpty { "Unknown User" },
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                if (user.email.isNotEmpty()) {
+                    Text(
+                        text = user.email,
+                        fontSize = 14.sp,
+                        color = Color.Gray,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+                if (user.phone.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = user.phone,
+                        fontSize = 12.sp,
+                        color = Color.Gray,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
             }
+
+            // Arrow or action icon
+            Icon(
+                imageVector = Icons.Default.Person,
+                contentDescription = "View Profile",
+                tint = Greenish,
+                modifier = Modifier.size(24.dp)
+            )
         }
     }
 }
@@ -369,14 +531,14 @@ fun ExploreItemCard(product: ProductModel, onClick: () -> Unit) {
                         color = Greenish,
                         fontWeight = FontWeight.Bold
                     )
-                    
+
                     val statusColor = when (product.status) {
                         "Available" -> Greenish
-                        "Completed" -> Color(0xFF2196F3) // Blue
-                        "Pending" -> Color(0xFFFF9800)   // Orange
+                        "Completed" -> Color(0xFF2196F3)
+                        "Pending" -> Color(0xFFFF9800)
                         else -> Color.Gray
                     }
-                    
+
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(4.dp))
@@ -394,7 +556,6 @@ fun ExploreItemCard(product: ProductModel, onClick: () -> Unit) {
 
                 Spacer(modifier = Modifier.height(4.dp))
 
-                // Name
                 Text(
                     text = product.name,
                     fontSize = 14.sp,
@@ -405,7 +566,6 @@ fun ExploreItemCard(product: ProductModel, onClick: () -> Unit) {
 
                 Spacer(modifier = Modifier.height(2.dp))
 
-                // Description (Single line)
                 Text(
                     text = product.description,
                     fontSize = 12.sp,
@@ -416,7 +576,6 @@ fun ExploreItemCard(product: ProductModel, onClick: () -> Unit) {
 
                 Spacer(modifier = Modifier.height(6.dp))
 
-                // Price and Location
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
@@ -425,14 +584,14 @@ fun ExploreItemCard(product: ProductModel, onClick: () -> Unit) {
                     Text(
                         text = "Rs${product.price}",
                         fontSize = 14.sp,
-                        color = Greenish, // Using Primary Color for Price
+                        color = Greenish,
                         fontWeight = FontWeight.SemiBold
                     )
 
                     if (product.location.isNotEmpty()) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Image(
-                                painter = painterResource(R.drawable.location_on), // You'll need to add this drawable
+                                painter = painterResource(R.drawable.location_on),
                                 contentDescription = "Location",
                                 modifier = Modifier.size(16.dp)
                             )
@@ -443,7 +602,7 @@ fun ExploreItemCard(product: ProductModel, onClick: () -> Unit) {
                                 color = Color.Gray,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier.widthIn(max = 60.dp) // Limit width to prevent overflow
+                                modifier = Modifier.widthIn(max = 60.dp)
                             )
                         }
                     }
