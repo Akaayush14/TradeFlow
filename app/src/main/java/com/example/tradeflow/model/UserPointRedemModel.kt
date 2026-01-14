@@ -1,7 +1,6 @@
 package com.example.tradeflow.model
 
 data class UserPointRedemModel(
-
     var redemptionId: String = "",
     var userId: String = "",
     var dealId: String = "",

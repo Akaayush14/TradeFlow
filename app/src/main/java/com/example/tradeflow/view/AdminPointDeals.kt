@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.tradeflow.model.PointDealModel
 import com.example.tradeflow.repository.PointDealRepoImpl
+import com.example.tradeflow.repository.UserRepoImpl
 import com.example.tradeflow.ui.theme.Greenish
 import com.example.tradeflow.ui.theme.White
 import com.example.tradeflow.viewmodel.PointDealViewModel
@@ -51,7 +52,9 @@ class AdminPointDealsActivity : ComponentActivity() {
 @Composable
 fun AdminPointDealsScreen(onBackClick: () -> Unit) {
     val context = LocalContext.current
-    val viewModel = remember { PointDealViewModel(PointDealRepoImpl()) }
+
+    //changes for user point deals
+    val viewModel = remember { PointDealViewModel(PointDealRepoImpl(), UserRepoImpl()) }
     val allDeals by viewModel.allDeals.observeAsState(initial = emptyList())
 
     var showAddDialog by remember { mutableStateOf(false) }

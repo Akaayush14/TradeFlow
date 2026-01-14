@@ -2,6 +2,7 @@
 package com.example.tradeflow.view
 
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -50,8 +51,6 @@ class UserPointsActivity : ComponentActivity() {
         }
     }
 }
-
-// Update in UserPointsActivity.kt
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PointsScreen() {
@@ -59,10 +58,8 @@ fun PointsScreen() {
     val activity = context as? ComponentActivity
 
     val userViewModel = remember { UserViewModel(UserRepoImpl()) }
-    val pointDealViewModel = remember { PointDealViewModel(PointDealRepoImpl()) }
-    val userPointsViewModel = remember {
-        UserPointsViewModel(PointDealRepoImpl(), UserRepoImpl())
-    }
+    // FIX: Add UserRepoImpl() as second parameter
+    val pointDealViewModel = remember { PointDealViewModel(PointDealRepoImpl(), UserRepoImpl()) }
 
     val currentUser = FirebaseAuth.getInstance().currentUser
     val userId = currentUser?.uid ?: ""
@@ -71,7 +68,7 @@ fun PointsScreen() {
     var showRedeemConfirmation by remember { mutableStateOf(false) }
     var selectedDeal by remember { mutableStateOf<PointDealModel?>(null) }
 
-    val redemptionStatus by userPointsViewModel.redemptionStatus.observeAsState()
+    val redemptionStatus by pointDealViewModel.redemptionStatus.observeAsState()
 
     LaunchedEffect(Unit) {
         if (userId.isNotEmpty()) {
@@ -85,11 +82,10 @@ fun PointsScreen() {
         LaunchedEffect(redemptionStatus) {
             Toast.makeText(context, message, Toast.LENGTH_LONG).show()
             if (success) {
-                // Refresh user points after successful redemption
                 userViewModel.getUserById(userId)
                 pointDealViewModel.getActivePointDeals()
             }
-            userPointsViewModel.clearRedemptionStatus()
+            pointDealViewModel.clearRedemptionStatus()
         }
     }
 
@@ -98,7 +94,32 @@ fun PointsScreen() {
 
     val userPoints = userData?.points ?: 0L
 
-    // ... rest of the PointsSummaryCard and NavigationTabs code remains the same ...
+    // Calculate tier based on points - FIXED: Moved inside composable
+    val currentTier: String
+    val nextTier: String
+    val pointsToNextTier: Long
+    val progress: Float
+
+    when {
+        userPoints < 1000 -> {
+            currentTier = "Bronze"
+            nextTier = "Silver"
+            pointsToNextTier = 1000L - userPoints
+            progress = userPoints.toFloat() / 1000f
+        }
+        userPoints < 5000 -> {
+            currentTier = "Silver"
+            nextTier = "Gold"
+            pointsToNextTier = 5000L - userPoints
+            progress = (userPoints - 1000).toFloat() / 4000f
+        }
+        else -> {
+            currentTier = "Gold"
+            nextTier = "Platinum"
+            pointsToNextTier = 0L
+            progress = 1f
+        }
+    }
 
     // Add confirmation dialog
     if (showRedeemConfirmation && selectedDeal != null) {
@@ -115,7 +136,7 @@ fun PointsScreen() {
                 Button(
                     onClick = {
                         selectedDeal?.let { deal ->
-                            userPointsViewModel.redeemPointDeal(
+                            pointDealViewModel.redeemPointDeal(
                                 deal.dealId,
                                 deal.pointsRequired,
                                 deal.title,
@@ -184,42 +205,54 @@ fun PointsScreen() {
             }
 
             // Content based on selected tab
-            if (selectedTab == "Point Deals") {
-                val dealsList = activeDeals ?: emptyList()
-                if (dealsList.isEmpty()) {
-                    item {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = "No active deals available",
-                                fontSize = 14.sp,
-                                color = Color.Gray
+            when (selectedTab) {
+                "Point Deals" -> {
+                    val dealsList = activeDeals ?: emptyList()
+                    if (dealsList.isEmpty()) {
+                        item {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "No active deals available",
+                                    fontSize = 14.sp,
+                                    color = Color.Gray
+                                )
+                            }
+                        }
+                    } else {
+                        items(dealsList) { deal ->
+                            PointDealCard(
+                                deal = deal,
+                                userPoints = userPoints,
+                                onRedeemClick = {
+                                    selectedDeal = it
+                                    showRedeemConfirmation = true
+                                }
                             )
+                            Spacer(modifier = Modifier.height(12.dp))
                         }
                     }
-                } else {
-                    items(dealsList) { deal ->
-                        PointDealCard(
-                            deal = deal,
-                            userPoints = userPoints,
-                            onRedeemClick = {
-                                selectedDeal = it
-                                showRedeemConfirmation = true
-                            }
-                        )
-                        Spacer(modifier = Modifier.height(12.dp))
+                }
+                "How it works?" -> {
+                    item {
+                        HowItWorksContent()
+                    }
+                }
+                "Point history" -> {
+                    item {
+                        PointHistoryContent()
                     }
                 }
             }
-
-            // ... rest of the code remains the same ...
         }
     }
 }
+
+
 
 @Composable
 private fun PointsSummaryCard(
