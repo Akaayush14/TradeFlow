@@ -8,7 +8,6 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -53,60 +52,82 @@ class UserSettingEditProfile : ComponentActivity() {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun UserSettingEditProfileScreen(navController: NavController) {
     val context = LocalContext.current
     val activity = context as? ComponentActivity
 
-    // Initialize ViewModel
     val userViewModel = remember { UserViewModel(UserRepoImpl()) }
     val coroutineScope = rememberCoroutineScope()
 
-    // Get current user
     val currentUser = FirebaseAuth.getInstance().currentUser
     val userId = currentUser?.uid ?: ""
 
-    // User data state
     val userData by userViewModel.users.collectAsState()
 
-    // Form states
     var name by remember { mutableStateOf("") }
     var phoneNumber by remember { mutableStateOf("") } // Just the number part
     var location by remember { mutableStateOf("") }
+
     var gender by remember { mutableStateOf("") }
     var dob by remember { mutableStateOf("") }
+
+    val genderOptions = listOf("Male", "Female")
+    var showGenderMenu by remember { mutableStateOf(false) }
+
     var selectedCountry by remember { mutableStateOf(countries.first { it.name == "Nepal" }) }
     var showCountryDialog by remember { mutableStateOf(false) }
 
-    // UI states
     var isLoading by remember { mutableStateOf(false) }
     var showSuccessDialog by remember { mutableStateOf(false) }
     var showErrorDialog by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf("") }
 
-    // Date picker
     val calendar = Calendar.getInstance()
-    val datePickerDialog = DatePickerDialog(
-        context,
-        { _: DatePicker, year: Int, month: Int, day: Int ->
-            val selectedDate = Calendar.getInstance()
-            selectedDate.set(year, month, day)
-            dob = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
-                .format(selectedDate.time)
-        },
-        calendar.get(Calendar.YEAR),
-        calendar.get(Calendar.MONTH),
-        calendar.get(Calendar.DAY_OF_MONTH)
-    )
 
-    // Fetch user data when screen loads
+    fun calculateAge(dob: String): Int {
+        if (dob.isEmpty()) return 0
+
+        try {
+            val parts = dob.split(" ")
+            if (parts.size != 3) return 0
+
+            val day = parts[0].toInt()
+            val monthStr = parts[1]
+            val year = parts[2].toInt()
+
+            val monthMap = mapOf(
+                "January" to 0, "February" to 1, "March" to 2, "April" to 3,
+                "May" to 4, "June" to 5, "July" to 6, "August" to 7,
+                "September" to 8, "October" to 9, "November" to 10, "December" to 11
+            )
+
+            val month = monthMap[monthStr] ?: 0
+
+            val birthCalendar = Calendar.getInstance().apply {
+                set(year, month, day)
+            }
+
+            val today = Calendar.getInstance()
+            var calculatedAge = today.get(Calendar.YEAR) - birthCalendar.get(Calendar.YEAR)
+
+            if (today.get(Calendar.DAY_OF_YEAR) < birthCalendar.get(Calendar.DAY_OF_YEAR)) {
+                calculatedAge--
+            }
+
+            return calculatedAge
+        } catch (e: Exception) {
+            return 0
+        }
+    }
+
     LaunchedEffect(userId) {
         if (userId.isNotEmpty()) {
             userViewModel.getUserById(userId)
         }
     }
 
-    // Populate form when user data is fetched
     LaunchedEffect(userData) {
         userData?.let { user ->
             // Set name
@@ -118,19 +139,13 @@ fun UserSettingEditProfileScreen(navController: NavController) {
                 selectedCountry = country
                 phoneNumber = number
             }
-
-            // Note: Add location field to UserModel if you want to store it
-            // For now, we'll leave it empty or add it to your UserModel
-            // location = user.location ?: ""
         }
     }
 
-    // Validation function
     fun validateForm(): Boolean {
         var isValid = true
 
         if (name.isBlank()) {
-            // You could show error message here
             isValid = false
         }
 
@@ -141,7 +156,6 @@ fun UserSettingEditProfileScreen(navController: NavController) {
         return isValid
     }
 
-    // Save function
     fun saveProfile() {
         if (!validateForm()) {
             errorMessage = "Please fill all required fields correctly"
@@ -151,26 +165,17 @@ fun UserSettingEditProfileScreen(navController: NavController) {
 
         isLoading = true
 
-        // Prepare updates (only changed fields)
         val updates = mutableMapOf<String, Any>()
 
-        // Check and add name if changed
         if (userData?.name != name) {
             updates["name"] = name.trim()
         }
 
-        // Check and add phone if changed
         val fullPhone = PhoneParser.combinePhone(selectedCountry, phoneNumber)
         if (userData?.phone != fullPhone) {
             updates["phone"] = fullPhone
         }
 
-        // Add location if you have it in UserModel
-        // if (userData?.location != location) {
-        //     updates["location"] = location.trim()
-        // }
-
-        // Only update if there are changes
         if (updates.isNotEmpty()) {
             userViewModel.updateUserProfile(userId, updates) { success, message ->
                 isLoading = false
@@ -246,7 +251,7 @@ fun UserSettingEditProfileScreen(navController: NavController) {
                     )
                 }
                 Icon(
-                    Icons.Default.Edit,
+                    Icons.Filled.Edit,
                     null,
                     tint = Color.White,
                     modifier = Modifier
@@ -324,25 +329,102 @@ fun UserSettingEditProfileScreen(navController: NavController) {
                 enabled = !isLoading
             )
 
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                OutlinedTextField(
-                    value = gender,
-                    onValueChange = { gender = it },
-                    label = { Text("Gender") },
-                    modifier = Modifier.weight(1f),
-                    enabled = !isLoading
-                )
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                // Gender Field - Reduced width
+                Column(modifier = Modifier.weight(0.8f)) {
+                    Box {
+                        OutlinedTextField(
+                            value = gender,
+                            onValueChange = {},
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable(enabled = !isLoading) {
+                                    showGenderMenu = true
+                                },
+                            readOnly = true,
+                            placeholder = { Text("Gender", color = Color.Gray) },
+                            trailingIcon = {
+                                Icon(
+                                    painter = painterResource(id = android.R.drawable.arrow_down_float),
+                                    contentDescription = "Select Gender",
+                                    tint = if (isLoading) Color.Gray else Color(0xFF1E88E5)
+                                )
+                            },
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = Color(0xFF1E88E5),
+                                unfocusedBorderColor = Color.Gray.copy(alpha = 0.5f),
+                                disabledBorderColor = Color.Gray.copy(alpha = 0.5f),
+                                disabledTextColor = Color.Black,
+                                disabledPlaceholderColor = Color.Gray
+                            ),
+                            enabled = false
+                        )
 
-                OutlinedTextField(
-                    value = dob,
-                    onValueChange = {},
-                    label = { Text("Date of Birth") },
-                    readOnly = true,
-                    modifier = Modifier
-                        .weight(1f)
-                        .clickable(enabled = !isLoading) { datePickerDialog.show() },
-                    enabled = !isLoading
-                )
+                        DropdownMenu(
+                            expanded = showGenderMenu,
+                            onDismissRequest = { showGenderMenu = false }
+                        ) {
+                            genderOptions.forEach { option ->
+                                DropdownMenuItem(
+                                    text = { Text(option) },
+                                    onClick = {
+                                        gender = option
+                                        showGenderMenu = false
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // Date of Birth Field - Increased width
+                Column(modifier = Modifier.weight(1.2f)) {
+                    OutlinedTextField(
+                        value = dob,
+                        onValueChange = {},
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable(enabled = !isLoading) {
+                                val calendar = Calendar.getInstance()
+                                val year = calendar.get(Calendar.YEAR)
+                                val month = calendar.get(Calendar.MONTH)
+                                val day = calendar.get(Calendar.DAY_OF_MONTH)
+
+                                DatePickerDialog(
+                                    context,
+                                    { _, selectedYear, selectedMonth, selectedDay ->
+                                        val monthNames = arrayOf(
+                                            "January", "February", "March", "April", "May", "June",
+                                            "July", "August", "September", "October", "November", "December"
+                                        )
+                                        dob = "$selectedDay ${monthNames[selectedMonth]} $selectedYear"
+                                    },
+                                    year,
+                                    month,
+                                    day
+                                ).apply {
+                                    datePicker.maxDate = System.currentTimeMillis()
+                                }.show()
+                            },
+                        readOnly = true,
+                        placeholder = { Text("24 December 1999", color = Color.Gray) },
+                        trailingIcon = {
+                            Icon(
+                                painter = painterResource(id = android.R.drawable.arrow_down_float),
+                                contentDescription = "Select Date",
+                                tint = if (isLoading) Color.Gray else Color(0xFF1E88E5)
+                            )
+                        },
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = Color(0xFF1E88E5),
+                            unfocusedBorderColor = Color.Gray.copy(alpha = 0.5f),
+                            disabledBorderColor = Color.Gray.copy(alpha = 0.5f),
+                            disabledTextColor = Color.Black,
+                            disabledPlaceholderColor = Color.Gray
+                        ),
+                        enabled = false
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(24.dp))

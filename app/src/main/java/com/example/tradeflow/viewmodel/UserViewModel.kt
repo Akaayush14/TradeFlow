@@ -177,7 +177,6 @@ class UserViewModel( val repo: UserRepo): ViewModel(){
     ) {
         repo.updateUserProfile(userId, updates, callback)
     }
-
     private val _validationErrors = MutableStateFlow<Map<String, String>>(emptyMap())
     val validationErrors: StateFlow<Map<String, String>> = _validationErrors.asStateFlow()
 
