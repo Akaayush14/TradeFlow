@@ -216,32 +216,26 @@ class UserRepoImpl: UserRepo{
             }
         }
     }
+    // for user points delas
     override fun updateUserPoints(
         userId: String,
-        pointsToAdd: Long,
+        newPoints: Long,
         callback: (Boolean, String) -> Unit
     ) {
-        ref.child(userId).child("points").get().addOnSuccessListener { snapshot ->
-            val currentPoints = snapshot.getValue(Long::class.java) ?: 0L
-            val newPoints = currentPoints + pointsToAdd
+        val updates = hashMapOf<String, Any>(
+            "points" to newPoints,
+            "updatedAt" to System.currentTimeMillis()
+        )
 
-            ref.child(userId).child("points").setValue(newPoints).addOnCompleteListener {
-                if (it.isSuccessful) {
-                    callback(true, "Points updated successfully")
-                } else {
-                    callback(false, "${it.exception?.message}")
-                }
-            }
-        }.addOnFailureListener {
-            // If points field doesn't exist, create it
-            ref.child(userId).child("points").setValue(pointsToAdd).addOnCompleteListener { task ->
+        ref.child(userId).updateChildren(updates)
+            .addOnCompleteListener { task ->
                 if (task.isSuccessful) {
                     callback(true, "Points updated successfully")
                 } else {
-                    callback(false, "${task.exception?.message}")
+                    callback(false, task.exception?.message ?: "Failed to update points")
                 }
             }
-        }
     }
+
 
 }
