@@ -2,11 +2,13 @@ package com.example.tradeflow.repository
 
 import android.content.Context
 import android.database.Cursor
+import android.location.Geocoder
 import android.os.Handler
 import android.os.Looper
 import android.provider.OpenableColumns
 import android.net.Uri
 import com.example.tradeflow.model.ProductModel
+import com.google.android.gms.maps.model.LatLng
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.DatabaseReference
@@ -14,6 +16,7 @@ import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
 import com.google.firebase.storage.FirebaseStorage
 import java.io.InputStream
+import java.util.Locale
 import java.util.UUID
 import java.util.concurrent.Executors
 import kotlin.collections.toMap
@@ -251,6 +254,35 @@ class ProductRepoImpl: ProductRepo {
             }else{
                 callback(false, "${it.exception?.message}")
             }
+        }
+    }
+    override fun getLatLngFromAddress(context: Context, address: String): LatLng? {
+        return try {
+            val geocoder = Geocoder(context, Locale.getDefault())
+
+            val addressVariations = listOf(
+                "$address, Kathmandu, Nepal",
+                "$address, Nepal",
+                address
+            )
+
+            for (addressVariant in addressVariations) {
+                try {
+                    @Suppress("DEPRECATION")
+                    val addresses = geocoder.getFromLocationName(addressVariant, 1)
+
+                    if (!addresses.isNullOrEmpty()) {
+                        return LatLng(addresses[0].latitude, addresses[0].longitude)
+                    }
+                } catch (e: Exception) {
+                    continue
+                }
+            }
+
+            null
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
         }
     }
 }

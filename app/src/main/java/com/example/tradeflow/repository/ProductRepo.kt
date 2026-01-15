@@ -3,6 +3,7 @@ package com.example.tradeflow.repository
 import android.content.Context
 import android.net.Uri
 import com.example.tradeflow.model.ProductModel
+import com.google.android.gms.maps.model.LatLng
 
 interface ProductRepo {
 
@@ -44,4 +45,5 @@ interface ProductRepo {
         isListed: Boolean,
         callback: (Boolean, String) -> Unit
     )
+    fun getLatLngFromAddress(context: Context, address: String): LatLng?
 }

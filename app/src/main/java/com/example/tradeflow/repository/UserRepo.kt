@@ -60,7 +60,7 @@ interface UserRepo {
         pointsToAdd: Long,
         callback: (Boolean, String) -> Unit
     )
-    fun getLatLngFromAddress(context: Context, address: String): LatLng?
+
 
 
 }

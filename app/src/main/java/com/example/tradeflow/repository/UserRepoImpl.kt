@@ -239,35 +239,8 @@ class UserRepoImpl: UserRepo{
             }
         }
     }
-    override fun getLatLngFromAddress(context: Context, address: String): LatLng? {
-        return try {
-            val geocoder = Geocoder(context, Locale.getDefault())
 
-            val addressVariations = listOf(
-                "$address, Kathmandu, Nepal",
-                "$address, Nepal",
-                address
-            )
 
-            for (addressVariant in addressVariations) {
-                try {
-                    @Suppress("DEPRECATION")
-                    val addresses = geocoder.getFromLocationName(addressVariant, 1)
-
-                    if (!addresses.isNullOrEmpty()) {
-                        return LatLng(addresses[0].latitude, addresses[0].longitude)
-                    }
-                } catch (e: Exception) {
-                    continue
-                }
-            }
-
-            null
-        } catch (e: Exception) {
-            e.printStackTrace()
-            null
-        }
-    }
 
 
 

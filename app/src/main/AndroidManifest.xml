@@ -1,9 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
+
     <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />"
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 
 
     <application
@@ -12,10 +15,21 @@
         android:fullBackupContent="@xml/backup_rules"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
-        tools:replace="android:fullBackupContent"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.TradeFlow">
+        android:theme="@style/Theme.TradeFlow"
+        tools:replace="android:fullBackupContent">
+        <activity
+            android:name=".view.MapActivity"
+            android:exported="true"
+            android:label="@string/title_activity_map"
+            android:theme="@style/Theme.TradeFlow">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
 
         <meta-data
             android:name="com.google.android.geo.API_KEY"
@@ -73,7 +87,6 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-
         <activity
             android:name=".view.UserDashboard"
             android:exported="true"
@@ -83,10 +96,10 @@
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+
             <meta-data
                 android:name="com.google.android.geo.API_KEY"
                 android:value="YOUR_MAP_API_KEY" />
-
         </activity>
         <activity
             android:name=".view.UserItemDetails"
@@ -98,7 +111,6 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-
         <activity
             android:name=".view.UserSetting"
             android:exported="true"
@@ -109,7 +121,6 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-
         <activity
             android:name=".view.UserSettingNotification"
             android:exported="true"
@@ -131,7 +142,6 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-
         <activity
             android:name=".view.AdminDashExp"
             android:exported="true"
@@ -142,7 +152,6 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-
         <activity
             android:name=".view.AdminDashUser"
             android:exported="true"
@@ -153,7 +162,6 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-
         <activity
             android:name=".view.AdminProfile"
             android:exported="true"
@@ -165,8 +173,6 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-
-
         <activity
             android:name=".view.AdminNotification"
             android:exported="true"
@@ -181,17 +187,14 @@
             android:name=".view.AdminUserMetric"
             android:exported="true"
             android:theme="@style/Theme.TradeFlow" />
-
         <activity
             android:name=".view.AdminAdminMetric"
             android:exported="true"
             android:theme="@style/Theme.TradeFlow" />
-
         <activity
             android:name=".view.AdminProductMetric"
             android:exported="true"
             android:theme="@style/Theme.TradeFlow" />
-
         <activity
             android:name=".view.AdminProductPriceMetric"
             android:exported="true"
@@ -200,7 +203,6 @@
             android:name=".view.AdminAdmin"
             android:exported="false"
             android:theme="@style/Theme.TradeFlow" />
-
         <activity
             android:name=".view.AdminSettings"
             android:exported="true"
