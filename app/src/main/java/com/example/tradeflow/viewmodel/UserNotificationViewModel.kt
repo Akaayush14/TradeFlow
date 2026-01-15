@@ -18,6 +18,9 @@ class UserNotificationViewModel(private val repository: UserNotificationRepoImpl
     private val _notifications = MutableStateFlow<List<UserNotificationModel>>(emptyList())
     val notifications: StateFlow<List<UserNotificationModel>> = _notifications
 
+    private val _myRequests = MutableStateFlow<List<RequestModel>>(emptyList())
+    val myRequests: StateFlow<List<RequestModel>> = _myRequests
+
     private val _unreadCount = MutableStateFlow(0)
     val unreadCount: StateFlow<Int> = _unreadCount
 
@@ -167,6 +170,34 @@ class UserNotificationViewModel(private val repository: UserNotificationRepoImpl
                     _notifications.value = notificationList ?: emptyList()
                     _unreadCount.value = notificationList?.count { !it.isRead } ?: 0
                 }
+            }
+        }
+    }
+
+    fun loadMyRequests(userId: String) {
+        viewModelScope.launch {
+            repository.getRequestsByRequester(userId) { success, _, requests ->
+                if (success) {
+                    _myRequests.value = requests?.sortedByDescending { it.createdAt } ?: emptyList()
+                }
+            }
+        }
+    }
+
+    fun cancelRequest(requestId: String, onResult: (Boolean, String) -> Unit) {
+        viewModelScope.launch {
+            try {
+                repository.updateRequestStatus(requestId, "CANCELED") { success, message ->
+                    if (success) {
+                        // Update local list
+                        _myRequests.value = _myRequests.value.map {
+                            if (it.requestId == requestId) it.copy(status = "CANCELED") else it
+                        }
+                    }
+                    onResult(success, message)
+                }
+            } catch (e: Exception) {
+                onResult(false, e.message ?: "Error canceling request")
             }
         }
     }

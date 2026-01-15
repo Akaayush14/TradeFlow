@@ -12,6 +12,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -22,11 +23,15 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.example.tradeflow.R
 import com.example.tradeflow.model.UserNotificationModel
+import com.example.tradeflow.model.RequestModel
+import com.example.tradeflow.model.ProductModel
+import com.example.tradeflow.repository.ProductRepoImpl
 import com.example.tradeflow.repository.UserNotificationRepoImpl
 import com.example.tradeflow.ui.theme.Greenish
 import com.example.tradeflow.ui.theme.White
@@ -44,6 +49,7 @@ fun UserNotificationScreen(
 ) {
     val viewModel = remember { UserNotificationViewModel(UserNotificationRepoImpl()) }
     val notifications by viewModel.notifications.collectAsState()
+    val myRequests by viewModel.myRequests.collectAsState()
     val currentUser = FirebaseAuth.getInstance().currentUser
     val userId = currentUser?.uid ?: ""
 
@@ -55,17 +61,22 @@ fun UserNotificationScreen(
     LaunchedEffect(userId) {
         if (userId.isNotEmpty()) {
             viewModel.loadNotifications(userId)
+            viewModel.loadMyRequests(userId)
         }
     }
 
-    // Filter notifications
     val filteredNotifications = when (selectedFilter) {
-        "Barter" -> notifications.filter { it.requestType == "BARTER" }
-        "Rent" -> notifications.filter { it.requestType == "RENT" }
+        "Incoming Request" -> notifications
+        "My Requests" -> emptyList()
         else -> notifications
     }
 
-    // Group notifications by date
+    val filteredMyRequests = when (selectedFilter) {
+        "Incoming Request" -> emptyList()
+        "My Requests" -> myRequests
+        else -> myRequests
+    }
+
     val groupedNotifications = filteredNotifications.groupBy { notification ->
         val now = Calendar.getInstance()
         val notifTime = Calendar.getInstance().apply { timeInMillis = notification.createdAt }
@@ -76,6 +87,21 @@ fun UserNotificationScreen(
 
             now.get(Calendar.DAY_OF_YEAR) - 1 == notifTime.get(Calendar.DAY_OF_YEAR) &&
                     now.get(Calendar.YEAR) == notifTime.get(Calendar.YEAR) -> "YESTERDAY"
+
+            else -> "OLDER"
+        }
+    }
+
+    val groupedMyRequests = filteredMyRequests.groupBy { request ->
+        val now = Calendar.getInstance()
+        val reqTime = Calendar.getInstance().apply { timeInMillis = request.createdAt }
+
+        when {
+            now.get(Calendar.DAY_OF_YEAR) == reqTime.get(Calendar.DAY_OF_YEAR) &&
+                    now.get(Calendar.YEAR) == reqTime.get(Calendar.YEAR) -> "TODAY"
+
+            now.get(Calendar.DAY_OF_YEAR) - 1 == reqTime.get(Calendar.DAY_OF_YEAR) &&
+                    now.get(Calendar.YEAR) == reqTime.get(Calendar.YEAR) -> "YESTERDAY"
 
             else -> "OLDER"
         }
@@ -101,7 +127,7 @@ fun UserNotificationScreen(
                 .padding(innerPadding)
                 .background(Color(0xFFF5F5F5))
         ) {
-            // Filter Tabs
+            val filters = listOf("All", "Incoming Request", "My Requests")
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -109,36 +135,23 @@ fun UserNotificationScreen(
                     .padding(horizontal = 16.dp, vertical = 12.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                FilterChip(
-                    selected = selectedFilter == "All",
-                    onClick = { selectedFilter = "All" },
-                    label = { Text("All", fontSize = 14.sp) },
-                    colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = Color(0xFF2196F3),
-                        selectedLabelColor = White
+                filters.forEach { filter ->
+                    FilterChip(
+                        selected = selectedFilter == filter,
+                        onClick = { selectedFilter = filter },
+                        label = { Text(filter, fontSize = 14.sp) },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = Color(0xFF2196F3),
+                            selectedLabelColor = White
+                        )
                     )
-                )
-                FilterChip(
-                    selected = selectedFilter == "Barter",
-                    onClick = { selectedFilter = "Barter" },
-                    label = { Text("Barter", fontSize = 14.sp) },
-                    colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = Color(0xFF2196F3),
-                        selectedLabelColor = White
-                    )
-                )
-                FilterChip(
-                    selected = selectedFilter == "Rent",
-                    onClick = { selectedFilter = "Rent" },
-                    label = { Text("Rent", fontSize = 14.sp) },
-                    colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = Color(0xFF2196F3),
-                        selectedLabelColor = White
-                    )
-                )
+                }
             }
 
-            if (filteredNotifications.isEmpty()) {
+            val hasNotifications = filteredNotifications.isNotEmpty()
+            val hasRequests = filteredMyRequests.isNotEmpty()
+
+            if (!hasNotifications && !hasRequests) {
                 EmptyNotificationState()
             } else {
                 LazyColumn(
@@ -146,37 +159,85 @@ fun UserNotificationScreen(
                     contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    // Display grouped notifications
-                    listOf("TODAY", "YESTERDAY", "OLDER").forEach { section ->
-                        groupedNotifications[section]?.let { notificationList ->
-                            item {
+                    if (hasNotifications) {
+                        listOf("TODAY", "YESTERDAY", "OLDER").forEach { section ->
+                            groupedNotifications[section]?.let { notificationList ->
+                                item {
+                                    Text(
+                                        text = section,
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = Color.Gray,
+                                        modifier = Modifier.padding(bottom = 8.dp)
+                                    )
+                                }
+
+                                items(notificationList) { notification ->
+                                    EnhancedNotificationCard(
+                                        notification = notification,
+                                        onClick = {
+                                            viewModel.markAsRead(notification.notificationId)
+                                            onNotificationClick(notification)
+                                        },
+                                        onAccept = {
+                                            selectedNotification = notification
+                                            showAcceptDialog = true
+                                        },
+                                        onReject = {
+                                            selectedNotification = notification
+                                            showRejectDialog = true
+                                        },
+                                        onViewDetails = { onViewDetails(notification.requestId) },
+                                        onMessage = {}
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    if (hasRequests) {
+                        item {
+                            if (selectedFilter == "My Requests") {
                                 Text(
-                                    text = section,
+                                    text = "My Requests",
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.SemiBold,
                                     color = Color.Gray,
                                     modifier = Modifier.padding(bottom = 8.dp)
                                 )
-                            }
-
-                            items(notificationList) { notification ->
-                                EnhancedNotificationCard(
-                                    notification = notification,
-                                    onClick = {
-                                        viewModel.markAsRead(notification.notificationId)
-                                        onNotificationClick(notification)
-                                    },
-                                    onAccept = {
-                                        selectedNotification = notification
-                                        showAcceptDialog = true
-                                    },
-                                    onReject = {
-                                        selectedNotification = notification
-                                        showRejectDialog = true
-                                    },
-                                    onViewDetails = { onViewDetails(notification.requestId) },
-                                    onMessage = { /* Handle messaging */ }
+                            } else if (hasNotifications) {
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    text = "My Requests",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = Color.Gray,
+                                    modifier = Modifier.padding(vertical = 8.dp)
                                 )
+                            }
+                        }
+
+                        listOf("TODAY", "YESTERDAY", "OLDER").forEach { section ->
+                            groupedMyRequests[section]?.let { requestList ->
+                                item {
+                                    Text(
+                                        text = section,
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = Color.Gray,
+                                        modifier = Modifier.padding(bottom = 8.dp)
+                                    )
+                                }
+                                items(requestList) { request ->
+                                    SentRequestCard(
+                                        request = request,
+                                        onCancel = {
+                                            if (request.status == "PENDING") {
+                                                viewModel.cancelRequest(request.requestId) { _, _ -> }
+                                            }
+                                        }
+                                    )
+                                }
                             }
                         }
                     }
@@ -367,88 +428,25 @@ fun EnhancedNotificationCard(
 
             // Product Section - Your Item
             if (notification.productName.isNotEmpty()) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(Color(0xFFF5F5F5), RoundedCornerShape(8.dp))
-                        .padding(12.dp)
-                ) {
-                    Text(
-                        text = "Your Item",
-                        fontSize = 11.sp,
-                        color = Color.Gray,
-                        fontWeight = FontWeight.Medium
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        AsyncImage(
-                            model = notification.productImage.ifEmpty { R.drawable.placeholderimage },
-                            contentDescription = "Product",
-                            modifier = Modifier
-                                .size(50.dp)
-                                .clip(RoundedCornerShape(8.dp)),
-                            contentScale = ContentScale.Crop,
-                            error = painterResource(R.drawable.placeholderimage)
-                        )
-                        Text(
-                            text = notification.productName,
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = Color.Black
-                        )
-                    }
-                }
+                ProductDetailsSection(
+                    header = "Your Item",
+                    productId = notification.productId,
+                    fallbackName = notification.productName,
+                    fallbackImage = notification.productImage,
+                    highlightColor = Color(0xFFF5F5F5)
+                )
             }
 
             // Exchange Offer or Rental Details
             if (notification.requestType == "BARTER" && notification.offerProductName.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(8.dp))
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(Color(0xFFFFF8E1), RoundedCornerShape(8.dp))
-                        .padding(12.dp)
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            painter = painterResource(R.drawable.placeholderimage), // Use exchange icon
-                            contentDescription = "Exchange",
-                            modifier = Modifier.size(16.dp),
-                            tint = Color(0xFFFF6F00)
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = "Offering in exchange",
-                            fontSize = 11.sp,
-                            color = Color(0xFFFF6F00),
-                            fontWeight = FontWeight.Medium
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        AsyncImage(
-                            model = notification.offerProductImage.ifEmpty { R.drawable.placeholderimage },
-                            contentDescription = "Offer Product",
-                            modifier = Modifier
-                                .size(50.dp)
-                                .clip(RoundedCornerShape(8.dp)),
-                            contentScale = ContentScale.Crop,
-                            error = painterResource(R.drawable.placeholderimage)
-                        )
-                        Text(
-                            text = notification.offerProductName,
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = Color.Black
-                        )
-                    }
-                }
+                ProductDetailsSection(
+                    header = "Offering in exchange",
+                    productId = notification.offerProductId,
+                    fallbackName = notification.offerProductName,
+                    fallbackImage = notification.offerProductImage,
+                    highlightColor = Color(0xFFFFF8E1)
+                )
             } else if (notification.requestType == "RENT" && notification.rentalPeriod.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(8.dp))
                 Row(
@@ -576,6 +574,256 @@ fun EnhancedNotificationCard(
 }
 
 @Composable
+fun ProductDetailsSection(
+    header: String,
+    productId: String,
+    fallbackName: String,
+    fallbackImage: String,
+    highlightColor: Color
+) {
+    var product by remember { mutableStateOf<ProductModel?>(null) }
+
+    LaunchedEffect(productId) {
+        if (productId.isNotEmpty()) {
+            ProductRepoImpl().getProductById(productId) { success, _, data ->
+                if (success) {
+                    product = data
+                }
+            }
+        }
+    }
+
+    val name = product?.name ?: fallbackName
+    val image = product?.imageUrl ?: fallbackImage
+    val desc = product?.description ?: ""
+    val location = product?.location ?: ""
+    val price = product?.price ?: 0.0
+    val isRent = product?.type == "Rent"
+    val priceText = if (isRent) "Rs ${formatAmount(price)} / Day" else "Rs ${formatAmount(price)}"
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(highlightColor, RoundedCornerShape(8.dp))
+            .padding(12.dp)
+    ) {
+        Text(
+            text = header,
+            fontSize = 11.sp,
+            color = Color.Gray,
+            fontWeight = FontWeight.Medium
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            AsyncImage(
+                model = image.ifEmpty { R.drawable.placeholderimage },
+                contentDescription = "Product",
+                modifier = Modifier
+                    .size(56.dp)
+                    .clip(RoundedCornerShape(8.dp)),
+                contentScale = ContentScale.Crop,
+                error = painterResource(R.drawable.placeholderimage)
+            )
+            Column {
+                Text(
+                    text = name,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color.Black,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                if (desc.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = desc,
+                        fontSize = 12.sp,
+                        color = Color.DarkGray,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = priceText,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Black
+                )
+                if (location.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        // Location Icon from drawable
+                        Image(
+                            painter = painterResource(R.drawable.location_on), // You'll need to add this drawable
+                            contentDescription = "Location",
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = location,
+                            fontSize = 12.sp,
+                            color = Color.Gray
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+private fun formatAmount(value: Double): String {
+    return String.format("%.2f", value)
+}
+
+@Composable
+fun SentRequestCard(
+    request: RequestModel,
+    onCancel: () -> Unit
+) {
+    val statusColor = when (request.status) {
+        "PENDING" -> Color(0xFFFFA726)
+        "ACCEPTED" -> Color(0xFF4CAF50)
+        "CANCELED" -> Color(0xFF9E9E9E)
+        "REJECTED" -> Color(0xFFE53935)
+        else -> Color(0xFF9E9E9E)
+    }
+
+    val statusBackground = when (request.status) {
+        "PENDING" -> Color(0xFFFFF3E0)
+        "ACCEPTED" -> Color(0xFFE8F5E9)
+        "CANCELED" -> Color(0xFFF5F5F5)
+        "REJECTED" -> Color(0xFFFFEBEE)
+        else -> Color(0xFFF5F5F5)
+    }
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = White),
+        elevation = CardDefaults.cardElevation(2.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+            Text(
+                text = if (request.productType == "BARTER") "Barter Request" else "Rent Request",
+                fontSize = 12.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = Color.Gray
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            ProductDetailsSection(
+                header = "Item you're requesting",
+                productId = request.productId,
+                fallbackName = request.productName,
+                fallbackImage = request.productImage,
+                highlightColor = Color(0xFFEFF6FF)
+            )
+
+            if (request.offerProductId.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(8.dp))
+                ProductDetailsSection(
+                    header = "Your offering",
+                    productId = request.offerProductId,
+                    fallbackName = request.offerProductName,
+                    fallbackImage = request.offerProductImage,
+                    highlightColor = Color(0xFFE8F5E9)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                AsyncImage(
+                    model = request.ownerImage.ifEmpty { R.drawable.placeholderimage },
+                    contentDescription = "Owner",
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(CircleShape),
+                    contentScale = ContentScale.Crop,
+                    error = painterResource(R.drawable.placeholderimage)
+                )
+                Column {
+                    Text(
+                        text = request.ownerName,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = Color.Black,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        text = "Owner",
+                        fontSize = 12.sp,
+                        color = Color.Gray
+                    )
+                }
+                Spacer(modifier = Modifier.weight(1f))
+                Text(
+                    text = formatTime(request.createdAt),
+                    fontSize = 11.sp,
+                    color = Color.Gray
+                )
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Surface(
+                    shape = RoundedCornerShape(16.dp),
+                    color = statusBackground
+                ) {
+                    Text(
+                        text = when (request.status) {
+                            "PENDING" -> "Pending"
+                            "ACCEPTED" -> "Accepted"
+                            "CANCELED" -> "Canceled"
+                            "REJECTED" -> "Rejected"
+                            else -> request.status
+                        },
+                        color = statusColor,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                    )
+                }
+
+                if (request.status == "PENDING") {
+                    Button(
+                        onClick = onCancel,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFFFF7043)
+                        ),
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier.height(40.dp)
+                    ) {
+                        Text(
+                            text = "Cancel Request",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = White
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
 fun EmptyNotificationState() {
     Box(
         modifier = Modifier.fillMaxSize(),
@@ -619,4 +867,10 @@ fun formatTime(timestamp: Long): String {
         diff < 604800000 -> "${diff / 86400000} days ago"
         else -> SimpleDateFormat("MMM dd", Locale.getDefault()).format(Date(timestamp))
     }
+}
+
+@Preview
+@Composable
+fun PreviewNotification(){
+    UserNotificationScreen ()
 }
