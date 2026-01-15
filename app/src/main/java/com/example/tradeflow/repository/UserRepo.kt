@@ -1,6 +1,8 @@
 package com.example.tradeflow.repository
 
+import android.content.Context
 import com.example.tradeflow.model.UserModel
+import com.google.android.gms.maps.model.LatLng
 import com.google.firebase.auth.FirebaseUser
 
 interface UserRepo {
@@ -58,6 +60,7 @@ interface UserRepo {
         pointsToAdd: Long,
         callback: (Boolean, String) -> Unit
     )
+    fun getLatLngFromAddress(context: Context, address: String): LatLng?
 
 
 }

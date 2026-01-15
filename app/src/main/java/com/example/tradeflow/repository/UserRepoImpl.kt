@@ -1,5 +1,7 @@
 package com.example.tradeflow.repository
 
+import android.content.Context
+import android.location.Geocoder
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.database.DataSnapshot
@@ -8,6 +10,8 @@ import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
 import com.example.tradeflow.model.UserModel
+import com.google.android.gms.maps.model.LatLng
+import java.util.Locale
 import kotlin.collections.toMap
 
 class UserRepoImpl: UserRepo{
@@ -233,6 +237,35 @@ class UserRepoImpl: UserRepo{
                     callback(false, "${task.exception?.message}")
                 }
             }
+        }
+    }
+    override fun getLatLngFromAddress(context: Context, address: String): LatLng? {
+        return try {
+            val geocoder = Geocoder(context, Locale.getDefault())
+
+            val addressVariations = listOf(
+                "$address, Kathmandu, Nepal",
+                "$address, Nepal",
+                address
+            )
+
+            for (addressVariant in addressVariations) {
+                try {
+                    @Suppress("DEPRECATION")
+                    val addresses = geocoder.getFromLocationName(addressVariant, 1)
+
+                    if (!addresses.isNullOrEmpty()) {
+                        return LatLng(addresses[0].latitude, addresses[0].longitude)
+                    }
+                } catch (e: Exception) {
+                    continue
+                }
+            }
+
+            null
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
         }
     }
 

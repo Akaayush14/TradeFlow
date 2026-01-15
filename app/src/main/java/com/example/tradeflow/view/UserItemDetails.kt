@@ -1,6 +1,7 @@
 package com.example.tradeflow.view
 
 import android.app.Activity
+import android.content.Context
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -17,6 +18,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.Star
 import androidx.compose.material3.*
@@ -41,6 +43,10 @@ import com.example.tradeflow.ui.theme.White
 import com.example.tradeflow.viewmodel.ProductViewModel
 import com.example.tradeflow.viewmodel.ReviewViewModel
 import com.example.tradeflow.viewmodel.UserViewModel
+import com.google.android.gms.maps.model.CameraPosition
+import com.google.android.gms.maps.model.LatLng
+import com.google.maps.android.compose.*
+import java.util.Locale
 
 class UserItemDetails : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -62,11 +68,15 @@ fun ItemDetailsScreen() {
     val userViewModel = remember { UserViewModel(UserRepoImpl()) }
     val reviewViewModel = remember { ReviewViewModel(ReviewRepoImpl()) }
 
-    // Use collectAsState() for StateFlow (not observeAsState for LiveData)
+    // Use collectAsState() for StateFlow
     val product by productViewModel.product.collectAsState()
     val owner by userViewModel.users.collectAsState()
     val reviews by reviewViewModel.reviews.collectAsState()
     val loading by productViewModel.loading.collectAsState()
+
+    // State for showing location map
+    var showLocationMap by remember { mutableStateOf(false) }
+    var productLocation by remember { mutableStateOf<LatLng?>(null) }
 
     LaunchedEffect(productId) {
         if (productId.isNotEmpty()) {
@@ -79,6 +89,22 @@ fun ItemDetailsScreen() {
         product?.ownerId?.let { ownerId ->
             if (ownerId.isNotEmpty()) {
                 userViewModel.getUserById(ownerId)
+            }
+        }
+
+        // Get location when product is loaded
+        product?.let { productItem ->
+            if (productItem.location.isNotEmpty()) {
+                val latLng = getLatLngFromAddress(context, productItem.location)
+                if (latLng != null) {
+                    productLocation = latLng
+                } else {
+                    // Fallback to a default location (Kathmandu) if address can't be geocoded
+                    productLocation = LatLng(27.7172, 85.3240)
+                }
+            } else {
+                // Default location if no location is provided
+                productLocation = LatLng(27.7172, 85.3240) // Kathmandu coordinates
             }
         }
     }
@@ -110,6 +136,13 @@ fun ItemDetailsScreen() {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Text("Product not found")
             }
+        } else if (showLocationMap && productLocation != null) {
+            // Show Map Screen
+            LocationMapScreen(
+                productLocation = productLocation!!,
+                productName = product?.name ?: "",
+                onBackClick = { showLocationMap = false }
+            )
         } else {
             var selectedImageUrl by remember { mutableStateOf("") }
 
@@ -130,7 +163,7 @@ fun ItemDetailsScreen() {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(300.dp) // Increased height for better view
+                        .height(300.dp)
                         .background(Color.LightGray),
                     contentAlignment = Alignment.Center
                 ) {
@@ -154,7 +187,6 @@ fun ItemDetailsScreen() {
                 }
 
                 // Image Gallery (Thumbnails)
-                // Use safe call and let to handle null safely
                 val images = product?.let { productItem ->
                     listOf(
                         productItem.imageUrl,
@@ -199,7 +231,6 @@ fun ItemDetailsScreen() {
 
                 Column(modifier = Modifier.padding(16.dp)) {
                     // 2. Item Title, Price, Type
-                    // Use safe call with let
                     product?.let { productItem ->
                         Text(
                             text = productItem.name,
@@ -231,6 +262,39 @@ fun ItemDetailsScreen() {
                             fontSize = 14.sp,
                             color = Color.Gray
                         )
+
+                        // Location Section - Clickable to open map
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    if (productItem.location.isNotEmpty()) {
+                                        if (productLocation != null) {
+                                            showLocationMap = true
+                                        } else {
+                                            Toast.makeText(context, "Location not available", Toast.LENGTH_SHORT).show()
+                                        }
+                                    } else {
+                                        Toast.makeText(context, "No location provided", Toast.LENGTH_SHORT).show()
+                                    }
+                                }
+                                .padding(vertical = 8.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.LocationOn,
+                                contentDescription = "Location",
+                                tint = Greenish,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = productItem.location.ifEmpty { "Location not specified" },
+                                fontSize = 14.sp,
+                                color = if (productItem.location.isNotEmpty()) Color.DarkGray else Color.Gray
+                            )
+                        }
 
                         Spacer(modifier = Modifier.height(16.dp))
                         HorizontalDivider(color = Color.LightGray, thickness = 0.5.dp)
@@ -273,7 +337,7 @@ fun ItemDetailsScreen() {
                                         modifier = Modifier.size(16.dp)
                                     )
                                     Text(
-                                        text = "4.8 (24 reviews)", // Placeholder rating for user
+                                        text = "4.8 (24 reviews)",
                                         fontSize = 14.sp,
                                         color = Color.Gray,
                                         modifier = Modifier.padding(start = 4.dp)
@@ -376,6 +440,67 @@ fun ItemDetailsScreen() {
     }
 }
 
+// Location Map Screen Composable
+@Composable
+fun LocationMapScreen(
+    productLocation: LatLng,
+    productName: String,
+    onBackClick: () -> Unit
+) {
+    var cameraPositionState by remember {
+        mutableStateOf(
+            CameraPosition.fromLatLngZoom(productLocation, 15f)
+        )
+    }
+
+    Column(modifier = Modifier.fillMaxSize()) {
+        // Map Toolbar
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp)
+                .background(Greenish)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxSize(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                IconButton(
+                    onClick = onBackClick,
+                    modifier = Modifier.padding(start = 8.dp)
+                ) {
+                    Icon(
+                        painterResource(id = R.drawable.outline_arrow_back_ios_new_24),
+                        contentDescription = "Back",
+                        tint = White
+                    )
+                }
+                Text(
+                    text = "Location: $productName",
+                    color = White,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Medium
+                )
+                Spacer(modifier = Modifier.width(48.dp)) // For balance
+            }
+        }
+
+        // Google Map
+        GoogleMap(
+            modifier = Modifier.fillMaxSize(),
+            cameraPositionState = rememberCameraPositionState {
+                position = cameraPositionState
+            }
+        ) {
+            Marker(
+                state = MarkerState(position = productLocation),
+                title = productName
+            )
+        }
+    }
+}
+
 @Composable
 fun ContainerTag(text: String, color: Color, textColor: Color) {
     Box(
@@ -405,5 +530,35 @@ fun ReviewItem(username: String, rating: Int, comment: String) {
             }
         }
         Text(text = comment, fontSize = 14.sp, color = Color.Gray)
+    }
+}
+
+// Geocoding function to convert address to LatLng
+fun getLatLngFromAddress(context: Context, address: String): LatLng? {
+    return try {
+        val geocoder = android.location.Geocoder(context, Locale.getDefault())
+
+        val addressVariations = listOf(
+            "$address, Kathmandu, Nepal",
+            "$address, Nepal",
+            address
+        )
+
+        for (addressVariant in addressVariations) {
+            try {
+                @Suppress("DEPRECATION")
+                val addresses = geocoder.getFromLocationName(addressVariant, 1)
+
+                if (!addresses.isNullOrEmpty()) {
+                    return LatLng(addresses[0].latitude, addresses[0].longitude)
+                }
+            } catch (e: Exception) {
+                continue
+            }
+        }
+        null
+    } catch (e: Exception) {
+        e.printStackTrace()
+        null
     }
 }

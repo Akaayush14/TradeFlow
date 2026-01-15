@@ -4,9 +4,8 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />"
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
-    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
-    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
-    <uses-permission android:name="android.permission.INTERNET" />
+
+
     <application
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
@@ -17,6 +16,11 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.TradeFlow">
+
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="api_key" />
+
         <activity
             android:name=".view.MainActivity"
             android:exported="true"
@@ -79,6 +83,10 @@
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <meta-data
+                android:name="com.google.android.geo.API_KEY"
+                android:value="YOUR_MAP_API_KEY" />
+
         </activity>
         <activity
             android:name=".view.UserItemDetails"
