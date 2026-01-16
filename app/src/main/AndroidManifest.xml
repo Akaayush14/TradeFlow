@@ -18,6 +18,7 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.TradeFlow"
+        android:name=".TradeFlowApp"
         tools:replace="android:fullBackupContent">
         <activity
             android:name=".view.MapActivity"
