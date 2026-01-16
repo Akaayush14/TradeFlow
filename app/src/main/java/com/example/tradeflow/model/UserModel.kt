@@ -6,6 +6,8 @@ data class UserModel(
     var email: String = "",
     var phone: String = "",
     var location: String = "",
+    var gender: String = "",
+    var dob: String = "",
     var isBlocked: Boolean = false,
     var isRestricted: Boolean = false,
     var points: Long = 0L

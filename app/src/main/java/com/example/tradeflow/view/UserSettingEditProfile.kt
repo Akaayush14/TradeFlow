@@ -167,13 +167,30 @@ fun UserSettingEditProfileScreen(navController: NavController) {
 
         val updates = mutableMapOf<String, Any>()
 
+        // Name
         if (userData?.name != name) {
             updates["name"] = name.trim()
         }
 
+        // Phone
         val fullPhone = PhoneParser.combinePhone(selectedCountry, phoneNumber)
         if (userData?.phone != fullPhone) {
             updates["phone"] = fullPhone
+        }
+
+        // Location (NEW)
+        if (userData?.location != location) {
+            updates["location"] = location.trim()
+        }
+
+        // Gender (NEW)
+        if (userData?.gender != gender) {
+            updates["gender"] = gender
+        }
+
+        // Date of Birth (NEW)
+        if (userData?.dob != dob) {
+            updates["dob"] = dob
         }
 
         if (updates.isNotEmpty()) {
