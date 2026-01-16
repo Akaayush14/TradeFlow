@@ -13,6 +13,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Message
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -45,7 +46,8 @@ import java.util.*
 fun UserNotificationScreen(
     onBackClick: () -> Unit = {},
     onNotificationClick: (UserNotificationModel) -> Unit = {},
-    onViewDetails: (String) -> Unit = {}
+    onViewDetails: (String) -> Unit = {},
+    onNavigateInbox: () -> Unit = {}
 ) {
     val viewModel = remember { UserNotificationViewModel(UserNotificationRepoImpl()) }
     val notifications by viewModel.notifications.collectAsState()
@@ -133,7 +135,7 @@ fun UserNotificationScreen(
                     .fillMaxWidth()
                     .background(White)
                     .padding(horizontal = 16.dp, vertical = 12.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.SpaceEvenly
             ) {
                 filters.forEach { filter ->
                     FilterChip(
@@ -188,7 +190,7 @@ fun UserNotificationScreen(
                                             showRejectDialog = true
                                         },
                                         onViewDetails = { onViewDetails(notification.requestId) },
-                                        onMessage = {}
+                                        onMessage = { onNavigateInbox() }
                                     )
                                 }
                             }
@@ -438,15 +440,42 @@ fun EnhancedNotificationCard(
             }
 
             // Exchange Offer or Rental Details
-            if (notification.requestType == "BARTER" && notification.offerProductName.isNotEmpty()) {
-                Spacer(modifier = Modifier.height(8.dp))
-                ProductDetailsSection(
-                    header = "Offering in exchange",
-                    productId = notification.offerProductId,
-                    fallbackName = notification.offerProductName,
-                    fallbackImage = notification.offerProductImage,
-                    highlightColor = Color(0xFFFFF8E1)
-                )
+            if (notification.requestType == "BARTER") {
+                if (notification.offeredItems.size > 1) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "Offering ${notification.offeredItems.size} items in exchange",
+                        fontSize = 11.sp,
+                        color = Color.Gray,
+                        fontWeight = FontWeight.Medium,
+                        modifier = Modifier.padding(bottom = 4.dp)
+                    )
+                    
+                    androidx.compose.foundation.lazy.LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        items(notification.offeredItems) { item ->
+                            ProductDetailsSection(
+                                header = "",
+                                productId = item.productId,
+                                fallbackName = item.productName,
+                                fallbackImage = item.productImage,
+                                highlightColor = Color(0xFFFFF8E1),
+                                modifier = Modifier.width(260.dp)
+                            )
+                        }
+                    }
+                } else if (notification.offerProductName.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    ProductDetailsSection(
+                        header = "Offering in exchange",
+                        productId = notification.offerProductId,
+                        fallbackName = notification.offerProductName,
+                        fallbackImage = notification.offerProductImage,
+                        highlightColor = Color(0xFFFFF8E1)
+                    )
+                }
             } else if (notification.requestType == "RENT" && notification.rentalPeriod.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(8.dp))
                 Row(
@@ -561,7 +590,7 @@ fun EnhancedNotificationCard(
                             modifier = Modifier.size(40.dp)
                         ) {
                             Icon(
-                                painter = painterResource(R.drawable.placeholderimage), // Use message icon
+                                imageVector = Icons.Filled.Message,
                                 contentDescription = "Message",
                                 tint = Color.Gray
                             )
@@ -579,7 +608,8 @@ fun ProductDetailsSection(
     productId: String,
     fallbackName: String,
     fallbackImage: String,
-    highlightColor: Color
+    highlightColor: Color,
+    modifier: Modifier = Modifier.fillMaxWidth()
 ) {
     var product by remember { mutableStateOf<ProductModel?>(null) }
 
@@ -602,8 +632,7 @@ fun ProductDetailsSection(
     val priceText = if (isRent) "Rs ${formatAmount(price)} / Day" else "Rs ${formatAmount(price)}"
 
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
+        modifier = modifier
             .background(highlightColor, RoundedCornerShape(8.dp))
             .padding(12.dp)
     ) {

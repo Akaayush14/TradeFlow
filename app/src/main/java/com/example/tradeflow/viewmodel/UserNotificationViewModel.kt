@@ -37,7 +37,7 @@ class UserNotificationViewModel(private val repository: UserNotificationRepoImpl
         requester: com.example.tradeflow.model.UserModel,
         requestType: String, // "BARTER" or "RENT"
         message: String = "",
-        offerProduct: com.example.tradeflow.model.ProductModel? = null, // For barter
+        offerProducts: List<com.example.tradeflow.model.ProductModel> = emptyList(), // For barter
         rentalStartDate: Long = 0L, // For rent
         rentalEndDate: Long = 0L, // For rent
         rentalPricePerDay: Double = 0.0, // For rent
@@ -57,6 +57,16 @@ class UserNotificationViewModel(private val repository: UserNotificationRepoImpl
                 val rentalPriceFormatted = if (rentalPricePerDay > 0) "$rentalPricePerDay/day" else ""
 
                 // Create request with all details
+                val primaryOffer = offerProducts.firstOrNull()
+                val offeredItemsList = offerProducts.map { 
+                    com.example.tradeflow.model.OfferedItem(
+                        productId = it.productId,
+                        productName = it.name,
+                        productImage = it.imageUrl,
+                        productPrice = it.price
+                    )
+                }
+
                 val request = RequestModel(
                     productId = product.productId,
                     productName = product.name,
@@ -72,10 +82,11 @@ class UserNotificationViewModel(private val repository: UserNotificationRepoImpl
                     requesterRating = 0.0, // Default rating since UserModel doesn't have rating field
                     requesterReviewCount = 0, // Default review count since UserModel doesn't have reviewCount field
                     requesterMessage = message,
-                    offerProductId = offerProduct?.productId ?: "",
-                    offerProductName = offerProduct?.name ?: "",
-                    offerProductImage = offerProduct?.imageUrl ?: "",
-                    offerProductPrice = offerProduct?.price ?: 0.0,
+                    offerProductId = primaryOffer?.productId ?: "",
+                    offerProductName = primaryOffer?.name ?: "",
+                    offerProductImage = primaryOffer?.imageUrl ?: "",
+                    offerProductPrice = primaryOffer?.price ?: 0.0,
+                    offeredItems = offeredItemsList,
                     rentalStartDate = rentalStartDate,
                     rentalEndDate = rentalEndDate,
                     rentalPeriod = rentalPeriod,
@@ -95,7 +106,11 @@ class UserNotificationViewModel(private val repository: UserNotificationRepoImpl
                         }
 
                         val notificationMessage = when (requestType) {
-                            "BARTER" -> "Someone wants to barter!"
+                            "BARTER" -> if (offerProducts.size > 1) {
+                                "Someone wants to barter ${offerProducts.size} items!"
+                            } else {
+                                "Someone wants to barter!"
+                            }
                             "RENT" -> "@${requester.name} wants to rent your ${product.name}"
                             else -> "${requester.name} is interested in your ${product.name}"
                         }
@@ -114,9 +129,10 @@ class UserNotificationViewModel(private val repository: UserNotificationRepoImpl
                             productId = product.productId,
                             productName = product.name,
                             productImage = product.imageUrl,
-                            offerProductId = offerProduct?.productId ?: "",
-                            offerProductName = offerProduct?.name ?: "",
-                            offerProductImage = offerProduct?.imageUrl ?: "",
+                            offerProductId = primaryOffer?.productId ?: "",
+                            offerProductName = primaryOffer?.name ?: "",
+                            offerProductImage = primaryOffer?.imageUrl ?: "",
+                            offeredItems = offeredItemsList,
                             rentalPeriod = rentalPeriod,
                             rentalPrice = rentalPriceFormatted,
                             requestId = requestId,

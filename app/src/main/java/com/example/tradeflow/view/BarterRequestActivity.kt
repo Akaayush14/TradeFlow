@@ -75,7 +75,7 @@ fun BarterRequestScreen() {
     // State management
     var currentUserData by remember { mutableStateOf<UserModel?>(null) }
     var userProducts by remember { mutableStateOf<List<ProductModel>>(emptyList()) }
-    var selectedItem by remember { mutableStateOf<String?>(null) }
+    var selectedItems by remember { mutableStateOf<Set<String>>(emptySet()) }
     var message by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(false) }
     var isLoadingProducts by remember { mutableStateOf(true) }
@@ -148,7 +148,7 @@ fun BarterRequestScreen() {
             Spacer(modifier = Modifier.height(20.dp))
 
             // Selection instruction
-            SelectionInstructionCard(selectedCount = if (selectedItem != null) 1 else 0)
+            SelectionInstructionCard(selectedCount = selectedItems.size)
 
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -170,12 +170,12 @@ fun BarterRequestScreen() {
                     items(userProducts) { userProduct ->
                         UserProductCard(
                             product = userProduct,
-                            isSelected = selectedItem == userProduct.productId,
+                            isSelected = selectedItems.contains(userProduct.productId),
                             onSelectionChange = { isSelected ->
-                                selectedItem = if (isSelected) {
-                                    userProduct.productId
+                                selectedItems = if (isSelected) {
+                                    selectedItems + userProduct.productId
                                 } else {
-                                    null
+                                    selectedItems - userProduct.productId
                                 }
                             }
                         )
@@ -195,9 +195,9 @@ fun BarterRequestScreen() {
 
             // Action button
             BarterActionButton(
-                isEnabled = selectedItem != null && !isLoading,
+                isEnabled = selectedItems.isNotEmpty() && !isLoading,
                 isLoading = isLoading,
-                selectedCount = if (selectedItem != null) 1 else 0,
+                selectedCount = selectedItems.size,
                 onClick = {
                     val productData = product
                     val ownerData = owner
@@ -213,25 +213,24 @@ fun BarterRequestScreen() {
                     } else if (userData == null) {
                         errorMessage = "User information not available. Please try again."
                         showErrorDialog = true
-                    } else if (selectedItem == null) {
+                    } else if (selectedItems.isEmpty()) {
                         errorMessage = "Please select at least one item to offer"
                         showErrorDialog = true
                     } else {
                         val selectedProductList = userProducts.filter {
-                            it.productId == selectedItem
+                            selectedItems.contains(it.productId)
                         }
 
                         if (selectedProductList.isNotEmpty()) {
                             isLoading = true
-                            val offerProduct = selectedProductList.first()
-
+                            
                             notificationViewModel.createItemRequest(
                                 product = productData,
                                 owner = ownerData,
                                 requester = userData,
                                 requestType = "BARTER",
                                 message = message,
-                                offerProduct = offerProduct
+                                offerProducts = selectedProductList
                             ) { success, msg ->
                                 isLoading = false
                                 if (success) {

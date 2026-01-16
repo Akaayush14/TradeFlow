@@ -29,6 +29,7 @@ data class RequestModel(
     val offerProductName: String = "",
     val offerProductImage: String = "",
     val offerProductPrice: Double = 0.0,
+    val offeredItems: List<OfferedItem> = emptyList(),
 
     // ✅ NEW: Rental details
     val rentalStartDate: Long = 0L,
@@ -67,6 +68,7 @@ data class RequestModel(
             "offerProductName" to offerProductName,
             "offerProductImage" to offerProductImage,
             "offerProductPrice" to offerProductPrice,
+            "offeredItems" to offeredItems.map { it.toMap() },
             "rentalStartDate" to rentalStartDate,
             "rentalEndDate" to rentalEndDate,
             "rentalPeriod" to rentalPeriod,
@@ -78,6 +80,22 @@ data class RequestModel(
             "updatedAt" to updatedAt,
             "responseMessage" to responseMessage,
             "completedAt" to completedAt
+        )
+    }
+}
+
+data class OfferedItem(
+    val productId: String = "",
+    val productName: String = "",
+    val productImage: String = "",
+    val productPrice: Double = 0.0
+) {
+    fun toMap(): Map<String, Any?> {
+        return mapOf(
+            "productId" to productId,
+            "productName" to productName,
+            "productImage" to productImage,
+            "productPrice" to productPrice
         )
     }
 }

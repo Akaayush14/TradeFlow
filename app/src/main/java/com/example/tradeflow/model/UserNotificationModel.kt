@@ -20,6 +20,7 @@ data class UserNotificationModel(
     val offerProductId: String = "", // Product being offered in exchange
     val offerProductName: String = "",
     val offerProductImage: String = "",
+    val offeredItems: List<OfferedItem> = emptyList(),
     val rentalPeriod: String = "", // e.g., "Jan 15-20, 2026"
     val rentalPrice: String = "", // e.g., "$45/day"
 
@@ -47,6 +48,7 @@ data class UserNotificationModel(
             "offerProductId" to offerProductId,
             "offerProductName" to offerProductName,
             "offerProductImage" to offerProductImage,
+            "offeredItems" to offeredItems.map { it.toMap() },
             "rentalPeriod" to rentalPeriod,
             "rentalPrice" to rentalPrice,
             "requestId" to requestId,
