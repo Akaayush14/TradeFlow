@@ -35,19 +35,16 @@ import androidx.navigation.compose.rememberNavController
 import com.example.tradeflow.view.CurvedBottomShape
 import kotlinx.coroutines.launch
 
-class UserSettingAboutUs : ComponentActivity() {
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
-        setContent {
-            val navController = rememberNavController()
-            UserSettingAboutUsScreen(navController)
-        }
-    }
-}
-
-
-
+//class UserSettingAboutUs : ComponentActivity() {
+//    override fun onCreate(savedInstanceState: Bundle?) {
+//        super.onCreate(savedInstanceState)
+//        enableEdgeToEdge()
+//        setContent {
+//            val navController = rememberNavController()
+//            UserSettingAboutUsScreen(navController)
+//        }
+//    }
+//}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
