@@ -388,47 +388,47 @@ fun RegisterBody() {
                 .height(20.dp)
                 .background(Greenish)
         )
-                if (showCountryDialog) {
-                    Dialog(onDismissRequest = { showCountryDialog = false }) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .background(Color.White, RoundedCornerShape(12.dp))
-                                .padding(16.dp)
-                        ) {
-                            Text(
-                                text = "Select Country",
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.Bold,
-                                modifier = Modifier.padding(bottom = 16.dp)
-                            )
+        if (showCountryDialog) {
+            Dialog(onDismissRequest = { showCountryDialog = false }) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Color.White, RoundedCornerShape(12.dp))
+                        .padding(16.dp)
+                ) {
+                    Text(
+                        text = "Select Country",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(bottom = 16.dp)
+                    )
 
-                            LazyColumn(modifier = Modifier.height(300.dp)) {
-                                items(countries) { country ->
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .clickable {
-                                                selectedCountry = country
-                                                showCountryDialog = false
-                                            }
-                                            .padding(vertical = 12.dp, horizontal = 8.dp),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Text(country.flag, fontSize = 20.sp)
-                                        Spacer(modifier = Modifier.width(16.dp))
-                                        Text(
-                                            country.name,
-                                            modifier = Modifier.weight(1f),
-                                            fontSize = 16.sp
-                                        )
-                                        Text(country.code, fontSize = 16.sp)
+                    LazyColumn(modifier = Modifier.height(300.dp)) {
+                        items(countries) { country ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        selectedCountry = country
+                                        showCountryDialog = false
                                     }
-                                }
+                                    .padding(vertical = 12.dp, horizontal = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(country.flag, fontSize = 20.sp)
+                                Spacer(modifier = Modifier.width(16.dp))
+                                Text(
+                                    country.name,
+                                    modifier = Modifier.weight(1f),
+                                    fontSize = 16.sp
+                                )
+                                Text(country.code, fontSize = 16.sp)
                             }
                         }
                     }
                 }
+            }
+        }
 
     }
 }
