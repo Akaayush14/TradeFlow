@@ -89,6 +89,15 @@ class UserRepoImpl: UserRepo{
                 if (snapshot.exists()) {
                     val user=snapshot.getValue(UserModel::class.java)
                     if (user != null){
+                        // Ensure all fields are properly set
+                        user.userId = userId
+                        user.name = snapshot.child("name").getValue(String::class.java) ?: ""
+                        user.email = snapshot.child("email").getValue(String::class.java) ?: ""
+                        user.phone = snapshot.child("phone").getValue(String::class.java) ?: ""
+                        user.location = snapshot.child("location").getValue(String::class.java) ?: ""
+                        user.gender = snapshot.child("gender").getValue(String::class.java) ?: ""
+                        user.dob = snapshot.child("dob").getValue(String::class.java) ?: ""
+
                         callback(true, "Profile Fetched ",user)
                     } else {
                         callback(false, "User data is null", null)

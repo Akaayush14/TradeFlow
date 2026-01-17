@@ -19,6 +19,8 @@ data class UserModel(
             "email" to email,
             "phone" to phone,
             "location" to location,
+            "gender" to gender,
+            "dob" to dob,
             "isBlocked" to isBlocked,
             "isRestricted" to isRestricted,
             "points" to points

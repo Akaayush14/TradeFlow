@@ -130,30 +130,29 @@ fun UserSettingEditProfileScreen(navController: NavController) {
 
     LaunchedEffect(userData) {
         userData?.let { user ->
-            // Set name
             name = user.name
-
-            // Parse phone number
             if (user.phone.isNotEmpty()) {
                 val (country, number) = PhoneParser.parseFullPhone(user.phone)
                 selectedCountry = country
                 phoneNumber = number
+            } else {
+                selectedCountry = countries.first { it.name == "Nepal" }
+                phoneNumber = ""
             }
+            location = user.location ?: ""
+            gender = user.gender ?: ""
+            dob = user.dob ?: ""
         }
     }
 
     fun validateForm(): Boolean {
-        var isValid = true
-
-        if (name.isBlank()) {
-            isValid = false
+        return when {
+            name.isBlank() -> false
+            phoneNumber.isBlank() -> false
+            !phoneNumber.all { it.isDigit() } -> false
+            phoneNumber.length < 7 -> false
+            else -> true
         }
-
-        if (phoneNumber.isBlank() || !PhoneParser.isValidPhoneNumber(phoneNumber)) {
-            isValid = false
-        }
-
-        return isValid
     }
 
     fun saveProfile() {
@@ -172,23 +171,23 @@ fun UserSettingEditProfileScreen(navController: NavController) {
             updates["name"] = name.trim()
         }
 
-        // Phone
-        val fullPhone = PhoneParser.combinePhone(selectedCountry, phoneNumber)
-        if (userData?.phone != fullPhone) {
-            updates["phone"] = fullPhone
+        // Phone - Update ONLY if FULL phone number changed
+        val newFullPhone = "${selectedCountry.code}${phoneNumber.trim()}"
+        if (userData?.phone != newFullPhone) {
+            updates["phone"] = newFullPhone
         }
 
-        // Location (NEW)
+        // Location
         if (userData?.location != location) {
             updates["location"] = location.trim()
         }
 
-        // Gender (NEW)
+        // Gender
         if (userData?.gender != gender) {
             updates["gender"] = gender
         }
 
-        // Date of Birth (NEW)
+        // Date of Birth
         if (userData?.dob != dob) {
             updates["dob"] = dob
         }
@@ -196,10 +195,8 @@ fun UserSettingEditProfileScreen(navController: NavController) {
         if (updates.isNotEmpty()) {
             userViewModel.updateUserProfile(userId, updates) { success, message ->
                 isLoading = false
-
                 if (success) {
-                    // Refresh user data to get updated values
-                    userViewModel.getUserById(userId)
+                    userViewModel.getUserById(userId)  // Refresh
                     showSuccessDialog = true
                 } else {
                     errorMessage = message
@@ -208,7 +205,7 @@ fun UserSettingEditProfileScreen(navController: NavController) {
             }
         } else {
             isLoading = false
-            showSuccessDialog = true // No changes needed
+            showSuccessDialog = true
         }
     }
 
