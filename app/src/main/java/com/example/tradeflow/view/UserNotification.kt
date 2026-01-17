@@ -13,7 +13,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material.icons.filled.Message
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -46,8 +45,7 @@ import java.util.*
 fun UserNotificationScreen(
     onBackClick: () -> Unit = {},
     onNotificationClick: (UserNotificationModel) -> Unit = {},
-    onViewDetails: (String) -> Unit = {},
-    onNavigateInbox: () -> Unit = {}
+    onViewDetails: (String) -> Unit = {}
 ) {
     val viewModel = remember { UserNotificationViewModel(UserNotificationRepoImpl()) }
     val notifications by viewModel.notifications.collectAsState()
@@ -68,13 +66,15 @@ fun UserNotificationScreen(
     }
 
     val filteredNotifications = when (selectedFilter) {
-        "Incoming Request" -> notifications
+        "Barter" -> notifications.filter { it.requestType == "BARTER" }
+        "Rent" -> notifications.filter { it.requestType == "RENT" }
         "My Requests" -> emptyList()
         else -> notifications
     }
 
     val filteredMyRequests = when (selectedFilter) {
-        "Incoming Request" -> emptyList()
+        "Barter" -> myRequests.filter { it.productType == "BARTER" }
+        "Rent" -> myRequests.filter { it.productType == "RENT" }
         "My Requests" -> myRequests
         else -> myRequests
     }
@@ -129,19 +129,20 @@ fun UserNotificationScreen(
                 .padding(innerPadding)
                 .background(Color(0xFFF5F5F5))
         ) {
-            val filters = listOf("All", "Incoming Request", "My Requests")
+            val filters = listOf("All", "Barter", "Rent", "My Requests")
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(White)
                     .padding(horizontal = 16.dp, vertical = 12.dp),
-                horizontalArrangement = Arrangement.SpaceEvenly
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 filters.forEach { filter ->
                     FilterChip(
                         selected = selectedFilter == filter,
                         onClick = { selectedFilter = filter },
                         label = { Text(filter, fontSize = 14.sp) },
+                        modifier = Modifier.weight(1f),
                         colors = FilterChipDefaults.filterChipColors(
                             selectedContainerColor = Color(0xFF2196F3),
                             selectedLabelColor = White
@@ -190,7 +191,7 @@ fun UserNotificationScreen(
                                             showRejectDialog = true
                                         },
                                         onViewDetails = { onViewDetails(notification.requestId) },
-                                        onMessage = { onNavigateInbox() }
+                                        onMessage = {}
                                     )
                                 }
                             }
@@ -440,42 +441,15 @@ fun EnhancedNotificationCard(
             }
 
             // Exchange Offer or Rental Details
-            if (notification.requestType == "BARTER") {
-                if (notification.offeredItems.size > 1) {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "Offering ${notification.offeredItems.size} items in exchange",
-                        fontSize = 11.sp,
-                        color = Color.Gray,
-                        fontWeight = FontWeight.Medium,
-                        modifier = Modifier.padding(bottom = 4.dp)
-                    )
-                    
-                    androidx.compose.foundation.lazy.LazyRow(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        items(notification.offeredItems) { item ->
-                            ProductDetailsSection(
-                                header = "",
-                                productId = item.productId,
-                                fallbackName = item.productName,
-                                fallbackImage = item.productImage,
-                                highlightColor = Color(0xFFFFF8E1),
-                                modifier = Modifier.width(260.dp)
-                            )
-                        }
-                    }
-                } else if (notification.offerProductName.isNotEmpty()) {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    ProductDetailsSection(
-                        header = "Offering in exchange",
-                        productId = notification.offerProductId,
-                        fallbackName = notification.offerProductName,
-                        fallbackImage = notification.offerProductImage,
-                        highlightColor = Color(0xFFFFF8E1)
-                    )
-                }
+            if (notification.requestType == "BARTER" && notification.offerProductName.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(8.dp))
+                ProductDetailsSection(
+                    header = "Offering in exchange",
+                    productId = notification.offerProductId,
+                    fallbackName = notification.offerProductName,
+                    fallbackImage = notification.offerProductImage,
+                    highlightColor = Color(0xFFFFF8E1)
+                )
             } else if (notification.requestType == "RENT" && notification.rentalPeriod.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(8.dp))
                 Row(
@@ -590,7 +564,7 @@ fun EnhancedNotificationCard(
                             modifier = Modifier.size(40.dp)
                         ) {
                             Icon(
-                                imageVector = Icons.Filled.Message,
+                                painter = painterResource(R.drawable.placeholderimage), // Use message icon
                                 contentDescription = "Message",
                                 tint = Color.Gray
                             )
@@ -608,8 +582,7 @@ fun ProductDetailsSection(
     productId: String,
     fallbackName: String,
     fallbackImage: String,
-    highlightColor: Color,
-    modifier: Modifier = Modifier.fillMaxWidth()
+    highlightColor: Color
 ) {
     var product by remember { mutableStateOf<ProductModel?>(null) }
 
@@ -632,7 +605,8 @@ fun ProductDetailsSection(
     val priceText = if (isRent) "Rs ${formatAmount(price)} / Day" else "Rs ${formatAmount(price)}"
 
     Column(
-        modifier = modifier
+        modifier = Modifier
+            .fillMaxWidth()
             .background(highlightColor, RoundedCornerShape(8.dp))
             .padding(12.dp)
     ) {
@@ -903,3 +877,4 @@ fun formatTime(timestamp: Long): String {
 fun PreviewNotification(){
     UserNotificationScreen ()
 }
+

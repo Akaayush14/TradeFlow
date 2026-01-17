@@ -130,7 +130,8 @@ fun UserExploreScreen() {
         }
         val matchesSearch = product.name.contains(searchQuery, ignoreCase = true) ||
                 product.description.contains(searchQuery, ignoreCase = true)
-        matchesTab && matchesSearch && !product.isDeleted
+        val isVisibleToUsers = product.isListed && !product.isDeleted
+        matchesTab && matchesSearch && isVisibleToUsers
     }
 
     Scaffold(
