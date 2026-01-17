@@ -36,6 +36,9 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.navigation.compose.NavHost
 import com.example.tradeflow.R
 import com.example.tradeflow.UserSettingAboutUsScreen
+import com.example.tradeflow.repository.UserRepoImpl
+import com.example.tradeflow.viewmodel.UserViewModel
+import com.google.firebase.auth.FirebaseAuth
 
 class UserSetting: ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -84,13 +87,41 @@ class CurvedBottomShape: Shape {
 
 /* ---------------- SETTINGS SCREEN ---------------- */
 @Composable
-fun UserSettingsScreen (navController: NavController) {
+fun UserSettingsScreen(navController: NavController) {
     var showLogoutDialog by remember { mutableStateOf(false) }
     var selectedLanguage by remember { mutableStateOf("English") }
     var showLanguageDialog by remember { mutableStateOf(false) }
 
-    Column(modifier = Modifier.fillMaxSize()) {
+    // Get current user
+    val currentUser = FirebaseAuth.getInstance().currentUser
+    val userId = currentUser?.uid ?: ""
+    val userEmailFromAuth = currentUser?.email ?: ""
 
+    // Initialize ViewModel
+    val userViewModel = remember { UserViewModel(UserRepoImpl()) }
+    val userData by userViewModel.users.collectAsState()
+
+    // Load user data
+    LaunchedEffect(userId) {
+        if (userId.isNotEmpty()) {
+            userViewModel.getUserById(userId)
+        }
+    }
+
+    // Determine what to display
+    val displayName = remember(userData) {
+        userData?.name?.ifEmpty {
+            currentUser?.displayName ?: "User"
+        } ?: "Loading..."
+    }
+
+    val displayEmail = remember(userData) {
+        userData?.email?.ifEmpty {
+            userEmailFromAuth
+        } ?: "Loading..."
+    }
+
+    Column(modifier = Modifier.fillMaxSize()) {
         // Profile Header
         Box(modifier = Modifier.fillMaxWidth()) {
             Box(
@@ -108,20 +139,7 @@ fun UserSettingsScreen (navController: NavController) {
                         )
                     )
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(160.dp)
-                        .offset(x = (-40).dp, y = (-30).dp)
-                        .clip(CircleShape)
-                        .background(Color.White.copy(alpha = 0.12f))
-                )
-                Box(
-                    modifier = Modifier
-                        .size(120.dp)
-                        .offset(x = 260.dp, y = 20.dp)
-                        .clip(CircleShape)
-                        .background(Color.White.copy(alpha = 0.10f))
-                )
+                // ... decorative circles
             }
 
             Column(
@@ -130,6 +148,7 @@ fun UserSettingsScreen (navController: NavController) {
                     .padding(top = 130.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
+                // Profile picture
                 Box(
                     modifier = Modifier
                         .size(150.dp)
@@ -138,20 +157,32 @@ fun UserSettingsScreen (navController: NavController) {
                 ) {
                     Image(
                         painter = painterResource(R.drawable.house_rent_logo),
-                        contentDescription = null,
+                        contentDescription = "Profile Picture",
                         modifier = Modifier.fillMaxSize()
                     )
                 }
 
                 Spacer(modifier = Modifier.height(10.dp))
-                Text("Sidhartha Sah", fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                Text("@sid34gmail.com", fontSize = 14.sp, color = Color.Gray)
+
+                // Display ACTUAL user name
+                Text(
+                    text = displayName,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold
+                )
+
+                // Display ACTUAL user email
+                Text(
+                    text = displayEmail,
+                    fontSize = 14.sp,
+                    color = Color.Gray
+                )
             }
         }
 
         Spacer(modifier = Modifier.height(32.dp))
 
-        // Settings Items
+        // Settings items...
         SettingsItem("Notifications", R.drawable.notification_filled) {
             navController.navigate("notifications")
         }
