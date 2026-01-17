@@ -55,7 +55,6 @@ fun AppNav() {
     val navController = rememberNavController()
     NavHost(navController, startDestination = "settings") {
         composable("settings") { UserSettingsScreen(navController) }
-        composable("notifications") { UserSettingNotificationScreen(navController) }
         composable("edit_profile") { UserSettingEditProfileScreen(navController) }
         composable("privacy") { UserSettingPrivacyScreen(navController) }
         composable("aboutus") { UserSettingAboutUsScreen(navController) }
@@ -181,15 +180,9 @@ fun UserSettingsScreen(navController: NavController) {
         }
 
         Spacer(modifier = Modifier.height(32.dp))
-
-        // Settings items...
-        SettingsItem("Notifications", R.drawable.notification_filled) {
-            navController.navigate("notifications")
-        }
         SettingsItem("Edit Profile", R.drawable.profile_filled) {
             navController.navigate("edit_profile")
         }
-
         SettingsItemWithValue("Language", selectedLanguage, R.drawable.language) {
             showLanguageDialog = true
         }
