@@ -172,4 +172,22 @@ class UserViewModel( val repo: UserRepo): ViewModel(){
     ) {
         repo.updateUserPoints(userId, pointsToAdd, callback)
     }
+
+    fun updateUserProfile(
+        userId: String,
+        updates: Map<String, Any>,
+        callback: (Boolean, String) -> Unit
+    ) {
+        repo.updateUserProfile(userId, updates, callback)
+    }
+    private val _validationErrors = MutableStateFlow<Map<String, String>>(emptyMap())
+    val validationErrors: StateFlow<Map<String, String>> = _validationErrors.asStateFlow()
+
+    fun clearValidationErrors() {
+        _validationErrors.value = emptyMap()
+    }
+
+    fun setValidationError(field: String, message: String) {
+        _validationErrors.value = _validationErrors.value + (field to message)
+    }
 }
