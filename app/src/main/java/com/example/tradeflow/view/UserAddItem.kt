@@ -71,7 +71,7 @@ fun UserAddItemScreen(
     var description by remember { mutableStateOf(initialProduct?.description ?: "") }
     var selectedPurpose by remember { mutableStateOf(initialProduct?.type ?: "Select purpose") }
     var category by remember { mutableStateOf(initialProduct?.category ?: "") }
-    var status by remember { mutableStateOf(initialProduct?.status ?: "Available") }
+    var status by remember { mutableStateOf(initialProduct?.status ?: "Pending") }
     var agreedToTerms by remember { mutableStateOf(false) }
     var isDropdownExpanded by remember { mutableStateOf(false) }
 
@@ -143,7 +143,7 @@ fun UserAddItemScreen(
         selectedPurpose = "Select purpose"
         category = ""
         agreedToTerms = false
-        status = "Available"
+        status = "Pending"
         imageUri = null
         imageUri2 = null
         imageUri3 = null
@@ -186,6 +186,7 @@ fun UserAddItemScreen(
             subUrl3: String = "",
             subUrl4: String = ""
         ) {
+            val finalStatus = if (mode == AddItemMode.ADD) "Pending" else status
             val product = ProductModel(
                 productId = if (mode == AddItemMode.EDIT) initialProduct?.productId ?: "" else "",
                 name = name.trim(),
@@ -195,7 +196,7 @@ fun UserAddItemScreen(
                 description = description.trim(),
                 type = selectedPurpose,
                 ownerId = if (mode == AddItemMode.EDIT) initialProduct?.ownerId ?: ownerId else ownerId,
-                status = status,
+                status = finalStatus,
                 imageUrl = mainUrl,
                 imageUrl2 = subUrl2,
                 imageUrl3 = subUrl3,

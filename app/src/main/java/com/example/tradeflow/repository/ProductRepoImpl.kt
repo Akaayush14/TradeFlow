@@ -306,11 +306,19 @@ class ProductRepoImpl: ProductRepo {
         isListed: Boolean,
         callback: (Boolean, String) -> Unit
     ) {
-        ref.child(productId).child("isListed").setValue(isListed).addOnCompleteListener {
-            if(it.isSuccessful){
-                val message = if(isListed) "Product listed successfully" else "Product unlisted successfully"
+        val updates = mutableMapOf<String, Any>(
+            "isListed" to isListed
+        )
+
+        if (isListed) {
+            updates["status"] = "Available"
+        }
+
+        ref.child(productId).updateChildren(updates as Map<String, Any>).addOnCompleteListener {
+            if (it.isSuccessful) {
+                val message = if (isListed) "Product listed successfully" else "Product unlisted successfully"
                 callback(true, message)
-            }else{
+            } else {
                 callback(false, "${it.exception?.message}")
             }
         }
