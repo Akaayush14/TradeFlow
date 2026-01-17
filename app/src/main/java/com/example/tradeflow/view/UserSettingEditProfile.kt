@@ -68,7 +68,11 @@ fun UserSettingEditProfileScreen(navController: NavController) {
 
     LaunchedEffect(userId) {
         if (userId.isNotEmpty()) {
-            userViewModel.getUserById(userId)
+            userViewModel.getUserById(userId) { success, msg, data ->
+                if (!success) {
+                    println("Failed to load user: $msg")
+                }
+            }
         }
     }
 
@@ -176,8 +180,9 @@ fun UserSettingEditProfileScreen(navController: NavController) {
             userViewModel.updateUserProfile(userId, updates) { success, message ->
                 isLoading = false
                 if (success) {
-                    userViewModel.getUserById(userId)  // Refresh
-                    showSuccessDialog = true
+                    userViewModel.getUserById(userId) { refreshSuccess, refreshMessage, refreshUser ->
+                        showSuccessDialog = true
+                    }
                 } else {
                     errorMessage = message
                     showErrorDialog = true

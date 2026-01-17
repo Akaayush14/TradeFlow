@@ -100,4 +100,3 @@ class NotificationViewModel(private val repo: NotificationRepo) : ViewModel() {
         }
     }
 }
-

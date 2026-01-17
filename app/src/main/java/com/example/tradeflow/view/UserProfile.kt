@@ -1,7 +1,11 @@
 package com.example.tradeflow.view
 
 import android.content.Intent
+import android.os.Bundle
 import android.util.Log
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -41,8 +45,23 @@ import com.example.tradeflow.viewmodel.UserViewModel
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
 
+class UserProfileActivity : ComponentActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
+        setContent {
+            val userId = intent.getStringExtra("userId")
+            UserProfileScreen(
+                onBackClick = { finish() },
+                onEditProduct = {},
+                showEditSuccess = false,
+                onSnackbarShown = {},
+                profileUserId = userId
+            )
+        }
+    }
+}
 
-// Enums to manage the state of the tabs
 enum class ListingType { BARTER, RENTAL, BOTH }
 enum class ListingStatus { ALL, AVAILABLE, PENDING, COMPLETED }
 
@@ -52,14 +71,16 @@ fun UserProfileScreen(
     onBackClick: () -> Unit = {},
     onEditProduct: (ProductModel) -> Unit = {},
     showEditSuccess: Boolean = false,
-    onSnackbarShown: () -> Unit = {}
+    onSnackbarShown: () -> Unit = {},
+    profileUserId: String? = null
 ) {
     val userViewModel: UserViewModel = remember { UserViewModel(UserRepoImpl()) }
     val productViewModel: ProductViewModel = remember { ProductViewModel(ProductRepoImpl()) }
     val context = LocalContext.current
 
     val currentUser = FirebaseAuth.getInstance().currentUser
-    val userId = currentUser?.uid ?: ""
+    val currentUserId = currentUser?.uid ?: ""
+    val targetUserId = profileUserId ?: currentUserId
 
     // Use collectAsState() for StateFlow
     val userData by userViewModel.users.collectAsState()
@@ -69,14 +90,13 @@ fun UserProfileScreen(
     var selectedTab by remember { mutableStateOf(ListingType.BOTH) }
     var selectedStatus by remember { mutableStateOf(ListingStatus.ALL) }
 
-    // Fetch user data when screen loads
-    LaunchedEffect(userId) {
-        if (userId.isNotEmpty()) {
-            Log.d("ProfileScreen", "Fetching user data for userId: $userId")
-            userViewModel.getUserById(userId)
-            productViewModel.getProductsByOwner(userId)
+    LaunchedEffect(targetUserId) {
+        if (targetUserId.isNotEmpty()) {
+            Log.d("ProfileScreen", "Fetching user data for userId: $targetUserId")
+            userViewModel.getUserById(targetUserId) { _, _, _ -> }
+            productViewModel.getProductsByOwner(targetUserId)
         } else {
-            Log.d("ProfileScreen", "userId is empty: $userId")
+            Log.d("ProfileScreen", "userId is empty: $targetUserId")
         }
     }
 
@@ -106,7 +126,7 @@ fun UserProfileScreen(
     // Get user display info - prioritize database data over Firebase Auth display name
     val userName = userData?.name ?: currentUser?.displayName ?: "User"
     val userEmail = userData?.email ?: currentUser?.email ?: ""
-    val userDisplayEmail = userEmail  // Display full email instead of @username
+    val userDisplayEmail = userEmail
 
     // Debug logging
     Log.d("ProfileScreen", "Final userName: $userName")
@@ -131,8 +151,7 @@ fun UserProfileScreen(
                 title = {
                     Text(
                         "Profile",
-                        color = White,
-                        fontWeight = FontWeight.Bold
+                        color = White
                     )
                 },
                 onBackClick = onBackClick
@@ -154,7 +173,20 @@ fun UserProfileScreen(
                     barterCount = allProducts.count { it.type == "Barter" },
                     rentalCount = allProducts.count { it.type == "Rent" },
                     completedCount = allProducts.count { it.status == "Completed" },
-                    isLoading = isLoading
+                    isLoading = isLoading,
+                    onEditProfileClick = {
+                        try {
+                            // Navigate to Edit Profile screen
+                            val intent = Intent(context, UserSettingEditProfile::class.java)
+                            context.startActivity(intent)
+                        } catch (e: Exception) {
+                            Log.e("UserProfile", "Error navigating to Edit Profile: ${e.message}")
+                            // Show error message to user if navigation fails
+                            coroutineScope.launch {
+                                snackbarHostState.showSnackbar("Unable to open Edit Profile")
+                            }
+                        }
+                    }
                 )
 
                 // Tabs for Barter / Rental / Both listings
@@ -244,7 +276,7 @@ fun UserProfileScreen(
                 }
             } else {
                 items(data) { product ->
-                    val isOwner = product.ownerId == userId
+                    val isOwner = product.ownerId == targetUserId
                     ProductItemCard(
                         product = product,
                         onClick = {
@@ -300,7 +332,8 @@ fun ProfileHeaderSection(
     barterCount: Int,
     rentalCount: Int,
     completedCount: Int,
-    isLoading: Boolean = false
+    isLoading: Boolean = false,
+    onEditProfileClick: () -> Unit = {}
 ) {
     Column(
         modifier = Modifier
@@ -338,8 +371,8 @@ fun ProfileHeaderSection(
                         .background(Greenish)
                         .align(Alignment.BottomEnd)
                         .clickable {
-                            // TODO: replace SettingsActivity with your actual settings activity class name if different
-                            // context.startActivity(Intent(context, SettingsActivity::class.java))
+                            // Navigate to Edit Profile screen
+                            onEditProfileClick()
                         },
                     contentAlignment = Alignment.Center
                 ) {
@@ -582,7 +615,11 @@ fun ProductItemCard(
 
                     // Price (Right)
                     Text(
-                        text = "Rs ${String.format("%.2f", product.price)}",
+                        text = if (product.type == "Rent") {
+                            "Rs ${String.format("%.2f", product.price)} / Day"
+                        } else {
+                            "Rs ${String.format("%.2f", product.price)}"
+                        },
                         fontWeight = FontWeight.Bold,
                         fontSize = 16.sp,
                         color = Color.Black

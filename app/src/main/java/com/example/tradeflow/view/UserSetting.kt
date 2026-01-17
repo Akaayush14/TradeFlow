@@ -100,10 +100,14 @@ fun UserSettingsScreen(navController: NavController) {
     val userViewModel = remember { UserViewModel(UserRepoImpl()) }
     val userData by userViewModel.users.collectAsState()
 
-    // Load user data
+// Load user data
     LaunchedEffect(userId) {
         if (userId.isNotEmpty()) {
-            userViewModel.getUserById(userId)
+            userViewModel.getUserById(userId) { success, message, user ->
+                if (!success) {
+                    println("Failed to load user data: $message")
+                }
+            }
         }
     }
 

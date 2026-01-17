@@ -13,4 +13,3 @@ interface NotificationRepo {
     fun deleteNotification(notificationId: String, callback: (Boolean, String) -> Unit)
     fun deleteAllNotifications(callback: (Boolean, String) -> Unit)
 }
-

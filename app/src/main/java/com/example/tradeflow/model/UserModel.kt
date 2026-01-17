@@ -10,7 +10,8 @@ data class UserModel(
     var dob: String = "",
     var isBlocked: Boolean = false,
     var isRestricted: Boolean = false,
-    var points: Long = 0L
+    var points: Long = 0L,
+    var profileImageUrl: String = "",
 ) {
     fun toMap(): Map<String, Any?> {
         return mapOf(
@@ -23,7 +24,8 @@ data class UserModel(
             "dob" to dob,
             "isBlocked" to isBlocked,
             "isRestricted" to isRestricted,
-            "points" to points
+            "points" to points,
+            "profileImageUrl" to profileImageUrl,
         )
     }
 }

@@ -125,8 +125,7 @@ fun InboxTopAppBar(onBackClick: () -> Unit = {}) {
         title = {
             Text(
                 "Inbox",
-                color = White,
-                fontWeight = FontWeight.Bold
+                color = White
             )
         },
         onBackClick = onBackClick
