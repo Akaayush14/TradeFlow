@@ -193,23 +193,21 @@ fun ItemDetailsScreen() {
 
                         Button(
                             onClick = {
-                                // Check if owner data is available
                                 if (owner == null) {
                                     errorMessage = "Owner information not available. Please try again."
                                     showErrorDialog = true
                                 } else {
-                                    // Launch appropriate activity based on product type
                                     if (product?.type == "Rent") {
-                                        // Launch Rental Request Activity
                                         val intent = Intent(context, RentalRequestActivity::class.java)
-                                        intent.putExtra("product", product)
-                                        intent.putExtra("owner", owner)
+                                        // Pass product ID and owner ID instead of objects
+                                        intent.putExtra("productId", product?.productId ?: "")
+                                        intent.putExtra("ownerId", product?.ownerId ?: "")
                                         context.startActivity(intent)
                                     } else {
-                                        // Launch Barter Request Activity
                                         val intent = Intent(context, BarterRequestActivity::class.java)
-                                        intent.putExtra("product", product)
-                                        intent.putExtra("owner", owner)
+                                        // Pass product ID and owner ID instead of objects
+                                        intent.putExtra("productId", product?.productId ?: "")
+                                        intent.putExtra("ownerId", product?.ownerId ?: "")
                                         context.startActivity(intent)
                                     }
                                 }

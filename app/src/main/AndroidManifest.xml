@@ -99,29 +99,6 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-
-        <activity
-            android:name=".view.UserSettingEditProfile"
-            android:exported="true"
-            android:theme="@style/Theme.TradeFlow">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity>
-
-        <activity
-            android:name=".view.UserSettingNotification"
-            android:exported="true"
-            android:label="@string/title_activity_user_setting_notification"
-            android:theme="@style/Theme.TradeFlow">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity>
         <activity
             android:name=".UserChatSystemActivity"
             android:exported="true"
@@ -243,11 +220,6 @@
         <activity
             android:name=".view.RentalRequestActivity"
             android:exported="false"
-            android:theme="@style/Theme.TradeFlow" />
-        <activity
-            android:name=".view.UserSettingEditProfile"
-            android:exported="false"
-            android:label="Edit Profile"
             android:theme="@style/Theme.TradeFlow" />
     </application>
 

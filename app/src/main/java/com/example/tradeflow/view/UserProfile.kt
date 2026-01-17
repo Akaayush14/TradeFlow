@@ -176,14 +176,12 @@ fun UserProfileScreen(
                     isLoading = isLoading,
                     onEditProfileClick = {
                         try {
-                            // Navigate to Edit Profile screen
-                            val intent = Intent(context, UserSettingEditProfile::class.java)
+                            val intent = Intent(context, UserSetting::class.java)
                             context.startActivity(intent)
                         } catch (e: Exception) {
-                            Log.e("UserProfile", "Error navigating to Edit Profile: ${e.message}")
-                            // Show error message to user if navigation fails
+                            Log.e("UserProfile", "Error navigating to Settings: ${e.message}")
                             coroutineScope.launch {
-                                snackbarHostState.showSnackbar("Unable to open Edit Profile")
+                                snackbarHostState.showSnackbar("Unable to open Settings")
                             }
                         }
                     }
