@@ -97,13 +97,9 @@ class ProductViewModel(private val repo: ProductRepo) : ViewModel() {
         repo.listProduct(productId, isListed) { success, message ->
             if (success) {
                 viewModelScope.launch {
-                    val newStatus = if (isListed) "Available" else "Pending"
                     _allProducts.value = _allProducts.value.map { product ->
                         if (product.productId == productId) {
-                            product.copy(
-                                isListed = isListed,
-                                status = newStatus
-                            )
+                            product.copy(isListed = isListed)
                         } else product
                     }
                 }

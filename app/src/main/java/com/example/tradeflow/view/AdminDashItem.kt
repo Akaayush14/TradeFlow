@@ -343,9 +343,7 @@ fun ListedItemsContent() {
     }
 
     val hasInternet = isInternetAvailableItem(context)
-    val listedProducts = allProducts
-        ?.filter { it.isListed && it.status == "Available" }
-        ?: emptyList()
+    val listedProducts = allProducts?.filter { it.isListed } ?: emptyList()
 
     PullToRefreshLayout(
         isRefreshing = isRefreshing,
@@ -506,9 +504,7 @@ fun UnlistedItemsContent() {
     }
 
     val hasInternet = isInternetAvailableItem(context)
-    val unlistedProducts = allProducts
-        ?.filter { !it.isListed || it.status == "Pending" }
-        ?: emptyList()
+    val unlistedProducts = allProducts?.filter { !it.isListed } ?: emptyList()
 
     PullToRefreshLayout(
         isRefreshing = isRefreshing,
@@ -667,14 +663,13 @@ fun ItemCardItem(
     onUnlistClick: () -> Unit,
     onDeleteClick: () -> Unit
 ) {
-    val isListedAndAvailable = product.isListed && product.status == "Available"
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 4.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         colors = CardDefaults.cardColors(
-            containerColor = if (!isListedAndAvailable) Color(0xFFFFEBEE) else Color.White
+            containerColor = if (!product.isListed) Color(0xFFFFEBEE) else Color.White
         )
     ) {
         Row(
@@ -711,7 +706,7 @@ fun ItemCardItem(
                     fontSize = 14.sp,
                     color = Color.Gray
                 )
-                if (!isListedAndAvailable) {
+                if (!product.isListed) {
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         text = "UNLISTED",
@@ -724,7 +719,7 @@ fun ItemCardItem(
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                if (isListedAndAvailable) {
+                if (product.isListed) {
                     // Show Unlist button when listed
                     Button(
                         onClick = onUnlistClick,

@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
@@ -88,6 +89,7 @@ fun UserExploreScreen() {
 
     var selectedTab by remember { mutableStateOf("All") }
     var searchQuery by remember { mutableStateOf("") }
+    var showAllRecommended by remember { mutableStateOf(false) }
 
     val productViewModel: ProductViewModel = remember { ProductViewModel(ProductRepoImpl()) }
     val userViewModel: UserViewModel = remember { UserViewModel(UserRepoImpl()) }
@@ -122,7 +124,11 @@ fun UserExploreScreen() {
         emptyList()
     }
 
-    val filteredProducts = allProducts.filter { product ->
+    val availableProducts = allProducts.filter { product ->
+        !product.isDeleted && product.status == "Available" && product.ownerId != userId
+    }
+
+    val filteredProducts = availableProducts.filter { product ->
         val matchesTab = when (selectedTab) {
             "Rent" -> product.type == "Rent"
             "Trade" -> product.type == "Barter"
@@ -130,11 +136,20 @@ fun UserExploreScreen() {
         }
         val matchesSearch = product.name.contains(searchQuery, ignoreCase = true) ||
                 product.description.contains(searchQuery, ignoreCase = true)
-        val isApprovedAndVisible =
-            product.isListed &&
-                    !product.isDeleted &&
-                    product.status == "Available"
-        matchesTab && matchesSearch && isApprovedAndVisible
+        matchesTab && matchesSearch
+    }
+
+    val recommendedAllProducts = if (searchQuery.isNotEmpty()) {
+        filteredProducts
+    } else {
+        availableProducts.sortedByDescending { it.createdAt }
+    }
+
+    val recommendedRowProducts = recommendedAllProducts.take(10)
+    val gridProducts = if (showAllRecommended && recommendedAllProducts.isNotEmpty()) {
+        recommendedAllProducts
+    } else {
+        filteredProducts
     }
 
     Scaffold(
@@ -183,7 +198,10 @@ fun UserExploreScreen() {
                     title = {
                         TextField(
                             value = searchQuery,
-                            onValueChange = { searchQuery = it },
+                            onValueChange = {
+                                searchQuery = it
+                                showAllRecommended = false
+                            },
                             placeholder = {
                                 Text(
                                     "Search items or users...",
@@ -272,7 +290,10 @@ fun UserExploreScreen() {
                             .weight(1f)
                             .height(48.dp)
                             .background(if (isSelected) White else Color(0xFFF0F0F0))
-                            .clickable { selectedTab = tabName },
+                            .clickable {
+                                selectedTab = tabName
+                                showAllRecommended = false
+                            },
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
@@ -283,14 +304,76 @@ fun UserExploreScreen() {
                 }
             }
 
-            // Show users if search query exists and users are found
+            if (recommendedRowProducts.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(16.dp))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Image(
+                            painter = painterResource(id = R.drawable.shines),
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "Recommended for you",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                    Text(
+                        text = "See All >",
+                        fontSize = 14.sp,
+                        color = Greenish,
+                        fontWeight = FontWeight.Medium,
+                        modifier = Modifier.clickable {
+                            showAllRecommended = true
+                        }
+                    )
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                LazyRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentPadding = PaddingValues(horizontal = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    items(recommendedRowProducts) { product ->
+                        Box(
+                            modifier = Modifier.width(200.dp)
+                        ) {
+                            ExploreItemCard(
+                                product = product,
+                                compact = true,
+                                onClick = {
+                                    val intent = Intent(context, UserItemDetails::class.java)
+                                    intent.putExtra("productId", product.productId)
+                                    context.startActivity(intent)
+                                }
+                            )
+                        }
+                    }
+                }
+                Spacer(modifier = Modifier.height(4.dp))
+                Divider(
+                    color = Color(0xFFCCCCCC),
+                    thickness = 5.dp,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+
             if (searchQuery.isNotEmpty() && searchedUsers.isNotEmpty()) {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    // User results section
                     item {
                         Text(
                             text = "Users (${searchedUsers.size})",
@@ -311,7 +394,6 @@ fun UserExploreScreen() {
                         )
                     }
 
-                    // Products section if there are matching products
                     if (filteredProducts.isNotEmpty()) {
                         item {
                             Spacer(modifier = Modifier.height(16.dp))
@@ -323,7 +405,6 @@ fun UserExploreScreen() {
                             )
                         }
 
-                        // Show products in grid within the LazyColumn
                         items(filteredProducts.chunked(2)) { rowProducts ->
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
@@ -341,7 +422,6 @@ fun UserExploreScreen() {
                                         )
                                     }
                                 }
-                                // Add empty box if odd number of products in last row
                                 if (rowProducts.size == 1) {
                                     Spacer(modifier = Modifier.weight(1f))
                                 }
@@ -350,7 +430,6 @@ fun UserExploreScreen() {
                     }
                 }
             } else {
-                // Show products grid when no user search
                 LazyVerticalGrid(
                     columns = GridCells.Fixed(2),
                     modifier = Modifier.fillMaxSize(),
@@ -358,7 +437,7 @@ fun UserExploreScreen() {
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    items(filteredProducts) { product ->
+                    items(gridProducts) { product ->
                         ExploreItemCard(
                             product = product,
                             onClick = {
@@ -453,7 +532,7 @@ fun UserSearchCard(user: UserModel, onClick: () -> Unit) {
 }
 
 @Composable
-fun ExploreItemCard(product: ProductModel, onClick: () -> Unit) {
+fun ExploreItemCard(product: ProductModel, compact: Boolean = false, onClick: () -> Unit) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -469,7 +548,7 @@ fun ExploreItemCard(product: ProductModel, onClick: () -> Unit) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(140.dp)
+                    .height(if (compact) 120.dp else 140.dp)
                     .background(Color.LightGray)
             ) {
                 val displayImage = if (product.imageUrl.isNotEmpty()) {

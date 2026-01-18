@@ -488,12 +488,11 @@ fun MetricsContent(onRequireAdminAccess: () -> Unit) {
     val restrictedAdmins = allAdmins?.count { it.isRestricted } ?: 0
 
     // Product Metrics
-    val activeProducts = allProducts?.filter { !it.isDeleted } ?: emptyList()
-    val totalProducts = activeProducts.size
-    val listedProducts = activeProducts.count { it.isListed && it.status == "Available" }
-    val unlistedProducts = activeProducts.count { !it.isListed || it.status == "Pending" }
+    val totalProducts = allProducts?.size ?: 0
+    val listedProducts = allProducts?.count { it.isListed } ?: 0
+    val unlistedProducts = allProducts?.count { !it.isListed } ?: 0
     val avgPrice = if (totalProducts > 0) {
-        val totalPrice = activeProducts.sumOf { it.price }
+        val totalPrice = allProducts?.sumOf { it.price } ?: 0.0
         totalPrice / totalProducts
     } else {
         0.0
@@ -1536,14 +1535,13 @@ fun ItemCardExp(
     onUnlistClick: () -> Unit,
     onDeleteClick: () -> Unit
 ) {
-    val isListedAndAvailable = product.isListed && product.status == "Available"
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 4.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         colors = CardDefaults.cardColors(
-            containerColor = if (!isListedAndAvailable) Color(0xFFFFEBEE) else Color.White
+            containerColor = if (!product.isListed) Color(0xFFFFEBEE) else Color.White
         )
     ) {
         Row(
@@ -1580,7 +1578,7 @@ fun ItemCardExp(
                     fontSize = 14.sp,
                     color = Color.Gray
                 )
-                if (!isListedAndAvailable) {
+                if (!product.isListed) {
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         text = "UNLISTED",
@@ -1593,7 +1591,7 @@ fun ItemCardExp(
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                if (isListedAndAvailable) {
+                if (product.isListed) {
                     // Show Unlist button when listed
                     Button(
                         onClick = onUnlistClick,
