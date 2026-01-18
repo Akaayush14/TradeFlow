@@ -6,6 +6,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -23,6 +24,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import com.example.tradeflow.R
 import com.example.tradeflow.ui.theme.Greenish
 import com.example.tradeflow.ui.theme.Transparent
@@ -82,15 +87,19 @@ fun DashboardPageBody() {
     var editingProduct by remember { mutableStateOf<ProductModel?>(null) }
     var showEditSuccess by remember { mutableStateOf(false) }
 
+    // Add navigation guard to prevent rapid switching
+    var isNavigating by remember { mutableStateOf(false) }
+    
     val listItem = listOf(
         NavItem(label = "Explore", R.drawable.explore, R.drawable.explore_filled),
         NavItem(label = "Inbox", R.drawable.inbox, R.drawable.inbox_filled),
-        NavItem(label = "AddItem", R.drawable.additem, R.drawable.additem_filled),
-        NavItem(label = "Notice", R.drawable.notification, R.drawable.notification_filled),
+        NavItem(label = "Add", R.drawable.additem, R.drawable.additem_filled),
+        NavItem(label = "Notification", R.drawable.notification, R.drawable.notification_filled),
         NavItem(label = "profile", R.drawable.profile, R.drawable.profile_filled),
     )
 
     Scaffold(
+        contentWindowInsets = WindowInsets(0.dp),
         bottomBar = {
             NavigationBar(
                 containerColor = Greenish
@@ -99,7 +108,17 @@ fun DashboardPageBody() {
                     val isSelected = selectedIndex == index
                     NavigationBarItem(
                         selected = isSelected,
-                        onClick = { selectedIndex = index },
+                        onClick = {
+                            if (!isNavigating) {
+                                isNavigating = true
+                                selectedIndex = index
+                                // Reset navigation guard after a delay
+                                kotlinx.coroutines.GlobalScope.launch {
+                                    kotlinx.coroutines.delay(300)
+                                    isNavigating = false
+                                }
+                            }
+                        },
                         icon = {
                             Icon(
                                 painter = painterResource(if (isSelected) item.iconFilled else item.iconOutlined),
@@ -143,7 +162,10 @@ fun DashboardPageBody() {
                         showEditSuccess = true
                     }
                 )
-                3 -> UserNotificationScreen(onBackClick = { selectedIndex = 0 })
+                3 -> UserNotificationScreen(
+                    onBackClick = { selectedIndex = 0 },
+                    onNavigateInbox = { selectedIndex = 1 }
+                )
                 4 -> UserProfileScreen(
                     onBackClick = { selectedIndex = 0 },
                     onEditProduct = { product ->

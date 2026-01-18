@@ -66,7 +66,9 @@ fun PointsScreen() {
 
     LaunchedEffect(Unit) {
         if (userId.isNotEmpty()) {
-            userViewModel.getUserById(userId)
+            userViewModel.getUserById(userId) { success, _, user ->
+                // User data loaded
+            }
             pointDealViewModel.getActivePointDeals()
         }
     }

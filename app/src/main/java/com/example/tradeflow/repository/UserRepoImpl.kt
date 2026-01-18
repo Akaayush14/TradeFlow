@@ -84,12 +84,20 @@ class UserRepoImpl: UserRepo{
         userId: String,
         callback: (Boolean, String, UserModel?) -> Unit
     ) {
-        ref.child(userId).addValueEventListener(object: ValueEventListener{
+        ref.child(userId).addListenerForSingleValueEvent(object: ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 if (snapshot.exists()) {
-                    val user=snapshot.getValue(UserModel::class.java)
-                    if (user != null){
-                        callback(true, "Profile Fetched ",user)
+                    val user = snapshot.getValue(UserModel::class.java)
+                    if (user != null) {
+                        user.userId = userId
+                        user.name = snapshot.child("name").getValue(String::class.java) ?: ""
+                        user.email = snapshot.child("email").getValue(String::class.java) ?: ""
+                        user.phone = snapshot.child("phone").getValue(String::class.java) ?: ""
+                        user.location = snapshot.child("location").getValue(String::class.java) ?: ""
+                        user.gender = snapshot.child("gender").getValue(String::class.java) ?: ""
+                        user.dob = snapshot.child("dob").getValue(String::class.java) ?: ""
+
+                        callback(true, "Profile Fetched", user)
                     } else {
                         callback(false, "User data is null", null)
                     }
@@ -97,8 +105,9 @@ class UserRepoImpl: UserRepo{
                     callback(false, "User not found", null)
                 }
             }
+
             override fun onCancelled(error: DatabaseError) {
-                callback(false,error.message,null)
+                callback(false, error.message, null)
             }
         })
     }
@@ -234,6 +243,20 @@ class UserRepoImpl: UserRepo{
                 }
             }
         }
+    }
+    override fun updateUserProfile(
+        userId: String,
+        updates: Map<String, Any>,
+        callback: (Boolean, String) -> Unit
+    ) {
+        ref.child(userId).updateChildren(updates)
+            .addOnCompleteListener { task ->
+                if (task.isSuccessful) {
+                    callback(true, "Profile updated successfully")
+                } else {
+                    callback(false, task.exception?.message ?: "Update failed")
+                }
+            }
     }
 
 }

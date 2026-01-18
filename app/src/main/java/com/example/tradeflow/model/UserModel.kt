@@ -5,9 +5,13 @@ data class UserModel(
     var name: String = "",
     var email: String = "",
     var phone: String = "",
+    var location: String = "",
+    var gender: String = "",
+    var dob: String = "",
     var isBlocked: Boolean = false,
     var isRestricted: Boolean = false,
-    var points: Long = 0L
+    var points: Long = 0L,
+    var profileImageUrl: String = "",
 ) {
     fun toMap(): Map<String, Any?> {
         return mapOf(
@@ -15,9 +19,13 @@ data class UserModel(
             "name" to name,
             "email" to email,
             "phone" to phone,
+            "location" to location,
+            "gender" to gender,
+            "dob" to dob,
             "isBlocked" to isBlocked,
             "isRestricted" to isRestricted,
-            "points" to points
+            "points" to points,
+            "profileImageUrl" to profileImageUrl,
         )
     }
 }

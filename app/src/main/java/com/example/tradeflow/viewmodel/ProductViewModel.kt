@@ -2,6 +2,7 @@ package com.example.tradeflow.viewmodel
 
 import android.content.Context
 import android.net.Uri
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.tradeflow.model.ProductModel
@@ -107,40 +108,15 @@ class ProductViewModel(private val repo: ProductRepo) : ViewModel() {
         }
     }
 
-    /* -------------------- IMAGE UPLOAD (USER PART) -------------------- */
     fun uploadImage(
         context: Context,
-        uri: Uri,
+        imageUri: Uri,
         callback: (String?) -> Unit
     ) {
-        repo.uploadImage(context, uri, callback)
+        repo.uploadImage(context, imageUri, callback)
+    }
+    suspend fun uploadImages(context: Context, uris: List<Uri?>): List<String> {
+        return repo.uploadImages(context, uris)
     }
 
-    fun uploadMultipleImages(
-        context: Context,
-        images: List<Uri?>,
-        callback: (List<String>) -> Unit
-    ) {
-        val results = MutableList(images.size) { "" }
-        var completed = 0
-
-        val validImages = images.mapIndexedNotNull { index, uri ->
-            uri?.let { index to it }
-        }
-
-        if (validImages.isEmpty()) {
-            callback(results)
-            return
-        }
-
-        validImages.forEach { (index, uri) ->
-            repo.uploadImage(context, uri) { url ->
-                results[index] = url ?: ""
-                completed++
-                if (completed == validImages.size) {
-                    callback(results)
-                }
-            }
-        }
-    }
 }

@@ -51,14 +51,17 @@ class UserViewModel( val repo: UserRepo): ViewModel(){
 
 
     fun getUserById(
-        userId: String
+        userId: String,
+        callback: (Boolean, String, UserModel?) -> Unit
     ){
         viewModelScope.launch {
             repo.getUserById(userId) { success, msg, data ->
                 if(success){
                     _users.value = data
+                    callback(success, msg, data)
                 }else{
                     _users.value = null
+                    callback(success, msg, null)
                 }
             }
         }
@@ -168,5 +171,23 @@ class UserViewModel( val repo: UserRepo): ViewModel(){
         callback: (Boolean, String) -> Unit
     ) {
         repo.updateUserPoints(userId, pointsToAdd, callback)
+    }
+
+    fun updateUserProfile(
+        userId: String,
+        updates: Map<String, Any>,
+        callback: (Boolean, String) -> Unit
+    ) {
+        repo.updateUserProfile(userId, updates, callback)
+    }
+    private val _validationErrors = MutableStateFlow<Map<String, String>>(emptyMap())
+    val validationErrors: StateFlow<Map<String, String>> = _validationErrors.asStateFlow()
+
+    fun clearValidationErrors() {
+        _validationErrors.value = emptyMap()
+    }
+
+    fun setValidationError(field: String, message: String) {
+        _validationErrors.value = _validationErrors.value + (field to message)
     }
 }
