@@ -1,5 +1,7 @@
 package com.example.tradeflow.repository
 
+import android.content.Context
+import android.net.Uri
 import com.example.tradeflow.model.UserModel
 import com.google.firebase.auth.FirebaseUser
 
@@ -61,6 +63,18 @@ interface UserRepo {
     fun updateUserProfile(
         userId: String,
         updates: Map<String, Any>,
+        callback: (Boolean, String) -> Unit
+    )
+    fun uploadProfileImage(
+        context: Context,
+        imageUri: Uri,
+        userId: String,
+        callback: (Boolean, String?) -> Unit
+    )
+
+    fun updateProfileImageUrl(
+        userId: String,
+        imageUrl: String,
         callback: (Boolean, String) -> Unit
     )
 

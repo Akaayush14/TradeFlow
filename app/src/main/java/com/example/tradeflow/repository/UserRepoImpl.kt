@@ -8,7 +8,11 @@ import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
 import com.example.tradeflow.model.UserModel
+import com.google.firebase.storage.FirebaseStorage
 import kotlin.collections.toMap
+import android.content.Context
+import android.net.Uri
+import android.util.Log
 
 class UserRepoImpl: UserRepo{
     val auth: FirebaseAuth = FirebaseAuth.getInstance()
@@ -255,6 +259,52 @@ class UserRepoImpl: UserRepo{
                     callback(true, "Profile updated successfully")
                 } else {
                     callback(false, task.exception?.message ?: "Update failed")
+                }
+            }
+    }
+
+    //Adding/updating profile picture
+    private val storageRef = FirebaseStorage.getInstance().reference
+    override fun uploadProfileImage(
+        context: Context,
+        imageUri: Uri,
+        userId: String,
+        callback: (Boolean, String?) -> Unit
+    ) {
+        val fileName = "profile_${userId}_${System.currentTimeMillis()}.jpg"
+        val profileImageRef = storageRef.child("profile_images/$fileName")
+
+        profileImageRef.putFile(imageUri)
+            .addOnSuccessListener { taskSnapshot ->
+                profileImageRef.downloadUrl.addOnSuccessListener { uri ->
+                    val imageUrl = uri.toString()
+                    // Update user document with new image URL
+                    updateProfileImageUrl(userId, imageUrl) { success, message ->
+                        if (success) {
+                            callback(true, imageUrl)
+                        } else {
+                            callback(false, null)
+                        }
+                    }
+                }
+            }
+            .addOnFailureListener { e ->
+                Log.e("TF_PROFILE_UPLOAD", "Failed to upload profile image: ${e.message}")
+                callback(false, null)
+            }
+    }
+
+    override fun updateProfileImageUrl(
+        userId: String,
+        imageUrl: String,
+        callback: (Boolean, String) -> Unit
+    ) {
+        ref.child(userId).child("profileImageUrl").setValue(imageUrl)
+            .addOnCompleteListener { task ->
+                if (task.isSuccessful) {
+                    callback(true, "Profile image updated")
+                } else {
+                    callback(false, task.exception?.message ?: "Failed to update profile image")
                 }
             }
     }

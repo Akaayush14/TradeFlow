@@ -1,6 +1,11 @@
 package com.example.tradeflow.view
 
 import android.app.DatePickerDialog
+import android.net.Uri as AndroidUri
+import android.util.Log
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -32,6 +37,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
+import coil.compose.AsyncImage
 import com.example.tradeflow.R
 import com.example.tradeflow.countries
 import com.example.tradeflow.viewmodel.UserViewModel
@@ -43,20 +49,15 @@ import java.util.*
 @Composable
 fun UserSettingEditProfileScreen(navController: NavController) {
     val context = LocalContext.current
-
     val userViewModel = remember { UserViewModel(UserRepoImpl()) }
-
     val currentUser = FirebaseAuth.getInstance().currentUser
     val userId = currentUser?.uid ?: ""
-
     val userData by userViewModel.users.collectAsState()
-
     var name by remember { mutableStateOf("") }
     var phoneNumber by remember { mutableStateOf("") }
     var location by remember { mutableStateOf("") }
     var gender by remember { mutableStateOf("") }
     var dob by remember { mutableStateOf("") }
-
     val genderOptions = listOf("Male", "Female")
     var showGenderMenu by remember { mutableStateOf(false) }
     var selectedCountry by remember { mutableStateOf(countries.first { it.name == "Nepal" }) }
@@ -65,6 +66,32 @@ fun UserSettingEditProfileScreen(navController: NavController) {
     var showSuccessDialog by remember { mutableStateOf(false) }
     var showErrorDialog by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf("") }
+    var profileImageUri by remember { mutableStateOf<AndroidUri?>(null) }
+    var showImagePicker by remember { mutableStateOf(false) }
+    var isUploadingProfileImage by remember { mutableStateOf(false) }
+
+    val uploadProfileImage = { uri: AndroidUri ->
+        isUploadingProfileImage = true
+        userViewModel.uploadProfileImage(context, uri, userId) { success, imageUrl ->
+            isUploadingProfileImage = false
+            if (success && imageUrl != null) {
+                userViewModel.getUserById(userId) { _, _, _ -> }
+                Toast.makeText(context, "Profile photo updated!", Toast.LENGTH_SHORT).show()
+            } else {
+                Toast.makeText(context, "Failed to upload photo", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    // Image picker launcher
+    val imagePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: AndroidUri? ->
+        if (uri != null) {
+            profileImageUri = uri
+            uploadProfileImage(uri)
+        }
+    }
 
     LaunchedEffect(userId) {
         if (userId.isNotEmpty()) {
@@ -80,9 +107,15 @@ fun UserSettingEditProfileScreen(navController: NavController) {
         userData?.let { user ->
             name = user.name
             if (user.phone.isNotEmpty()) {
-                val (country, number) = PhoneParser.parseFullPhone(user.phone)
-                selectedCountry = country
-                phoneNumber = number
+                try {
+                    val (country, number) = PhoneParser.parseFullPhone(user.phone)
+                    selectedCountry = country
+                    phoneNumber = number
+                } catch (e: Exception) {
+                    Log.e("TF_PROFILE", "Error parsing phone: ${user.phone}")
+                    selectedCountry = countries.first { it.name == "Nepal" }
+                    phoneNumber = user.phone
+                }
             } else {
                 selectedCountry = countries.first { it.name == "Nepal" }
                 phoneNumber = ""
@@ -90,6 +123,17 @@ fun UserSettingEditProfileScreen(navController: NavController) {
             location = user.location ?: ""
             gender = user.gender ?: ""
             dob = user.dob ?: ""
+
+            // Load profile image URL
+            user.profileImageUrl?.let { url ->
+                if (url.isNotEmpty()) {
+                    try {
+                        profileImageUri = AndroidUri.parse(url)
+                    } catch (e: Exception) {
+                        Log.e("TF_PROFILE", "Error parsing profile image URL: $url")
+                    }
+                }
+            }
         }
     }
 
@@ -131,17 +175,28 @@ fun UserSettingEditProfileScreen(navController: NavController) {
 
     fun validateForm(): Boolean {
         return when {
-            name.isBlank() -> false
-            phoneNumber.isBlank() -> false
-            !phoneNumber.all { it.isDigit() } -> false
-            phoneNumber.length < 7 -> false
+            name.isBlank() -> {
+                errorMessage = "Name is required"
+                false
+            }
+            phoneNumber.isBlank() -> {
+                errorMessage = "Phone number is required"
+                false
+            }
+            !phoneNumber.all { it.isDigit() } -> {
+                errorMessage = "Phone number should contain only digits"
+                false
+            }
+            !PhoneParser.isValidPhoneNumber(phoneNumber) -> {
+                errorMessage = "Phone number must be at least 7 digits"
+                false
+            }
             else -> true
         }
     }
 
     fun saveProfile() {
         if (!validateForm()) {
-            errorMessage = "Please fill all required fields correctly"
             showErrorDialog = true
             return
         }
@@ -250,7 +305,7 @@ fun UserSettingEditProfileScreen(navController: NavController) {
                         .size(140.dp)
                         .offset(y = 60.dp)
                 ) {
-                    // Profile image
+                    // Profile image container
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
@@ -261,15 +316,40 @@ fun UserSettingEditProfileScreen(navController: NavController) {
                                 color = Color.White,
                                 shape = CircleShape
                             )
+                            .clickable {
+                                if (!isUploadingProfileImage) {
+                                    showImagePicker = true
+                                }
+                            }
                     ) {
-                        Image(
-                            painter = painterResource(id = R.drawable.house_rent_logo),
-                            contentDescription = "Profile Picture",
-                            modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Crop
-                        )
+                        if (isUploadingProfileImage) {
+                            // Show loading indicator while uploading
+                            CircularProgressIndicator(
+                                modifier = Modifier.align(Alignment.Center),
+                                color = Color.White
+                            )
+                        } else if (profileImageUri != null) {
+                            // Show selected/uploaded image
+                            AsyncImage(
+                                model = profileImageUri.toString(),
+                                contentDescription = "Profile Picture",
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop,
+                                placeholder = painterResource(R.drawable.placeholderimage),
+                                error = painterResource(R.drawable.house_rent_logo)
+                            )
+                        } else {
+                            // Show default/placeholder
+                            Image(
+                                painter = painterResource(id = R.drawable.house_rent_logo),
+                                contentDescription = "Profile Picture",
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
+                            )
+                        }
                     }
 
+                    // Edit icon overlay
                     Box(
                         modifier = Modifier
                             .size(36.dp)
@@ -277,10 +357,15 @@ fun UserSettingEditProfileScreen(navController: NavController) {
                             .background(Color(0xFF1E88E5))
                             .align(Alignment.BottomEnd)
                             .border(
-                                width = 3.dp, // Thicker border
+                                width = 3.dp,
                                 color = Color.White,
                                 shape = CircleShape
-                            ),
+                            )
+                            .clickable {
+                                if (!isUploadingProfileImage) {
+                                    showImagePicker = true
+                                }
+                            },
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
@@ -290,6 +375,14 @@ fun UserSettingEditProfileScreen(navController: NavController) {
                             modifier = Modifier.size(20.dp)
                         )
                     }
+                }
+            }
+
+            // Launch image picker when needed
+            LaunchedEffect(showImagePicker) {
+                if (showImagePicker) {
+                    imagePickerLauncher.launch("image/*")
+                    showImagePicker = false
                 }
             }
 
@@ -435,7 +528,7 @@ fun UserSettingEditProfileScreen(navController: NavController) {
                             fontWeight = FontWeight.Medium,
                             color = Color.Gray
                         )
-                        Spacer(modifier = Modifier.height(6.dp)) // Increased from 4dp
+                        Spacer(modifier = Modifier.height(6.dp))
                         OutlinedTextField(
                             value = dob,
                             onValueChange = {},
@@ -490,10 +583,10 @@ fun UserSettingEditProfileScreen(navController: NavController) {
                     val age = calculateAge(dob)
                     if (age > 0) {
                         Column {
-                            Spacer(modifier = Modifier.height(8.dp)) // Added spacing
+                            Spacer(modifier = Modifier.height(8.dp))
                             Text(
                                 text = "Age: $age years",
-                                fontSize = 15.sp, // Slightly larger
+                                fontSize = 15.sp,
                                 color = Color(0xFF1E88E5),
                                 fontWeight = FontWeight.Medium
                             )
@@ -501,14 +594,14 @@ fun UserSettingEditProfileScreen(navController: NavController) {
                     }
                 }
 
-                Spacer(modifier = Modifier.height(15.dp)) // Increased from 24dp
+                Spacer(modifier = Modifier.height(15.dp))
 
                 // Save Button with more top spacing
                 Button(
                     onClick = { saveProfile() },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(58.dp), // Slightly taller
+                        .height(58.dp),
                     shape = RoundedCornerShape(14.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = Color(0xFF005F56)
@@ -516,13 +609,13 @@ fun UserSettingEditProfileScreen(navController: NavController) {
                     enabled = !isLoading
                 ) {
                     if (isLoading) {
-                        Text("Saving...", color = Color.White, fontSize = 17.sp) // Slightly larger
+                        Text("Saving...", color = Color.White, fontSize = 17.sp)
                     } else {
-                        Text("Save Changes", color = Color.White, fontSize = 17.sp) // Slightly larger
+                        Text("Save Changes", color = Color.White, fontSize = 17.sp)
                     }
                 }
 
-                Spacer(modifier = Modifier.height(24.dp)) // Increased from 20dp
+                Spacer(modifier = Modifier.height(24.dp))
             }
         }
     }
