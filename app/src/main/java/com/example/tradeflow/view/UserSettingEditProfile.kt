@@ -53,6 +53,8 @@ fun UserSettingEditProfileScreen(navController: NavController) {
     val currentUser = FirebaseAuth.getInstance().currentUser
     val userId = currentUser?.uid ?: ""
     val userData by userViewModel.users.collectAsState()
+
+    // Form fields
     var name by remember { mutableStateOf("") }
     var phoneNumber by remember { mutableStateOf("") }
     var location by remember { mutableStateOf("") }
@@ -62,47 +64,67 @@ fun UserSettingEditProfileScreen(navController: NavController) {
     var showGenderMenu by remember { mutableStateOf(false) }
     var selectedCountry by remember { mutableStateOf(countries.first { it.name == "Nepal" }) }
     var showCountryDialog by remember { mutableStateOf(false) }
+
+    // UI state
     var isLoading by remember { mutableStateOf(false) }
     var showSuccessDialog by remember { mutableStateOf(false) }
     var showErrorDialog by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf("") }
-    var profileImageUri by remember { mutableStateOf<AndroidUri?>(null) }
-    var showImagePicker by remember { mutableStateOf(false) }
-    var isUploadingProfileImage by remember { mutableStateOf(false) }
 
-    val uploadProfileImage = { uri: AndroidUri ->
-        isUploadingProfileImage = true
-        userViewModel.uploadProfileImage(context, uri, userId) { success, imageUrl ->
-            isUploadingProfileImage = false
-            if (success && imageUrl != null) {
-                userViewModel.getUserById(userId) { _, _, _ -> }
-                Toast.makeText(context, "Profile photo updated!", Toast.LENGTH_SHORT).show()
-            } else {
-                Toast.makeText(context, "Failed to upload photo", Toast.LENGTH_SHORT).show()
-            }
-        }
-    }
+    // Image state - SIMPLIFIED: Just store the Cloudinary URL
+    var profileImageUrl by remember { mutableStateOf("") }
+    var isUploadingImage by remember { mutableStateOf(false) }
 
-    // Image picker launcher
+    // Image picker launcher - SIMPLIFIED Cloudinary approach
     val imagePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: AndroidUri? ->
         if (uri != null) {
-            profileImageUri = uri
-            uploadProfileImage(uri)
-        }
-    }
+            Log.d("TF_PROFILE_IMAGE", "Image selected: $uri")
+            isUploadingImage = true
 
-    LaunchedEffect(userId) {
-        if (userId.isNotEmpty()) {
-            userViewModel.getUserById(userId) { success, msg, data ->
-                if (!success) {
-                    println("Failed to load user: $msg")
+            // Upload to Cloudinary using the simple uploadImage function
+            userViewModel.uploadImage(context, uri) { cloudinaryUrl ->
+                isUploadingImage = false
+
+                if (cloudinaryUrl != null) {
+                    Log.d("TF_PROFILE_IMAGE", "Cloudinary upload successful: $cloudinaryUrl")
+
+                    // Update profile with the Cloudinary URL
+                    val updates = mapOf("profileImageUrl" to cloudinaryUrl)
+                    userViewModel.updateUserProfile(userId, updates) { success, message ->
+                        if (success) {
+                            // Update local state
+                            profileImageUrl = cloudinaryUrl
+                            // Refresh user data
+                            userViewModel.getUserById(userId) { _, _, _ ->
+                                // Data will be updated automatically
+                            }
+                            Toast.makeText(context, "Profile photo updated!", Toast.LENGTH_SHORT).show()
+                        } else {
+                            Toast.makeText(context, "Uploaded but failed to save: $message", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                } else {
+                    Log.e("TF_PROFILE_IMAGE", "Cloudinary upload failed")
+                    Toast.makeText(context, "Failed to upload photo", Toast.LENGTH_SHORT).show()
                 }
             }
         }
     }
 
+    // Load user data
+    LaunchedEffect(userId) {
+        if (userId.isNotEmpty()) {
+            userViewModel.getUserById(userId) { success, msg, data ->
+                if (!success) {
+                    Log.e("TF_PROFILE", "Failed to load user: $msg")
+                }
+            }
+        }
+    }
+
+    // Update form fields when user data changes
     LaunchedEffect(userData) {
         userData?.let { user ->
             name = user.name
@@ -124,16 +146,9 @@ fun UserSettingEditProfileScreen(navController: NavController) {
             gender = user.gender ?: ""
             dob = user.dob ?: ""
 
-            // Load profile image URL
-            user.profileImageUrl?.let { url ->
-                if (url.isNotEmpty()) {
-                    try {
-                        profileImageUri = AndroidUri.parse(url)
-                    } catch (e: Exception) {
-                        Log.e("TF_PROFILE", "Error parsing profile image URL: $url")
-                    }
-                }
-            }
+            // Set profile image URL directly from user data
+            profileImageUrl = user.profileImageUrl ?: ""
+            Log.d("TF_PROFILE", "Loaded profile image URL: $profileImageUrl")
         }
     }
 
@@ -210,7 +225,7 @@ fun UserSettingEditProfileScreen(navController: NavController) {
             updates["name"] = name.trim()
         }
 
-        // Phone - Update ONLY if FULL phone number changed
+        // Phone
         val newFullPhone = "${selectedCountry.code}${phoneNumber.trim()}"
         if (userData?.phone != newFullPhone) {
             updates["phone"] = newFullPhone
@@ -231,14 +246,22 @@ fun UserSettingEditProfileScreen(navController: NavController) {
             updates["dob"] = dob
         }
 
+        // Profile Image - use the current profileImageUrl (already saved if uploaded)
+        if (profileImageUrl.isNotEmpty() && userData?.profileImageUrl != profileImageUrl) {
+            updates["profileImageUrl"] = profileImageUrl
+            Log.d("TF_PROFILE_SAVE", "Including profileImageUrl: $profileImageUrl")
+        }
+
+        Log.d("TF_PROFILE_SAVE", "Updating user profile with: $updates")
+
         if (updates.isNotEmpty()) {
             userViewModel.updateUserProfile(userId, updates) { success, message ->
                 isLoading = false
                 if (success) {
-                    userViewModel.getUserById(userId) { refreshSuccess, refreshMessage, refreshUser ->
-                        showSuccessDialog = true
-                    }
+                    Log.d("TF_PROFILE_SAVE", "Profile updated successfully")
+                    showSuccessDialog = true
                 } else {
+                    Log.e("TF_PROFILE_SAVE", "Profile update failed: $message")
                     errorMessage = message
                     showErrorDialog = true
                 }
@@ -305,7 +328,7 @@ fun UserSettingEditProfileScreen(navController: NavController) {
                         .size(140.dp)
                         .offset(y = 60.dp)
                 ) {
-                    // Profile image container
+                    // Profile image container - SIMPLIFIED
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
@@ -317,21 +340,21 @@ fun UserSettingEditProfileScreen(navController: NavController) {
                                 shape = CircleShape
                             )
                             .clickable {
-                                if (!isUploadingProfileImage) {
-                                    showImagePicker = true
+                                if (!isUploadingImage) {
+                                    imagePickerLauncher.launch("image/*")
                                 }
                             }
                     ) {
-                        if (isUploadingProfileImage) {
+                        if (isUploadingImage) {
                             // Show loading indicator while uploading
                             CircularProgressIndicator(
                                 modifier = Modifier.align(Alignment.Center),
                                 color = Color.White
                             )
-                        } else if (profileImageUri != null) {
-                            // Show selected/uploaded image
+                        } else if (profileImageUrl.isNotEmpty()) {
+                            // Show Cloudinary image
                             AsyncImage(
-                                model = profileImageUri.toString(),
+                                model = profileImageUrl,
                                 contentDescription = "Profile Picture",
                                 modifier = Modifier.fillMaxSize(),
                                 contentScale = ContentScale.Crop,
@@ -362,8 +385,8 @@ fun UserSettingEditProfileScreen(navController: NavController) {
                                 shape = CircleShape
                             )
                             .clickable {
-                                if (!isUploadingProfileImage) {
-                                    showImagePicker = true
+                                if (!isUploadingImage) {
+                                    imagePickerLauncher.launch("image/*")
                                 }
                             },
                         contentAlignment = Alignment.Center
@@ -375,14 +398,6 @@ fun UserSettingEditProfileScreen(navController: NavController) {
                             modifier = Modifier.size(20.dp)
                         )
                     }
-                }
-            }
-
-            // Launch image picker when needed
-            LaunchedEffect(showImagePicker) {
-                if (showImagePicker) {
-                    imagePickerLauncher.launch("image/*")
-                    showImagePicker = false
                 }
             }
 

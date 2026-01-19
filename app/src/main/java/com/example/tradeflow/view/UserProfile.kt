@@ -105,6 +105,7 @@ fun UserProfileScreen(
         Log.d("ProfileScreen", "User data updated: $userData")
         Log.d("ProfileScreen", "User name: ${userData?.name}")
         Log.d("ProfileScreen", "User email: ${userData?.email}")
+        Log.d("ProfileScreen", "User profileImageUrl: ${userData?.profileImageUrl}")
     }
 
     // Memoized filtering logic
@@ -127,14 +128,16 @@ fun UserProfileScreen(
     val userName = userData?.name ?: currentUser?.displayName ?: "User"
     val userEmail = userData?.email ?: currentUser?.email ?: ""
     val userDisplayEmail = userEmail
+    val profileImageUrl = userData?.profileImageUrl // Get the profile image URL
 
     // Debug logging
     Log.d("ProfileScreen", "Final userName: $userName")
     Log.d("ProfileScreen", "userData?.name: ${userData?.name}")
     Log.d("ProfileScreen", "currentUser?.displayName: ${currentUser?.displayName}")
+    Log.d("ProfileScreen", "profileImageUrl: $profileImageUrl")
 
     // Show loading state while user data is being fetched
-    val isLoading = userData == null
+    val isLoading = userData == null && targetUserId.isNotEmpty()
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
 
@@ -160,7 +163,6 @@ fun UserProfileScreen(
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         containerColor = White
     ) { innerPadding ->
-        // Single scrollable column so header + listings scroll together
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
@@ -184,10 +186,9 @@ fun UserProfileScreen(
                                 snackbarHostState.showSnackbar("Unable to open Settings")
                             }
                         }
-                    }
+                    },
+                    profileImageUrl = profileImageUrl
                 )
-
-                // Tabs for Barter / Rental / Both listings
                 TabRow(
                     selectedTabIndex = when (selectedTab) {
                         ListingType.BARTER -> 0
@@ -213,7 +214,6 @@ fun UserProfileScreen(
                     )
                 }
 
-                // Status filter tabs (All, Available, Pending, Completed)
                 TabRow(
                     selectedTabIndex = when (selectedStatus) {
                         ListingStatus.ALL -> 0
@@ -246,7 +246,6 @@ fun UserProfileScreen(
                     )
                 }
 
-                // Listing section title
                 Text(
                     text = when (selectedTab) {
                         ListingType.BARTER -> "My Barter Listings"
@@ -258,8 +257,6 @@ fun UserProfileScreen(
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                 )
             }
-
-            // Display products from database
             val data = filteredListings
             if (data.isEmpty()) {
                 item {
@@ -331,7 +328,8 @@ fun ProfileHeaderSection(
     rentalCount: Int,
     completedCount: Int,
     isLoading: Boolean = false,
-    onEditProfileClick: () -> Unit = {}
+    onEditProfileClick: () -> Unit = {},
+    profileImageUrl: String? = null
 ) {
     Column(
         modifier = Modifier
@@ -343,7 +341,7 @@ fun ProfileHeaderSection(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Profile picture on the left
+            // Profile picture on the left - UPDATED (VIEW-ONLY)
             Box {
                 Box(
                     modifier = Modifier
@@ -351,17 +349,30 @@ fun ProfileHeaderSection(
                         .clip(CircleShape)
                         .background(Color(0xFFE3F2FD))
                 ) {
-                    Icon(
-                        Icons.Default.Person,
-                        contentDescription = "Profile Avatar",
-                        modifier = Modifier
-                            .size(50.dp)
-                            .align(Alignment.Center),
-                        tint = Color(0xFF0288D1)
-                    )
+                    if (!profileImageUrl.isNullOrEmpty()) {
+                        // Show actual profile image from database
+                        AsyncImage(
+                            model = profileImageUrl,
+                            contentDescription = "Profile Avatar",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop,
+                            placeholder = painterResource(R.drawable.placeholderimage),
+                            error = painterResource(R.drawable.house_rent_logo) // Use Painter, not composable lambda
+                        )
+                    } else {
+                        // Show default icon if no profile image
+                        Icon(
+                            Icons.Default.Person,
+                            contentDescription = "Profile Avatar",
+                            modifier = Modifier
+                                .size(50.dp)
+                                .align(Alignment.Center),
+                            tint = Color(0xFF0288D1)
+                        )
+                    }
                 }
 
-                // Pencil icon over avatar (bottom-right)
+                // Pencil icon over avatar (bottom-right) - ONLY THIS IS CLICKABLE
                 Box(
                     modifier = Modifier
                         .size(24.dp)
@@ -392,7 +403,7 @@ fun ProfileHeaderSection(
                 Text(
                     text = userName,
                     fontWeight = FontWeight.Bold,
-                    fontSize = 20.sp,  // Slightly smaller for left layout
+                    fontSize = 20.sp,
                     color = Color.Black
                 )
                 Text(userDisplayEmail, fontSize = 14.sp, color = Color.Gray)
@@ -467,7 +478,6 @@ fun ProfileHeaderSection(
         Spacer(modifier = Modifier.height(16.dp))
     }
 }
-
 @Composable
 fun ProfileStat(label: String, value: String, modifier: Modifier = Modifier) {
     Column(
@@ -633,7 +643,7 @@ fun ProductItemCard(
                 ) {
                     // Location Icon from drawable
                     Image(
-                        painter = painterResource(R.drawable.location_on), // You'll need to add this drawable
+                        painter = painterResource(R.drawable.location_on),
                         contentDescription = "Location",
                         modifier = Modifier.size(16.dp)
                     )

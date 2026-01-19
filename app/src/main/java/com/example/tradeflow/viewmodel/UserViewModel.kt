@@ -182,6 +182,7 @@ class UserViewModel( val repo: UserRepo): ViewModel(){
     ) {
         repo.updateUserProfile(userId, updates, callback)
     }
+
     private val _validationErrors = MutableStateFlow<Map<String, String>>(emptyMap())
     val validationErrors: StateFlow<Map<String, String>> = _validationErrors.asStateFlow()
 
@@ -193,20 +194,12 @@ class UserViewModel( val repo: UserRepo): ViewModel(){
         _validationErrors.value = _validationErrors.value + (field to message)
     }
 
-    fun uploadProfileImage(
+    fun uploadImage(
         context: Context,
         imageUri: Uri,
-        userId: String,
-        callback: (Boolean, String?) -> Unit
+        callback: (String?) -> Unit
     ) {
-        repo.uploadProfileImage(context, imageUri, userId, callback)
+        repo.uploadImage(context, imageUri, callback)
     }
 
-    fun updateProfileImageUrl(
-        userId: String,
-        imageUrl: String,
-        callback: (Boolean, String) -> Unit
-    ) {
-        repo.updateProfileImageUrl(userId, imageUrl, callback)
-    }
 }

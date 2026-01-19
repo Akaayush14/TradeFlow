@@ -55,27 +55,22 @@ interface UserRepo {
         isRestricted: Boolean,
         callback: (Boolean, String) -> Unit
     )
+
     fun updateUserPoints(
         userId: String,
         pointsToAdd: Long,
         callback: (Boolean, String) -> Unit
     )
+
     fun updateUserProfile(
         userId: String,
         updates: Map<String, Any>,
         callback: (Boolean, String) -> Unit
     )
-    fun uploadProfileImage(
+
+    fun uploadImage(
         context: Context,
         imageUri: Uri,
-        userId: String,
-        callback: (Boolean, String?) -> Unit
+        callback: (String?) -> Unit
     )
-
-    fun updateProfileImageUrl(
-        userId: String,
-        imageUrl: String,
-        callback: (Boolean, String) -> Unit
-    )
-
 }
