@@ -28,6 +28,9 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -193,9 +196,13 @@ fun AdminSettingsScreen(onBackClick: () -> Unit = {}) {
                 .fillMaxSize()
                 .background(Color(0xFFF5F5F5))
         ) {
-            SettingsContent(
-                onLogoutClick = { showLogoutDialog = true }
-            )
+            Box(
+                modifier = Modifier.fillMaxSize()
+            ) {
+                SettingsContent(
+                    onLogoutClick = { showLogoutDialog = true }
+                )
+            }
         }
     }
 }

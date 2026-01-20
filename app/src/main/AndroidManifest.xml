@@ -2,7 +2,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
     <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />"
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
 
     <application
@@ -221,6 +221,14 @@
             android:name=".view.RentalRequestActivity"
             android:exported="false"
             android:theme="@style/Theme.TradeFlow" />
+
+        <!-- ChatActivity - FIXED: Changed to exported="true" -->
+        <activity
+            android:name=".view.ChatActivity"
+            android:exported="true"
+            android:theme="@style/Theme.TradeFlow"
+            android:windowSoftInputMode="adjustResize">
+        </activity>
     </application>
 
 </manifest>

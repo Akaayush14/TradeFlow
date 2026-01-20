@@ -7,9 +7,7 @@ plugins {
 
 android {
     namespace = "com.example.tradeflow"
-    compileSdk {
-        version = release(36)
-    }
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.example.tradeflow"
@@ -19,6 +17,7 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
     }
 
     buildTypes {
@@ -45,15 +44,14 @@ android {
 dependencies {
     implementation("androidx.compose.runtime:runtime-livedata:1.6.8")
     implementation("io.coil-kt:coil-compose:2.6.0")
-    implementation("androidx.compose.runtime:runtime-livedata:1.6.8")
     implementation("com.hbb20:ccp:2.7.3")
     implementation("androidx.media3:media3-exoplayer:1.2.0")
     implementation("androidx.media3:media3-ui:1.2.0")
     implementation("com.cloudinary:cloudinary-android:2.1.0")
     implementation("io.coil-kt.coil3:coil-compose:3.3.0")
-    implementation("io.coil-kt:coil-compose:2.5.0") //added by ronan for image
-    implementation("com.google.accompanist:accompanist-pager:0.32.0")//by ronan
-    implementation("com.google.accompanist:accompanist-pager-indicators:0.32.0")//by ronan
+    implementation("io.coil-kt:coil-compose:2.5.0")
+    implementation("com.google.accompanist:accompanist-pager:0.32.0")
+    implementation("com.google.accompanist:accompanist-pager-indicators:0.32.0")
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
@@ -75,8 +73,10 @@ dependencies {
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
-    //use for videocam//
+
     implementation(libs.androidx.compose.material)
     implementation(libs.androidx.compose.material.icons.extended)
 
+    // Gemini AI library - Version 0.9.0 compatible with 2026 models
+    implementation("com.google.ai.client.generativeai:generativeai:0.9.0")
 }
