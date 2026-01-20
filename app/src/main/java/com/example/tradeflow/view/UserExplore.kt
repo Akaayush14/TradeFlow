@@ -339,27 +339,14 @@ fun UserExploreScreen() {
                     )
                 }
                 Spacer(modifier = Modifier.height(8.dp))
-                LazyRow(
-                    modifier = Modifier.fillMaxWidth(),
-                    contentPadding = PaddingValues(horizontal = 16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    items(recommendedRowProducts) { product ->
-                        Box(
-                            modifier = Modifier.width(200.dp)
-                        ) {
-                            ExploreItemCard(
-                                product = product,
-                                compact = true,
-                                onClick = {
-                                    val intent = Intent(context, UserItemDetails::class.java)
-                                    intent.putExtra("productId", product.productId)
-                                    context.startActivity(intent)
-                                }
-                            )
-                        }
+                CompactRecommendationSection(
+                    products = recommendedRowProducts,
+                    onProductClick = { product ->
+                        val intent = Intent(context, UserItemDetails::class.java)
+                        intent.putExtra("productId", product.productId)
+                        context.startActivity(intent)
                     }
-                }
+                )
                 Spacer(modifier = Modifier.height(4.dp))
                 Divider(
                     color = Color(0xFFCCCCCC),
@@ -367,7 +354,6 @@ fun UserExploreScreen() {
                     modifier = Modifier.fillMaxWidth()
                 )
             }
-
             if (searchQuery.isNotEmpty() && searchedUsers.isNotEmpty()) {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
@@ -450,6 +436,106 @@ fun UserExploreScreen() {
                 }
             }
         }
+    }
+}
+
+@Composable
+fun CompactRecommendationSection(
+    products: List<ProductModel>,
+    onProductClick: (ProductModel) -> Unit
+) {
+    val configuration = androidx.compose.ui.platform.LocalConfiguration.current
+    val screenWidth = configuration.screenWidthDp.dp
+    // Calculate card width to fit 4 items
+    // Padding: 16dp * 2 = 32dp
+    // Spacing: 8dp * 3 = 24dp
+    // Total non-card space: 56dp
+    val cardWidth = (screenWidth - 56.dp) / 4
+
+    LazyRow(
+        modifier = Modifier.fillMaxWidth(),
+        contentPadding = PaddingValues(horizontal = 16.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        items(products) { product ->
+            CompactRecommendationCard(
+                product = product,
+                width = cardWidth,
+                onClick = { onProductClick(product) }
+            )
+        }
+    }
+}
+
+@Composable
+fun CompactRecommendationCard(
+    product: ProductModel,
+    width: androidx.compose.ui.unit.Dp,
+    onClick: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .width(width)
+            .clickable(onClick = onClick),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        // Square Card with soft shadow and light background
+        Card(
+            shape = RoundedCornerShape(12.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+            modifier = Modifier
+                .size(width) // Square
+        ) {
+            Box(modifier = Modifier.fillMaxSize()) {
+                val displayImage = if (product.imageUrl.isNotEmpty()) {
+                    product.imageUrl
+                } else if (product.imageUrls.isNotEmpty()) {
+                    product.imageUrls.first()
+                } else {
+                    ""
+                }
+
+                if (displayImage.isNotEmpty()) {
+                    AsyncImage(
+                        model = displayImage,
+                        contentDescription = product.name,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop,
+                        placeholder = painterResource(R.drawable.placeholderimage)
+                    )
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color(0xFFF0F0F0)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        // Fallback icon if no image
+                        Icon(
+                            imageVector = Icons.Default.Star, // Generic icon
+                            contentDescription = null,
+                            tint = Color.Gray,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(4.dp))
+
+        // Short title
+        Text(
+            text = product.name,
+            fontSize = 10.sp,
+            fontWeight = FontWeight.Medium,
+            color = Color.Black,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.fillMaxWidth(),
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+        )
     }
 }
 
