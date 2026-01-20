@@ -19,7 +19,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Create
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -100,12 +99,11 @@ fun UserProfileScreen(
         }
     }
 
-    // Log user data changes for debugging
+    // Log user data changes for debugging - SPECIFICALLY FOR PROFILE IMAGE
     LaunchedEffect(userData) {
-        Log.d("ProfileScreen", "User data updated: $userData")
-        Log.d("ProfileScreen", "User name: ${userData?.name}")
-        Log.d("ProfileScreen", "User email: ${userData?.email}")
+        Log.d("ProfileScreen", "User data updated: name=${userData?.name}")
         Log.d("ProfileScreen", "User profileImageUrl: ${userData?.profileImageUrl}")
+        Log.d("ProfileScreen", "Is profileImageUrl empty?: ${userData?.profileImageUrl.isNullOrEmpty()}")
     }
 
     // Memoized filtering logic
@@ -128,13 +126,7 @@ fun UserProfileScreen(
     val userName = userData?.name ?: currentUser?.displayName ?: "User"
     val userEmail = userData?.email ?: currentUser?.email ?: ""
     val userDisplayEmail = userEmail
-    val profileImageUrl = userData?.profileImageUrl // Get the profile image URL
-
-    // Debug logging
-    Log.d("ProfileScreen", "Final userName: $userName")
-    Log.d("ProfileScreen", "userData?.name: ${userData?.name}")
-    Log.d("ProfileScreen", "currentUser?.displayName: ${currentUser?.displayName}")
-    Log.d("ProfileScreen", "profileImageUrl: $profileImageUrl")
+    val profileImageUrl = userData?.profileImageUrl // Get the profile image URL from Cloudinary
 
     // Show loading state while user data is being fetched
     val isLoading = userData == null && targetUserId.isNotEmpty()
@@ -341,7 +333,7 @@ fun ProfileHeaderSection(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Profile picture on the left - UPDATED (VIEW-ONLY)
+            // Profile picture on the left - UPDATED FOR CLOUDINARY
             Box {
                 Box(
                     modifier = Modifier
@@ -349,15 +341,16 @@ fun ProfileHeaderSection(
                         .clip(CircleShape)
                         .background(Color(0xFFE3F2FD))
                 ) {
+                    // Check if we have a Cloudinary URL
                     if (!profileImageUrl.isNullOrEmpty()) {
-                        // Show actual profile image from database
+                        // Show Cloudinary profile image
                         AsyncImage(
                             model = profileImageUrl,
                             contentDescription = "Profile Avatar",
                             modifier = Modifier.fillMaxSize(),
                             contentScale = ContentScale.Crop,
                             placeholder = painterResource(R.drawable.placeholderimage),
-                            error = painterResource(R.drawable.house_rent_logo) // Use Painter, not composable lambda
+                            error = painterResource(R.drawable.house_rent_logo)
                         )
                     } else {
                         // Show default icon if no profile image
@@ -478,6 +471,7 @@ fun ProfileHeaderSection(
         Spacer(modifier = Modifier.height(16.dp))
     }
 }
+
 @Composable
 fun ProfileStat(label: String, value: String, modifier: Modifier = Modifier) {
     Column(
