@@ -81,6 +81,8 @@ import coil.compose.AsyncImage
 import com.example.tradeflow.R
 
 
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun UserExploreScreen() {
@@ -269,97 +271,54 @@ fun UserExploreScreen() {
                 .padding(paddingValues)
                 .background(color = White)
         ) {
-
-            Row(
+            // Fixed Filter Tabs Section
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .border(
-                        width = 1.dp,
-                        color = Color.LightGray,
-                        shape = RoundedCornerShape(12.dp)
-                    ),
-                verticalAlignment = Alignment.CenterVertically
+                    .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 8.dp)
             ) {
-                val tabs = listOf("All","Rent","Barter")
-                tabs.forEach { tabName ->
-                    val isSelected = selectedTab == tabName
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(48.dp)
-                            .background(if (isSelected) White else Color(0xFFF0F0F0))
-                            .clickable {
-                                selectedTab = tabName
-                                showAllRecommended = false
-                            },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = tabName,
-                            color = if (isSelected) Color.Black else Color.Gray
-                        )
+                ExploreTabs(
+                    selectedTab = selectedTab,
+                    onTabSelected = {
+                        selectedTab = it
+                        showAllRecommended = false
                     }
-                }
+                )
             }
 
-            if (recommendedRowProducts.isNotEmpty()) {
-                Spacer(modifier = Modifier.height(16.dp))
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Image(
-                            painter = painterResource(id = R.drawable.shines),
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = "Recommended for you",
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                    Text(
-                        text = "See All >",
-                        fontSize = 14.sp,
-                        color = Greenish,
-                        fontWeight = FontWeight.Medium,
-                        modifier = Modifier.clickable {
-                            showAllRecommended = true
-                        }
-                    )
-                }
-                Spacer(modifier = Modifier.height(8.dp))
-                CompactRecommendationSection(
-                    products = recommendedRowProducts,
-                    onProductClick = { product ->
-                        val intent = Intent(context, UserItemDetails::class.java)
-                        intent.putExtra("productId", product.productId)
-                        context.startActivity(intent)
-                    }
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Divider(
-                    color = Color(0xFFCCCCCC),
-                    thickness = 5.dp,
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
             if (searchQuery.isNotEmpty() && searchedUsers.isNotEmpty()) {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
+                    // Tabs removed from here
+
+                    // Recommendations
+                    if (recommendedRowProducts.isNotEmpty()) {
+                        item {
+                            RecommendationHeader(
+                                onSeeAllClick = { showAllRecommended = true }
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            CompactRecommendationSection(
+                                products = recommendedRowProducts,
+                                onProductClick = { product ->
+                                    val intent = Intent(context, UserItemDetails::class.java)
+                                    intent.putExtra("productId", product.productId)
+                                    context.startActivity(intent)
+                                }
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Divider(
+                                color = Color(0xFFCCCCCC),
+                                thickness = 5.dp,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                        }
+                    }
+
                     item {
                         Text(
                             text = "Users (${searchedUsers.size})",
@@ -423,6 +382,36 @@ fun UserExploreScreen() {
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
+                    // Tabs removed from here
+
+                    // Recommendations
+                    if (recommendedRowProducts.isNotEmpty()) {
+                        item(span = { GridItemSpan(maxLineSpan) }) {
+                            Column {
+                                Spacer(modifier = Modifier.height(16.dp))
+                                RecommendationHeader(
+                                    onSeeAllClick = { showAllRecommended = true }
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                CompactRecommendationSection(
+                                    products = recommendedRowProducts,
+                                    onProductClick = { product ->
+                                        val intent = Intent(context, UserItemDetails::class.java)
+                                        intent.putExtra("productId", product.productId)
+                                        context.startActivity(intent)
+                                    }
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Divider(
+                                    color = Color(0xFFCCCCCC),
+                                    thickness = 5.dp,
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                                Spacer(modifier = Modifier.height(16.dp))
+                            }
+                        }
+                    }
+
                     items(gridProducts) { product ->
                         ExploreItemCard(
                             product = product,
@@ -438,6 +427,74 @@ fun UserExploreScreen() {
         }
     }
 }
+
+@Composable
+fun ExploreTabs(selectedTab: String, onTabSelected: (String) -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            // Removed vertical padding here to tighten spacing
+            .clip(RoundedCornerShape(12.dp))
+            .border(
+                width = 1.dp,
+                color = Color.LightGray,
+                shape = RoundedCornerShape(12.dp)
+            ),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        val tabs = listOf("All", "Rent", "Barter")
+        tabs.forEach { tabName ->
+            val isSelected = selectedTab == tabName
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .height(48.dp)
+                    .background(if (isSelected) White else Color(0xFFF0F0F0))
+                    .clickable { onTabSelected(tabName) },
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = tabName,
+                    color = if (isSelected) Color.Black else Color.Gray
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun RecommendationHeader(onSeeAllClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Image(
+                painter = painterResource(id = R.drawable.shines),
+                contentDescription = null,
+                modifier = Modifier.size(18.dp)
+            )
+            Spacer(modifier = Modifier.width(6.dp))
+            Text(
+                text = "Recommended for you",
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
+        Text(
+            text = "See All >",
+            fontSize = 14.sp,
+            color = Greenish,
+            fontWeight = FontWeight.Medium,
+            modifier = Modifier.clickable { onSeeAllClick() }
+        )
+    }
+}
+
 
 @Composable
 fun CompactRecommendationSection(
