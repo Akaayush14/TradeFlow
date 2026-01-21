@@ -49,31 +49,20 @@ import com.example.tradeflow.R
 import com.example.tradeflow.ui.theme.DarkGreen
 import com.example.tradeflow.ui.theme.Greenish
 import com.example.tradeflow.ui.theme.White
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
-import com.example.tradeflow.ui.theme.TradeFlowTheme
-import com.example.tradeflow.util.ThemeManager
-import com.example.tradeflow.utils.ThemeManager
 
 
 class AdminSettings : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-
-        // Initialize theme
-        ThemeManager.init(this)
-
         setContent {
-            TradeFlowTheme(darkTheme = ThemeManager.isDarkMode) {
-                AdminSettingsScreen(
-                    onBackClick = {
-                        val intent = Intent(this, AdminDashExp::class.java)
-                        startActivity(intent)
-                        finish()
-                    }
-                )
-            }
+            AdminSettingsScreen(
+                onBackClick = {
+                    val intent = Intent(this, AdminDashExp::class.java)
+                    startActivity(intent)
+                    finish()
+                }
+            )
         }
     }
 }
@@ -83,8 +72,8 @@ class AdminSettings : ComponentActivity() {
 @OptIn(ExperimentalMaterial3Api::class)
 fun AdminSettingsScreen(onBackClick: () -> Unit = {}) {
     val context = LocalContext.current
+    var selectedIndex by remember { mutableStateOf(-1) }
     var showLogoutDialog by remember { mutableStateOf(false) }
-    var isDarkMode by remember { mutableStateOf(ThemeManager.isDarkMode) }
 
     // Handle back button press - navigate to AdminDashExp
     BackHandler {
@@ -99,20 +88,20 @@ fun AdminSettingsScreen(onBackClick: () -> Unit = {}) {
     if (showLogoutDialog) {
         AlertDialog(
             onDismissRequest = { showLogoutDialog = false },
-            containerColor = MaterialTheme.colorScheme.surface,
+            containerColor = Color.White,
             title = {
                 Text(
                     text = "Logout",
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = Color.Black
                 )
             },
             text = {
                 Text(
                     text = "Do you really want to log out?",
                     fontSize = 16.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = Color.Gray
                 )
             },
             confirmButton = {
@@ -168,16 +157,16 @@ fun AdminSettingsScreen(onBackClick: () -> Unit = {}) {
         topBar = {
             TopAppBar(
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = if (isDarkMode) MaterialTheme.colorScheme.surface else Greenish,
-                    titleContentColor = if (isDarkMode) MaterialTheme.colorScheme.onSurface else DarkGreen,
-                    navigationIconContentColor = if (isDarkMode) MaterialTheme.colorScheme.onSurface else DarkGreen
+                    containerColor = Greenish,
+                    titleContentColor = DarkGreen,
+                    navigationIconContentColor = DarkGreen
                 ),
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
                         Icon(
                             painter = painterResource(id = R.drawable.ic_back),
                             contentDescription = "Back",
-                            tint = if (isDarkMode) MaterialTheme.colorScheme.onSurface else Color.White
+                            tint = Color.White
                         )
                     }
                 },
@@ -190,7 +179,7 @@ fun AdminSettingsScreen(onBackClick: () -> Unit = {}) {
                     ) {
                         Text(
                             text = "Settings",
-                            color = if (isDarkMode) MaterialTheme.colorScheme.onSurface else White,
+                            color = White,
                             style = MaterialTheme.typography.titleLarge
                         )
                     }
@@ -202,14 +191,9 @@ fun AdminSettingsScreen(onBackClick: () -> Unit = {}) {
             modifier = Modifier
                 .padding(padding)
                 .fillMaxSize()
-                .background(MaterialTheme.colorScheme.background)
+                .background(Color(0xFFF5F5F5))
         ) {
             SettingsContent(
-                isDarkMode = isDarkMode,
-                onDarkModeToggle = { enabled ->
-                    ThemeManager.setDarkMode(context, enabled)
-                    isDarkMode = enabled
-                },
                 onLogoutClick = { showLogoutDialog = true }
             )
         }
@@ -217,11 +201,7 @@ fun AdminSettingsScreen(onBackClick: () -> Unit = {}) {
 }
 
 @Composable
-fun SettingsContent(
-    isDarkMode: Boolean = false,
-    onDarkModeToggle: (Boolean) -> Unit = {},
-    onLogoutClick: () -> Unit = {}
-) {
+fun SettingsContent(onLogoutClick: () -> Unit = {}) {
     val context = LocalContext.current
 
     Column(
@@ -235,17 +215,8 @@ fun SettingsContent(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(12.dp))
-                .background(MaterialTheme.colorScheme.surface)
+                .background(Color.White)
         ) {
-            // Dark Mode Toggle
-            SettingsMenuItemWithSwitch(
-                title = "Dark Mode",
-                iconRes = R.drawable.ic_termsandcondition, // Replace with dark mode icon if available
-                isChecked = isDarkMode,
-                onCheckedChange = onDarkModeToggle
-            )
-
-            HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
             SettingsMenuItem(
                 title = "Notifications",
                 iconRes = R.drawable.notification,
@@ -255,7 +226,7 @@ fun SettingsContent(
                 }
             )
 
-            HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
+            HorizontalDivider(color = Color(0xFFE0E0E0))
 
             SettingsMenuItem(
                 title = "Edit Profile",
@@ -338,7 +309,7 @@ fun SettingsMenuItem(
             Text(
                 text = title,
                 fontSize = 16.sp,
-                color = MaterialTheme.colorScheme.onSurface
+                color = Color.Black
             )
         }
 
@@ -346,50 +317,4 @@ fun SettingsMenuItem(
             // No trailing arrow per spec
         }
     }
-    @Composable
-    fun SettingsMenuItemWithSwitch(
-        title: String,
-        iconRes: Int? = null,
-        isChecked: Boolean,
-        onCheckedChange: (Boolean) -> Unit
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                iconRes?.let {
-                    Icon(
-                        painter = painterResource(id = it),
-                        contentDescription = title,
-                        tint = Color.Unspecified,
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
-                Text(
-                    text = title,
-                    fontSize = 16.sp,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-            }
-
-            Switch(
-                checked = isChecked,
-                onCheckedChange = onCheckedChange,
-                colors = SwitchDefaults.colors(
-                    checkedThumbColor = Greenish,
-                    checkedTrackColor = Greenish.copy(alpha = 0.5f),
-                    uncheckedThumbColor = Color.Gray,
-                    uncheckedTrackColor = Color.LightGray
-                )
-            )
-        }
-    }
-
 }

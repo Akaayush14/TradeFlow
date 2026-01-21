@@ -36,25 +36,16 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.navigation.compose.NavHost
 import com.example.tradeflow.R
 import com.example.tradeflow.UserSettingAboutUsScreen
-import com.example.tradeflow.ui.theme.TradeFlowTheme
-import com.example.tradeflow.util.ThemeManager
-import com.example.tradeflow.utils.ThemeManager
-
 
 class UserSetting: ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-
-        // Initialize theme
-        ThemeManager.init(this)
-
         setContent {
-            TradeFlowTheme(darkTheme = ThemeManager.isDarkMode) {
-                AppNav()
-            }
+            AppNav()
         }
     }
+}
 
 @Composable
 fun AppNav() {
@@ -97,13 +88,8 @@ fun UserSettingsScreen (navController: NavController) {
     var showLogoutDialog by remember { mutableStateOf(false) }
     var selectedLanguage by remember { mutableStateOf("English") }
     var showLanguageDialog by remember { mutableStateOf(false) }
-    var isDarkMode by remember { mutableStateOf(ThemeManager.isDarkMode) }
-    val context = navController.context
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-    ) {
+
+    Column(modifier = Modifier.fillMaxSize()) {
 
         // Profile Header
         Box(modifier = Modifier.fillMaxWidth()) {
@@ -113,23 +99,13 @@ fun UserSettingsScreen (navController: NavController) {
                     .height(220.dp)
                     .clip(CurvedBottomShape())
                     .background(
-                        if (isDarkMode) {
-                            Brush.verticalGradient(
-                                colors = listOf(
-                                    Color(0xFF1A3D38),
-                                    Color(0xFF00574B),
-                                    Color(0xFF26A69A)
-                                )
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                Color(0xFF005F56),
+                                Color(0xFF007D70),
+                                Color(0xFF4DB6AC)
                             )
-                        } else {
-                            Brush.verticalGradient(
-                                colors = listOf(
-                                    Color(0xFF005F56),
-                                    Color(0xFF007D70),
-                                    Color(0xFF4DB6AC)
-                                )
-                            )
-                        }
+                        )
                     )
             ) {
                 Box(
