@@ -21,6 +21,8 @@ import java.io.InputStream
 import java.util.UUID
 import java.util.concurrent.Executors
 import kotlin.collections.toMap
+import com.google.android.gms.maps.model.LatLng
+import java.util.Locale
 
 
 class ProductRepoImpl: ProductRepo {
@@ -313,6 +315,35 @@ class ProductRepoImpl: ProductRepo {
             }else{
                 callback(false, "${it.exception?.message}")
             }
+        }
+    }
+    override fun getLatLngFromAddress(context: Context, address: String): LatLng? {
+        return try {
+            val geocoder = Geocoder(context, Locale.getDefault())
+
+            val addressVariations = listOf(
+                "$address, Kathmandu, Nepal",
+                "$address, Nepal",
+                address
+            )
+
+            for (addressVariant in addressVariations) {
+                try {
+                    @Suppress("DEPRECATION")
+                    val addresses = geocoder.getFromLocationName(addressVariant, 1)
+
+                    if (!addresses.isNullOrEmpty()) {
+                        return LatLng(addresses[0].latitude, addresses[0].longitude)
+                    }
+                } catch (e: Exception) {
+                    continue
+                }
+            }
+
+            null
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
         }
     }
 }
