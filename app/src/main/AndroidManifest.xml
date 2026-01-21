@@ -1,13 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
-
     <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />"
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
-
 
     <application
         android:allowBackup="true"
@@ -88,6 +86,7 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
         <activity
             android:name=".view.UserDashboard"
             android:exported="true"
@@ -112,20 +111,10 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
         <activity
             android:name=".view.UserSetting"
             android:exported="true"
-            android:theme="@style/Theme.TradeFlow">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity>
-        <activity
-            android:name=".view.UserSettingNotification"
-            android:exported="true"
-            android:label="@string/title_activity_user_setting_notification"
             android:theme="@style/Theme.TradeFlow">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -153,6 +142,7 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
         <activity
             android:name=".view.AdminDashUser"
             android:exported="true"
@@ -163,6 +153,7 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
         <activity
             android:name=".view.AdminProfile"
             android:exported="true"
@@ -174,6 +165,7 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
         <activity
             android:name=".view.AdminNotification"
             android:exported="true"
@@ -188,14 +180,17 @@
             android:name=".view.AdminUserMetric"
             android:exported="true"
             android:theme="@style/Theme.TradeFlow" />
+
         <activity
             android:name=".view.AdminAdminMetric"
             android:exported="true"
             android:theme="@style/Theme.TradeFlow" />
+
         <activity
             android:name=".view.AdminProductMetric"
             android:exported="true"
             android:theme="@style/Theme.TradeFlow" />
+
         <activity
             android:name=".view.AdminProductPriceMetric"
             android:exported="true"
@@ -204,6 +199,7 @@
             android:name=".view.AdminAdmin"
             android:exported="false"
             android:theme="@style/Theme.TradeFlow" />
+
         <activity
             android:name=".view.AdminSettings"
             android:exported="true"
@@ -233,7 +229,19 @@
             android:exported="false"
             android:theme="@style/Theme.TradeFlow" />
         <activity
+            android:name=".view.UserProfileActivity"
+            android:exported="false"
+            android:theme="@style/Theme.TradeFlow" />
+        <activity
             android:name=".view.AdminPointDeals"
+            android:exported="false"
+            android:theme="@style/Theme.TradeFlow" />
+        <activity
+            android:name=".view.BarterRequestActivity"
+            android:exported="false"
+            android:theme="@style/Theme.TradeFlow" />
+        <activity
+            android:name=".view.RentalRequestActivity"
             android:exported="false"
             android:theme="@style/Theme.TradeFlow" />
     </application>

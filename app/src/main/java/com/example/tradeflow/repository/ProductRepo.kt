@@ -38,12 +38,14 @@ interface ProductRepo {
         type: String,
         callback: (Boolean, String, List<ProductModel>?) -> Unit
     )
-    fun uploadImage(context: Context, uri: Uri, callback: (String?) -> Unit)
+    fun uploadImage(context: Context, imageUri: Uri, callback: (String?) -> Unit)
     fun getFileNameFromUri(context: Context, uri: Uri): String?
     fun listProduct(
         productId: String,
         isListed: Boolean,
         callback: (Boolean, String) -> Unit
     )
+
+    suspend fun uploadImages(context: Context, uris: List<Uri?>): List<String>
     fun getLatLngFromAddress(context: Context, address: String): LatLng?
 }

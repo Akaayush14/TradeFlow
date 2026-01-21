@@ -68,6 +68,7 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.LinearEasing
+import androidx.compose.foundation.clickable
 import androidx.compose.ui.draw.rotate
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
@@ -88,6 +89,10 @@ import com.example.tradeflow.ui.theme.Greenish
 import com.example.tradeflow.ui.theme.White
 import com.example.tradeflow.viewmodel.NotificationViewModel
 import com.example.tradeflow.viewmodel.ProductViewModel
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import coil.compose.AsyncImage
 
 class AdminDashItem : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -655,7 +660,6 @@ fun isInternetAvailableItem(context: android.content.Context): Boolean {
             capabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) ||
             capabilities.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)
 }
-
 @Composable
 fun ItemCardItem(
     product: ProductModel,
@@ -676,38 +680,72 @@ fun ItemCardItem(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Column(
-                modifier = Modifier.weight(1f)
+            // Image on the left
+            Box(
+                modifier = Modifier
+                    .size(100.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(Color.LightGray),
+                contentAlignment = Alignment.Center
             ) {
+                // Placeholder icon for product image
+                Icon(
+                    painter = painterResource(R.drawable.ic_items),
+                    contentDescription = "Product Image",
+                    tint = Color.Gray,
+                    modifier = Modifier.size(48.dp)
+                )
+
+                // If you have Coil library and imageUrl in ProductModel, use:
+                /*
+                AsyncImage(
+                    model = product.imageUrl,
+                    contentDescription = "Product Image",
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop,
+                    error = painterResource(R.drawable.ic_items)
+                )
+                */
+            }
+
+            // Content on the right
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                // Product name
                 Text(
                     text = product.name,
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color.Black
                 )
-                Spacer(modifier = Modifier.height(4.dp))
+
+                // Price
                 Text(
                     text = "Price: $${product.price}",
                     fontSize = 14.sp,
                     color = Color.Gray
                 )
-                Spacer(modifier = Modifier.height(4.dp))
+
+                // Type
                 Text(
                     text = "Type: ${product.type}",
                     fontSize = 14.sp,
                     color = Color.Gray
                 )
-                Spacer(modifier = Modifier.height(4.dp))
+
+                // Location
                 Text(
                     text = "Location: ${product.location}",
                     fontSize = 14.sp,
                     color = Color.Gray
                 )
+
+                // Unlisted status
                 if (!product.isListed) {
-                    Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         text = "UNLISTED",
                         fontSize = 12.sp,
@@ -715,48 +753,53 @@ fun ItemCardItem(
                         color = Color.Red
                     )
                 }
-            }
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                if (product.isListed) {
-                    // Show Unlist button when listed
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                // Buttons
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    if (product.isListed) {
+                        // Show Unlist button when listed
+                        Button(
+                            onClick = onUnlistClick,
+                            colors = ButtonDefaults.buttonColors(containerColor = Color.Red),
+                            modifier = Modifier.height(36.dp)
+                        ) {
+                            Text(
+                                text = "Unlist",
+                                fontSize = 12.sp,
+                                color = Color.White
+                            )
+                        }
+                    } else {
+                        // Show List button (green) when unlisted
+                        Button(
+                            onClick = onListClick,
+                            colors = ButtonDefaults.buttonColors(containerColor = DarkGreen),
+                            modifier = Modifier.height(36.dp)
+                        ) {
+                            Text(
+                                text = "List",
+                                fontSize = 12.sp,
+                                color = Color.White
+                            )
+                        }
+                    }
+
+                    // Always show Delete button
                     Button(
-                        onClick = onUnlistClick,
+                        onClick = onDeleteClick,
                         colors = ButtonDefaults.buttonColors(containerColor = Color.Red),
                         modifier = Modifier.height(36.dp)
                     ) {
                         Text(
-                            text = "Unlist",
+                            text = "Delete",
                             fontSize = 12.sp,
                             color = Color.White
                         )
                     }
-                } else {
-                    // Show List button (green) when unlisted
-                    Button(
-                        onClick = onListClick,
-                        colors = ButtonDefaults.buttonColors(containerColor = DarkGreen),
-                        modifier = Modifier.height(36.dp)
-                    ) {
-                        Text(
-                            text = "List",
-                            fontSize = 12.sp,
-                            color = Color.White
-                        )
-                    }
-                }
-                // Always show Delete button
-                Button(
-                    onClick = onDeleteClick,
-                    colors = ButtonDefaults.buttonColors(containerColor = Color.Red),
-                    modifier = Modifier.height(36.dp)
-                ) {
-                    Text(
-                        text = "Delete",
-                        fontSize = 12.sp,
-                        color = Color.White
-                    )
                 }
             }
         }

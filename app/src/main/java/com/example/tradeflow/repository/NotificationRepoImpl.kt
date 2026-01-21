@@ -108,7 +108,7 @@ class NotificationRepoImpl : NotificationRepo {
         unreadCountListener?.let {
             ref.removeEventListener(it)
         }
-        
+
         unreadCountListener = object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 var count = 0
@@ -159,4 +159,3 @@ class NotificationRepoImpl : NotificationRepo {
         }
     }
 }
-

@@ -1,8 +1,8 @@
 package com.example.tradeflow.view
 
 import android.app.Activity
-import android.content.Context
 import android.os.Bundle
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -11,14 +11,16 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Email
-import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.Star
 import androidx.compose.material3.*
@@ -35,18 +37,20 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.example.tradeflow.R
+import com.example.tradeflow.model.ProductModel
+import com.example.tradeflow.model.UserModel
 import com.example.tradeflow.repository.ProductRepoImpl
 import com.example.tradeflow.repository.ReviewRepoImpl
 import com.example.tradeflow.repository.UserRepoImpl
+import com.example.tradeflow.repository.UserNotificationRepoImpl
 import com.example.tradeflow.ui.theme.Greenish
 import com.example.tradeflow.ui.theme.White
 import com.example.tradeflow.viewmodel.ProductViewModel
 import com.example.tradeflow.viewmodel.ReviewViewModel
 import com.example.tradeflow.viewmodel.UserViewModel
-import com.google.android.gms.maps.model.CameraPosition
-import com.google.android.gms.maps.model.LatLng
-import com.google.maps.android.compose.*
-import java.util.Locale
+import com.google.firebase.auth.FirebaseAuth
+import kotlinx.coroutines.launch
+import android.content.Intent
 
 class UserItemDetails : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -54,6 +58,42 @@ class UserItemDetails : ComponentActivity() {
         setContent {
             ItemDetailsScreen()
         }
+    }
+}
+
+@Composable
+fun ContainerTag(text: String, color: Color, textColor: Color) {
+    Box(
+        modifier = Modifier
+            .background(color, RoundedCornerShape(4.dp))
+            .padding(horizontal = 8.dp, vertical = 4.dp)
+    ) {
+        Text(text = text, fontSize = 12.sp, color = textColor)
+    }
+}
+
+@Composable
+fun ReviewItem(username: String, rating: Int, comment: String) {
+    Column(modifier = Modifier.padding(vertical = 8.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = username,
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 14.sp
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Row {
+                repeat(5) { index ->
+                    Icon(
+                        imageVector = if (index < rating) Icons.Default.Star else Icons.Outlined.Star,
+                        contentDescription = null,
+                        tint = Color(0xFFFFD700),
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+            }
+        }
+        Text(text = comment, fontSize = 14.sp, color = Color.Gray)
     }
 }
 
@@ -68,15 +108,19 @@ fun ItemDetailsScreen() {
     val userViewModel = remember { UserViewModel(UserRepoImpl()) }
     val reviewViewModel = remember { ReviewViewModel(ReviewRepoImpl()) }
 
-    // Use collectAsState() for StateFlow
+    val currentUser = FirebaseAuth.getInstance().currentUser
+    val currentUserId = currentUser?.uid ?: ""
+
+
+
+    // State variables
     val product by productViewModel.product.collectAsState()
     val owner by userViewModel.users.collectAsState()
     val reviews by reviewViewModel.reviews.collectAsState()
     val loading by productViewModel.loading.collectAsState()
 
-    // State for showing location map
-    var showLocationMap by remember { mutableStateOf(false) }
-    var productLocation by remember { mutableStateOf<LatLng?>(null) }
+    var showErrorDialog by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf("") }
 
     LaunchedEffect(productId) {
         if (productId.isNotEmpty()) {
@@ -88,26 +132,15 @@ fun ItemDetailsScreen() {
     LaunchedEffect(product) {
         product?.ownerId?.let { ownerId ->
             if (ownerId.isNotEmpty()) {
-                userViewModel.getUserById(ownerId)
-            }
-        }
-
-        // Get location when product is loaded
-        product?.let { productItem ->
-            if (productItem.location.isNotEmpty()) {
-                val latLng = getLatLngFromAddress(context, productItem.location)
-                if (latLng != null) {
-                    productLocation = latLng
-                } else {
-                    // Fallback to a default location (Kathmandu) if address can't be geocoded
-                    productLocation = LatLng(27.7172, 85.3240)
+                userViewModel.getUserById(ownerId) { success, _, user ->
+                    // User data is handled in the ViewModel
                 }
-            } else {
-                // Default location if no location is provided
-                productLocation = LatLng(27.7172, 85.3240) // Kathmandu coordinates
             }
         }
     }
+
+    // Check if current user is the owner
+    val isOwner = currentUserId == product?.ownerId
 
     Scaffold(
         topBar = {
@@ -126,6 +159,79 @@ fun ItemDetailsScreen() {
                     containerColor = Greenish
                 )
             )
+        },
+        bottomBar = {
+            // Only show request button if user is not the owner and product is loaded
+            if (!isOwner && currentUserId.isNotEmpty() && product != null) {
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shadowElevation = 8.dp
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        OutlinedButton(
+                            onClick = {
+                                Toast.makeText(context, "Opening Chat...", Toast.LENGTH_SHORT).show()
+                            },
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(50.dp),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.Email,
+                                contentDescription = "Message",
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Message")
+                        }
+
+                        Button(
+                            onClick = {
+                                if (owner == null) {
+                                    errorMessage = "Owner information not available. Please try again."
+                                    showErrorDialog = true
+                                } else {
+                                    if (product?.type == "Rent") {
+                                        val intent = Intent(context, RentalRequestActivity::class.java)
+                                        // Pass product ID and owner ID instead of objects
+                                        intent.putExtra("productId", product?.productId ?: "")
+                                        intent.putExtra("ownerId", product?.ownerId ?: "")
+                                        context.startActivity(intent)
+                                    } else {
+                                        val intent = Intent(context, BarterRequestActivity::class.java)
+                                        // Pass product ID and owner ID instead of objects
+                                        intent.putExtra("productId", product?.productId ?: "")
+                                        intent.putExtra("ownerId", product?.ownerId ?: "")
+                                        context.startActivity(intent)
+                                    }
+                                }
+                            },
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(50.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Greenish
+                            ),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Text(
+                                text = when (product?.type) {
+                                    "Barter" -> "Barter Now"
+                                    "Rent" -> "Rent Now"
+                                    else -> "Send Request"
+                                },
+                                fontSize = 14.sp
+                            )
+                        }
+                    }
+                }
+            }
         }
     ) { paddingValues ->
         if (loading || (product == null && productId.isNotEmpty())) {
@@ -136,21 +242,21 @@ fun ItemDetailsScreen() {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Text("Product not found")
             }
-        } else if (showLocationMap && productLocation != null) {
-            // Show Map Screen
-            LocationMapScreen(
-                productLocation = productLocation!!,
-                productName = product?.name ?: "",
-                onBackClick = { showLocationMap = false }
-            )
         } else {
-            var selectedImageUrl by remember { mutableStateOf("") }
-
-            LaunchedEffect(product) {
-                if (product != null) {
-                    selectedImageUrl = product!!.imageUrl
-                }
+            val allImages = remember(product) {
+                product?.let { productItem ->
+                    val list = mutableListOf<String>()
+                    if (productItem.imageUrl.isNotEmpty()) list.add(productItem.imageUrl)
+                    if (productItem.imageUrls.isNotEmpty()) list.addAll(productItem.imageUrls)
+                    if (productItem.imageUrl2.isNotEmpty()) list.add(productItem.imageUrl2)
+                    if (productItem.imageUrl3.isNotEmpty()) list.add(productItem.imageUrl3)
+                    if (productItem.imageUrl4.isNotEmpty()) list.add(productItem.imageUrl4)
+                    list.filter { it.isNotEmpty() }.distinct()
+                } ?: emptyList()
             }
+
+            val pagerState = rememberPagerState(pageCount = { if (allImages.isEmpty()) 1 else allImages.size })
+            val scope = rememberCoroutineScope()
 
             Column(
                 modifier = Modifier
@@ -167,36 +273,65 @@ fun ItemDetailsScreen() {
                         .background(Color.LightGray),
                     contentAlignment = Alignment.Center
                 ) {
-                    if (selectedImageUrl.isNotEmpty()) {
-                        AsyncImage(
-                            model = selectedImageUrl,
-                            contentDescription = "Item Image",
-                            modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Crop,
-                            placeholder = painterResource(R.drawable.placeholderimage),
-                            error = painterResource(R.drawable.placeholderimage)
-                        )
-                    } else {
-                        Image(
-                            painter = painterResource(id = R.drawable.placeholderimage),
-                            contentDescription = "Placeholder",
-                            modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Crop
-                        )
+                    HorizontalPager(
+                        state = pagerState,
+                        modifier = Modifier.fillMaxSize()
+                    ) { page ->
+                        if (allImages.isNotEmpty()) {
+                            AsyncImage(
+                                model = allImages[page],
+                                contentDescription = "Item Image",
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop,
+                                placeholder = painterResource(R.drawable.placeholderimage),
+                                error = painterResource(R.drawable.placeholderimage),
+                                onSuccess = {
+                                    Log.d(
+                                        "TF_UI_IMAGE",
+                                        "Details main image loaded productId=${product?.productId} page=$page"
+                                    )
+                                },
+                                onError = {
+                                    Log.e(
+                                        "TF_UI_IMAGE",
+                                        "Details main image failed productId=${product?.productId} url=${allImages[page]}"
+                                    )
+                                }
+                            )
+                        } else {
+                            Image(
+                                painter = painterResource(id = R.drawable.placeholderimage),
+                                contentDescription = "Placeholder",
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
+                            )
+                        }
+                    }
+
+                    // Image Indicator (e.g., 1/4)
+                    if (allImages.size > 1) {
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.BottomEnd)
+                                .padding(16.dp)
+                                .background(
+                                    Color.Black.copy(alpha = 0.6f),
+                                    RoundedCornerShape(16.dp)
+                                )
+                                .padding(horizontal = 12.dp, vertical = 6.dp)
+                        ) {
+                            Text(
+                                text = "${pagerState.currentPage + 1}/${allImages.size}",
+                                color = White,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
                     }
                 }
 
                 // Image Gallery (Thumbnails)
-                val images = product?.let { productItem ->
-                    listOf(
-                        productItem.imageUrl,
-                        productItem.imageUrl2,
-                        productItem.imageUrl3,
-                        productItem.imageUrl4
-                    ).filter { it.isNotEmpty() }
-                } ?: emptyList()
-
-                if (images.size > 1) {
+                if (allImages.size > 1) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -204,17 +339,21 @@ fun ItemDetailsScreen() {
                             .horizontalScroll(rememberScrollState()),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        images.forEach { url ->
+                        allImages.forEachIndexed { index, url ->
                             Box(
                                 modifier = Modifier
                                     .size(70.dp)
                                     .border(
-                                        width = if (selectedImageUrl == url) 2.dp else 1.dp,
-                                        color = if (selectedImageUrl == url) Greenish else Color.Gray,
+                                        width = if (pagerState.currentPage == index) 2.dp else 1.dp,
+                                        color = if (pagerState.currentPage == index) Greenish else Color.Gray,
                                         shape = RoundedCornerShape(8.dp)
                                     )
                                     .clip(RoundedCornerShape(8.dp))
-                                    .clickable { selectedImageUrl = url }
+                                    .clickable {
+                                        scope.launch {
+                                            pagerState.animateScrollToPage(index)
+                                        }
+                                    }
                             ) {
                                 AsyncImage(
                                     model = url,
@@ -230,7 +369,6 @@ fun ItemDetailsScreen() {
                 }
 
                 Column(modifier = Modifier.padding(16.dp)) {
-                    // 2. Item Title, Price, Type
                     product?.let { productItem ->
                         Text(
                             text = productItem.name,
@@ -245,11 +383,16 @@ fun ItemDetailsScreen() {
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Text(
-                                text = "$${productItem.price}",
+                                text = if (productItem.type == "Rent") {
+                                    "Rs${productItem.price} / Day"
+                                } else {
+                                    "Rs${productItem.price}"
+                                },
                                 fontSize = 20.sp,
                                 fontWeight = FontWeight.SemiBold,
                                 color = Greenish
                             )
+
                             ContainerTag(
                                 text = productItem.type,
                                 color = if (productItem.type == "Rent") Color(0xFFE0F7FA) else Color(0xFFFFF3E0),
@@ -262,39 +405,6 @@ fun ItemDetailsScreen() {
                             fontSize = 14.sp,
                             color = Color.Gray
                         )
-
-                        // Location Section - Clickable to open map
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable {
-                                    if (productItem.location.isNotEmpty()) {
-                                        if (productLocation != null) {
-                                            showLocationMap = true
-                                        } else {
-                                            Toast.makeText(context, "Location not available", Toast.LENGTH_SHORT).show()
-                                        }
-                                    } else {
-                                        Toast.makeText(context, "No location provided", Toast.LENGTH_SHORT).show()
-                                    }
-                                }
-                                .padding(vertical = 8.dp)
-                        ) {
-                            Icon(
-                                Icons.Default.LocationOn,
-                                contentDescription = "Location",
-                                tint = Greenish,
-                                modifier = Modifier.size(20.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = productItem.location.ifEmpty { "Location not specified" },
-                                fontSize = 14.sp,
-                                color = if (productItem.location.isNotEmpty()) Color.DarkGray else Color.Gray
-                            )
-                        }
 
                         Spacer(modifier = Modifier.height(16.dp))
                         HorizontalDivider(color = Color.LightGray, thickness = 0.5.dp)
@@ -359,7 +469,7 @@ fun ItemDetailsScreen() {
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = productItem.description,
+                            text = product?.description ?: "",
                             fontSize = 14.sp,
                             color = Color.DarkGray,
                             lineHeight = 20.sp
@@ -390,175 +500,33 @@ fun ItemDetailsScreen() {
                             }
                         }
 
-                        Spacer(modifier = Modifier.height(24.dp))
-
-                        // 6. Action Buttons
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(16.dp)
-                        ) {
-                            Button(
-                                onClick = {
-                                    Toast.makeText(context, "Opening Chat...", Toast.LENGTH_SHORT).show()
-                                },
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .height(50.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = Color.Gray),
-                                shape = RoundedCornerShape(8.dp)
-                            ) {
-                                Icon(
-                                    Icons.Default.Email,
-                                    contentDescription = null,
-                                    tint = White
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text("Message", color = White)
-                            }
-
-                            Button(
-                                onClick = {
-                                    Toast.makeText(
-                                        context,
-                                        "Requesting ${productItem.type}...",
-                                        Toast.LENGTH_SHORT
-                                    ).show()
-                                },
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .height(50.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = Greenish),
-                                shape = RoundedCornerShape(8.dp)
-                            ) {
-                                Text("${productItem.type} Now", color = White)
-                            }
-                        }
+                        Spacer(modifier = Modifier.height(80.dp))
                     }
                 }
             }
         }
-    }
-}
 
-// Location Map Screen Composable
-@Composable
-fun LocationMapScreen(
-    productLocation: LatLng,
-    productName: String,
-    onBackClick: () -> Unit
-) {
-    var cameraPositionState by remember {
-        mutableStateOf(
-            CameraPosition.fromLatLngZoom(productLocation, 15f)
-        )
-    }
-
-    Column(modifier = Modifier.fillMaxSize()) {
-        // Map Toolbar
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(56.dp)
-                .background(Greenish)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxSize(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                IconButton(
-                    onClick = onBackClick,
-                    modifier = Modifier.padding(start = 8.dp)
-                ) {
-                    Icon(
-                        painterResource(id = R.drawable.outline_arrow_back_ios_new_24),
-                        contentDescription = "Back",
-                        tint = White
+        // Error Dialog
+        if (showErrorDialog) {
+            AlertDialog(
+                onDismissRequest = { showErrorDialog = false },
+                title = {
+                    Text(
+                        "Error",
+                        fontWeight = FontWeight.Bold,
+                        color = Color.Red
                     )
+                },
+                text = { Text(errorMessage) },
+                confirmButton = {
+                    Button(
+                        onClick = { showErrorDialog = false },
+                        colors = ButtonDefaults.buttonColors(containerColor = Greenish)
+                    ) {
+                        Text("OK")
+                    }
                 }
-                Text(
-                    text = "Location: $productName",
-                    color = White,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Medium
-                )
-                Spacer(modifier = Modifier.width(48.dp)) // For balance
-            }
-        }
-
-        // Google Map
-        GoogleMap(
-            modifier = Modifier.fillMaxSize(),
-            cameraPositionState = rememberCameraPositionState {
-                position = cameraPositionState
-            }
-        ) {
-            Marker(
-                state = MarkerState(position = productLocation),
-                title = productName
             )
         }
-    }
-}
-
-@Composable
-fun ContainerTag(text: String, color: Color, textColor: Color) {
-    Box(
-        modifier = Modifier
-            .background(color, RoundedCornerShape(4.dp))
-            .padding(horizontal = 8.dp, vertical = 4.dp)
-    ) {
-        Text(text = text, fontSize = 12.sp, color = textColor)
-    }
-}
-
-@Composable
-fun ReviewItem(username: String, rating: Int, comment: String) {
-    Column(modifier = Modifier.padding(vertical = 8.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(text = username, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
-            Spacer(modifier = Modifier.width(8.dp))
-            Row {
-                repeat(5) { index ->
-                    Icon(
-                        imageVector = if (index < rating) Icons.Default.Star else Icons.Outlined.Star,
-                        contentDescription = null,
-                        tint = Color(0xFFFFD700),
-                        modifier = Modifier.size(16.dp)
-                    )
-                }
-            }
-        }
-        Text(text = comment, fontSize = 14.sp, color = Color.Gray)
-    }
-}
-
-// Geocoding function to convert address to LatLng
-fun getLatLngFromAddress(context: Context, address: String): LatLng? {
-    return try {
-        val geocoder = android.location.Geocoder(context, Locale.getDefault())
-
-        val addressVariations = listOf(
-            "$address, Kathmandu, Nepal",
-            "$address, Nepal",
-            address
-        )
-
-        for (addressVariant in addressVariations) {
-            try {
-                @Suppress("DEPRECATION")
-                val addresses = geocoder.getFromLocationName(addressVariant, 1)
-
-                if (!addresses.isNullOrEmpty()) {
-                    return LatLng(addresses[0].latitude, addresses[0].longitude)
-                }
-            } catch (e: Exception) {
-                continue
-            }
-        }
-        null
-    } catch (e: Exception) {
-        e.printStackTrace()
-        null
     }
 }

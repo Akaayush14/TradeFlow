@@ -2,7 +2,6 @@ package com.example.tradeflow.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.tradeflow.TradeFlowApp
 import com.google.firebase.auth.FirebaseUser
 import com.example.tradeflow.model.UserModel
 import com.example.tradeflow.repository.UserRepo
@@ -11,37 +10,36 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-private val notificationHelper = TradeFlowApp.notificationHelper
-class UserViewModel( val repo: UserRepo): ViewModel() {
+class UserViewModel( val repo: UserRepo): ViewModel(){
     fun login(
-        email: String, password: String,
-        callback: (Boolean, String) -> Unit
-    ) {
+        email:String, password:String,
+        callback:(Boolean, String) -> Unit
+    ){
         repo.login(email, password, callback)
     }
 
     fun register(
-        email: String, password: String, phone: String,
+        email:String, password: String, phone:String,
         callback: (Boolean, String, String) -> Unit
-    ) {
+    ){
         repo.register(email, password, phone, callback)
     }
 
     fun addUserToDatabase(
         userId: String,
         model: UserModel, callback: (Boolean, String) -> Unit
-    ) {
+    ){
         repo.addUserToDatabase(userId, model, callback)
     }
 
     fun forgetPassword(
-        email: String,
-        callback: (Boolean, String) -> Unit
-    ) {
+        email:String,
+        callback:(Boolean, String) -> Unit
+    ){
         repo.forgetPassword(email, callback)
     }
 
-    fun getCurrentUser(): FirebaseUser? {
+    fun getCurrentUser() : FirebaseUser?{
         return repo.getCurrentUser()
     }
 
@@ -53,25 +51,29 @@ class UserViewModel( val repo: UserRepo): ViewModel() {
 
 
     fun getUserById(
-        userId: String
-    ) {
+        userId: String,
+        callback: (Boolean, String, UserModel?) -> Unit
+    ){
         viewModelScope.launch {
             repo.getUserById(userId) { success, msg, data ->
-                if (success) {
+                if(success){
                     _users.value = data
-                } else {
+                    callback(success, msg, data)
+                }else{
                     _users.value = null
+                    callback(success, msg, null)
                 }
             }
         }
     }
 
-    fun getAllUser() {
+    fun getAllUser()
+    {
         viewModelScope.launch {
             repo.getAllUser { success, message, data ->
-                if (success) {
+                if(success){
                     _allUsers.value = data
-                } else {
+                }else{
                     _allUsers.value = emptyList()
                 }
             }
@@ -92,11 +94,6 @@ class UserViewModel( val repo: UserRepo): ViewModel() {
     ) {
         repo.blockUser(userId, isBlocked) { success, message ->
             if (success) {
-                if (isBlocked) {
-                    notificationHelper.notifyUserBlocked(userId)
-                } else {
-                    notificationHelper.notifyUserUnblocked(userId)
-                }
                 // Manually update the StateFlow immediately for instant UI feedback
                 viewModelScope.launch {
                     val currentList = _allUsers.value
@@ -136,12 +133,7 @@ class UserViewModel( val repo: UserRepo): ViewModel() {
     ) {
         repo.restrictUser(userId, isRestricted) { success, message ->
             if (success) {
-                if (isRestricted) {
-                    notificationHelper.notifyUserRestricted(userId)
-                } else {
-                    notificationHelper.notifyUserUnrestricted(userId)
-                }
-
+                // Manually update the StateFlow immediately for instant UI feedback
                 viewModelScope.launch {
                     val currentList = _allUsers.value
                     if (currentList != null && currentList.isNotEmpty()) {
@@ -178,11 +170,24 @@ class UserViewModel( val repo: UserRepo): ViewModel() {
         pointsToAdd: Long,
         callback: (Boolean, String) -> Unit
     ) {
-        repo.updateUserPoints(userId, pointsToAdd) { success, message ->
-            if (success) {
-                notificationHelper.notifyPointsAwarded(userId, pointsToAdd)
-            }
-            callback(success, message)
-        }
+        repo.updateUserPoints(userId, pointsToAdd, callback)
+    }
+
+    fun updateUserProfile(
+        userId: String,
+        updates: Map<String, Any>,
+        callback: (Boolean, String) -> Unit
+    ) {
+        repo.updateUserProfile(userId, updates, callback)
+    }
+    private val _validationErrors = MutableStateFlow<Map<String, String>>(emptyMap())
+    val validationErrors: StateFlow<Map<String, String>> = _validationErrors.asStateFlow()
+
+    fun clearValidationErrors() {
+        _validationErrors.value = emptyMap()
+    }
+
+    fun setValidationError(field: String, message: String) {
+        _validationErrors.value = _validationErrors.value + (field to message)
     }
 }
