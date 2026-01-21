@@ -21,11 +21,13 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.example.tradeflow.model.ProductModel
 import com.example.tradeflow.repository.ProductRepoImpl
-import com.example.tradeflow.view.ui.theme.TradeFlowTheme
+import com.example.tradeflow.ui.theme.TradeFlowTheme
 import com.example.tradeflow.viewmodel.ProductViewModel
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.maps.android.compose.*
+import androidx.compose.ui.graphics.Color // Add this if needed
+import androidx.compose.ui.platform.LocalContext // Already imported
 
 class MapActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
