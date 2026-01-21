@@ -10,6 +10,7 @@ import android.util.Log
 import com.cloudinary.Cloudinary
 import com.cloudinary.utils.ObjectUtils
 import com.example.tradeflow.model.UserModel
+import com.google.firebase.auth.EmailAuthProvider
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.database.DataSnapshot
@@ -326,5 +327,41 @@ class UserRepoImpl: UserRepo {
             }
         }
         return fileName
+    }
+
+    override fun changePassword(
+        currentPassword: String,
+        newPassword: String,
+        callback: (Boolean, String) -> Unit
+    ) {
+        val user = auth.currentUser
+        if (user == null) {
+            callback(false, "No user logged in")
+            return
+        }
+
+        val email = user.email
+        if (email.isNullOrEmpty()) {
+            callback(false, "User email not found")
+            return
+        }
+
+        val credential = EmailAuthProvider.getCredential(email, currentPassword)
+        user.reauthenticate(credential)
+            .addOnCompleteListener { reauthTask ->
+                if (reauthTask.isSuccessful) {
+                    // Step 2: Update to new password
+                    user.updatePassword(newPassword)
+                        .addOnCompleteListener { updateTask ->
+                            if (updateTask.isSuccessful) {
+                                callback(true, "Password changed successfully")
+                            } else {
+                                callback(false, "Failed to update password: ${updateTask.exception?.message}")
+                            }
+                        }
+                } else {
+                    callback(false, "Current password is incorrect")
+                }
+            }
     }
 }

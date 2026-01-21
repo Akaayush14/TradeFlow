@@ -73,4 +73,10 @@ interface UserRepo {
         imageUri: Uri,
         callback: (String?) -> Unit
     )
+
+    fun changePassword(
+    currentPassword: String,
+    newPassword: String,
+    callback: (Boolean, String) -> Unit
+    )
 }

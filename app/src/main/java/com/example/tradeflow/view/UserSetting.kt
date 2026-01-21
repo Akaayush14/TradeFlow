@@ -376,6 +376,13 @@ fun SettingsItemWithValue(title: String, value: String, iconRes: Int? = null, on
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun UserSettingPrivacyScreen(navController: NavController) {
+    val context = LocalContext.current
+    val userViewModel = remember { UserViewModel(UserRepoImpl()) }
+    val currentUser = FirebaseAuth.getInstance().currentUser
+
+    var showDialog by remember { mutableStateOf(false) }
+    var dialogMessage by remember { mutableStateOf("") }
+
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
@@ -388,25 +395,47 @@ fun UserSettingPrivacyScreen(navController: NavController) {
             )
         }
     ) { padding ->
-        LazyColumn(modifier = Modifier.padding(padding)) {
-            item { Section("Account") }
-            item { PrivacyItem("Change Password") }
-            item { PrivacyItem("Change Email") }
-            item { PrivacyItem("Two-Factor Authentication") }
-            item { Section("Privacy") }
-            item { PrivacyItem("Blocked Users") }
-            item { PrivacyItem("Who can see my items") }
+        Column(modifier = Modifier.padding(padding).fillMaxSize()) {
+            Section("Account")
+
+            // Only keeping Change Password as per your advice
+            PrivacyItem("Change Password") {
+                currentUser?.email?.let { email ->
+                    userViewModel.forgetPassword(email) { success, message ->
+                        dialogMessage = if (success) {
+                            "A password reset link has been sent to your email: $email"
+                        } else {
+                            "Error: $message"
+                        }
+                        showDialog = true
+                    }
+                }
+            }
         }
+    }
+
+    if (showDialog) {
+        AlertDialog(
+            onDismissRequest = { showDialog = false },
+            confirmButton = {
+                TextButton(onClick = { showDialog = false }) {
+                    Text("OK")
+                }
+            },
+            title = { Text("Security") },
+            text = { Text(dialogMessage) }
+        )
     }
 }
 
 @Composable
-fun PrivacyItem(title: String) {
+fun PrivacyItem(title: String, onClick: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { }
-            .padding(vertical = 12.dp, horizontal = 16.dp)
+            .clickable { onClick() }
+            .padding(vertical = 12.dp, horizontal = 16.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
             text = title,
@@ -529,7 +558,6 @@ fun LanguageDialog(
     onLanguageSelected: (String) -> Unit
 ) {
     val languages = listOf("English", "Nepali", "Hindi", "Chinese")
-
     Dialog(onDismissRequest = onDismiss) {
         Card(
             shape = RoundedCornerShape(16.dp),

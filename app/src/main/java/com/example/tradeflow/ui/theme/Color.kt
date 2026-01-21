@@ -40,3 +40,5 @@ val TealBlue1 = Color(0xFF006B7D)
 
 val Black = Color(0xFF000000)
 
+val Reddish = Color(0xFFF44336)
+

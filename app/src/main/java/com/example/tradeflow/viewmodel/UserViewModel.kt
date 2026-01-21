@@ -202,4 +202,12 @@ class UserViewModel( val repo: UserRepo): ViewModel(){
         repo.uploadImage(context, imageUri, callback)
     }
 
+    fun changePassword(
+        currentPassword: String,
+        newPassword: String,
+        callback: (Boolean, String) -> Unit
+    ) {
+        repo.changePassword(currentPassword, newPassword, callback)
+    }
+
 }
