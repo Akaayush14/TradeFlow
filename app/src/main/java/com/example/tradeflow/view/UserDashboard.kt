@@ -163,10 +163,7 @@ fun DashboardPageBody() {
                         showEditSuccess = true
                     }
                 )
-                3 -> UserNotificationScreen(
-                    onBackClick = { selectedIndex = 0 },
-                    onNavigateInbox = { selectedIndex = 1 }
-                )
+                3 -> UserNotificationScreen(onBackClick = { selectedIndex = 0 })
                 4 -> UserProfileScreen(
                     onBackClick = { selectedIndex = 0 },
                     onEditProduct = { product ->
