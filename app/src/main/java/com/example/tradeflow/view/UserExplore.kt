@@ -3,6 +3,11 @@ package com.example.tradeflow.view
 import android.app.Activity
 import android.content.Intent
 import android.util.Log
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -17,6 +22,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
@@ -64,6 +70,7 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.ui.text.style.TextOverflow
@@ -83,6 +90,14 @@ import com.example.tradeflow.R
 
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 
+import com.example.tradeflow.repository.SavedItemRepoImpl
+import com.example.tradeflow.viewmodel.SavedItemViewModel
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.FloatingActionButtonDefaults
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material3.BadgedBox
+import androidx.compose.material3.Badge
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun UserExploreScreen() {
@@ -92,9 +107,11 @@ fun UserExploreScreen() {
     var selectedTab by remember { mutableStateOf("All") }
     var searchQuery by remember { mutableStateOf("") }
     var showAllRecommended by remember { mutableStateOf(false) }
+    var showSavedScreen by remember { mutableStateOf(false) }
 
     val productViewModel: ProductViewModel = remember { ProductViewModel(ProductRepoImpl()) }
     val userViewModel: UserViewModel = remember { UserViewModel(UserRepoImpl()) }
+    val savedItemViewModel: SavedItemViewModel = remember { SavedItemViewModel(SavedItemRepoImpl()) }
 
     val currentUser = FirebaseAuth.getInstance().currentUser
     val userId = currentUser?.uid ?: ""
@@ -106,10 +123,13 @@ fun UserExploreScreen() {
             userViewModel.getUserById(userId) { success, _, user ->
                 // User data loaded
             }
+            savedItemViewModel.getSavedItems(userId)
         }
     }
 
     val allProducts by productViewModel.allProducts.collectAsState()
+    val savedItems by savedItemViewModel.savedItems.collectAsState()
+    val savedProductIds by savedItemViewModel.savedProductIds.collectAsState()
     val userData by userViewModel.users.collectAsState()
     val allUsers by userViewModel.allUsers.collectAsState()
     val userPoints = userData?.points ?: 0L
@@ -154,7 +174,55 @@ fun UserExploreScreen() {
         filteredProducts
     }
 
+    if (showSavedScreen) {
+        val savedProductsList = allProducts.filter { savedProductIds.contains(it.productId) }
+        UserSavedItemsScreen(
+            savedProducts = savedProductsList,
+            onBackClick = { showSavedScreen = false },
+            onProductClick = { product ->
+                val intent = Intent(context, UserItemDetails::class.java)
+                intent.putExtra("productId", product.productId)
+                context.startActivity(intent)
+            },
+            onUnsaveClick = { product ->
+                if (userId.isNotEmpty()) {
+                    savedItemViewModel.unsaveItem(userId, product.productId)
+                }
+            }
+        )
+        return
+    }
+
     Scaffold(
+        floatingActionButton = {
+            AnimatedVisibility(
+                visible = savedItems.isNotEmpty(),
+                enter = fadeIn() + scaleIn(),
+                exit = fadeOut() + scaleOut()
+            ) {
+                Box {
+                    FloatingActionButton(
+                        onClick = { showSavedScreen = true },
+                        containerColor = Greenish,
+                        contentColor = White,
+                        shape = CircleShape
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Favorite,
+                            contentDescription = "Saved Items"
+                        )
+                    }
+                    Badge(
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(top = 0.dp, end = 0.dp)
+                            .offset(x = 4.dp, y = (-4).dp)
+                    ) { 
+                        Text(savedItems.size.toString()) 
+                    }
+                }
+            }
+        },
         topBar = {
             Column {
                 // Points display row
@@ -415,6 +483,16 @@ fun UserExploreScreen() {
                     items(gridProducts) { product ->
                         ExploreItemCard(
                             product = product,
+                            isSaved = savedProductIds.contains(product.productId),
+                            onFavoriteClick = {
+                                if (userId.isNotEmpty()) {
+                                    if (savedProductIds.contains(product.productId)) {
+                                        savedItemViewModel.unsaveItem(userId, product.productId)
+                                    } else {
+                                        savedItemViewModel.saveItem(userId, product.productId)
+                                    }
+                                }
+                            },
                             onClick = {
                                 val intent = Intent(context, UserItemDetails::class.java)
                                 intent.putExtra("productId", product.productId)
@@ -675,7 +753,13 @@ fun UserSearchCard(user: UserModel, onClick: () -> Unit) {
 }
 
 @Composable
-fun ExploreItemCard(product: ProductModel, compact: Boolean = false, onClick: () -> Unit) {
+fun ExploreItemCard(
+    product: ProductModel, 
+    compact: Boolean = false, 
+    isSaved: Boolean = false, 
+    onFavoriteClick: () -> Unit = {}, 
+    onClick: () -> Unit
+) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -727,13 +811,13 @@ fun ExploreItemCard(product: ProductModel, compact: Boolean = false, onClick: ()
                         .padding(8.dp)
                         .size(28.dp)
                         .background(Color.White.copy(alpha = 0.7f), CircleShape)
-                        .clickable { /* Handle favorite */ },
+                        .clickable { onFavoriteClick() },
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        imageVector = Icons.Default.FavoriteBorder,
+                        imageVector = if (isSaved) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
                         contentDescription = "Favorite",
-                        tint = Color.Gray,
+                        tint = if (isSaved) Color.Red else Color.Gray,
                         modifier = Modifier.size(16.dp)
                     )
                 }
