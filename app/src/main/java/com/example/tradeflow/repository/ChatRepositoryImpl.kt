@@ -1,6 +1,7 @@
 package com.example.tradeflow.repository
 
 import com.example.tradeflow.model.ChatMessage
+import com.example.tradeflow.BuildConfig
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.FirebaseDatabase
@@ -147,7 +148,7 @@ AI:
 
         try {
             // Verify API key format first
-            val apiKey = "AIzaSyA8SDbTu6ewxq2QCoHb_cRUV270bIc5gsc"
+            val apiKey = BuildConfig.GEMINI_API_KEY
             if (apiKey.isBlank() || !apiKey.startsWith("AIza")) {
                 throw IllegalArgumentException("Invalid API key format")
             }
@@ -182,7 +183,7 @@ AI:
     private suspend fun tryFallbackModel(senderId: String, prompt: String, originalError: Exception) {
         try {
             Log.d("ChatBot", "Trying fallback model: gemini-2.0-flash-lite")
-            val apiKey = "AIzaSyA8SDbTu6ewxq2QCoHb_cRUV270bIc5gsc"
+            val apiKey = BuildConfig.GEMINI_API_KEY
             
             val fallbackModel = GenerativeModel(
                 modelName = "gemini-2.0-flash-lite",
@@ -202,7 +203,7 @@ AI:
 
             val errorMessage = when {
                 originalError.message?.contains("API key", ignoreCase = true) == true ->
-                    "API configuration error. Please verify your API key."
+                    "API Key Error: The key you are using is invalid or revoked. Please generate a NEW key from Google AI Studio and update local.properties."
                 originalError.message?.contains("quota", ignoreCase = true) == true ||
                         originalError.message?.contains("429", ignoreCase = true) == true ->
                     "Daily limit reached. Try again later."
