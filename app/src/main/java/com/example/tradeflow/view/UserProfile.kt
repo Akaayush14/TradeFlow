@@ -506,22 +506,25 @@ fun ProductItemCard(
     onDeleteRequest: (ProductModel) -> Unit,
     onMarkTradedRequest: (ProductModel) -> Unit
 ) {
+    // Determine background color based on status and type
+    val cardBackgroundColor = when {
+        product.status == "Completed" -> Color(0xFFFFFDE7) // Light Yellow for Completed
+        product.type == "Barter" -> Color(0xFFE0F2F1) // Light Teal for Barter
+        product.type == "Rent" -> Color(0xFFE8F5E9) // Light Green for Rent
+        else -> Color(0xFFF8F8F8) // Default fallback
+    }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 4.dp)
-            .clickable(onClick = onClick)
-            .border(
-                width = 1.dp,
-                color = Color.LightGray,
-                shape = RoundedCornerShape(8.dp)
-            ),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFFF8F8F8)),
+            .clickable(onClick = onClick),
+        colors = CardDefaults.cardColors(containerColor = cardBackgroundColor),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        shape = RoundedCornerShape(8.dp)
+        shape = RoundedCornerShape(12.dp)
     ) {
         Row(
-            modifier = Modifier.padding(vertical = 8.dp),
+            modifier = Modifier.padding(vertical = 8.dp, horizontal = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             // Image Display Area (Left Side)
