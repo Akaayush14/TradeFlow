@@ -59,8 +59,7 @@ fun UserSavedItemsScreen(
                 columns = GridCells.Fixed(2),
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(paddingValues)
-                    .background(Color(0xFFF5F5F5)),
+                    .padding(paddingValues),
                 contentPadding = PaddingValues(16.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)

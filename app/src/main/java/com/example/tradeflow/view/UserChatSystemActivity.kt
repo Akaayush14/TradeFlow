@@ -32,6 +32,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import com.example.tradeflow.ui.theme.Greenish
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -245,7 +246,7 @@ fun ChatInputBar(
             onClick = onSend,
             modifier = Modifier
                 .size(48.dp)
-                .background(Color(0xFF25D366), CircleShape)
+                .background(Greenish, CircleShape)
         ) {
             Text("➤", color = Color.White)
         }

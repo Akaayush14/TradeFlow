@@ -264,7 +264,6 @@ fun ItemDetailsScreen() {
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(paddingValues)
-                    .background(White)
                     .verticalScroll(rememberScrollState())
             ) {
                 // 1. Item Image (Main Display)

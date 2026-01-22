@@ -337,7 +337,6 @@ fun UserExploreScreen() {
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .background(color = White)
         ) {
             // Fixed Filter Tabs Section
             Box(

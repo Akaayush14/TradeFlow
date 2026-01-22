@@ -58,12 +58,7 @@ fun UserSettingAboutUsScreen(navController: NavController) {
     LazyColumn(
         state = listState,
         modifier = Modifier
-            .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    listOf(Color(0xFFF5F8F8), Color(0xFFFCFDFD))
-                )
-            ),
+            .fillMaxSize(),
         contentPadding = PaddingValues(2.dp),
         verticalArrangement = Arrangement.spacedBy(5.dp)
     ) {

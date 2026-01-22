@@ -120,14 +120,12 @@ fun UserNotificationScreen(
                 },
                 onBackClick = onBackClick
             )
-        },
-        containerColor = Color(0xFFF5F5F5)
+        }
     ) { innerPadding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .background(Color(0xFFF5F5F5))
         ) {
             val filters = listOf("All", "Barter", "Rent", "My Requests")
             Row(
