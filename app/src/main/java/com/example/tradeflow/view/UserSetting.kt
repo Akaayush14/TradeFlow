@@ -2,6 +2,7 @@ package com.example.tradeflow.view
 
 import android.content.Intent
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -14,6 +15,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.*
@@ -23,6 +26,8 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.*
 import androidx.compose.ui.window.Dialog
@@ -380,8 +385,16 @@ fun UserSettingPrivacyScreen(navController: NavController) {
     val userViewModel = remember { UserViewModel(UserRepoImpl()) }
     val currentUser = FirebaseAuth.getInstance().currentUser
 
-    var showDialog by remember { mutableStateOf(false) }
-    var dialogMessage by remember { mutableStateOf("") }
+    // State for Change Password Dialog
+    var showChangePasswordDialog by remember { mutableStateOf(false) }
+    var currentPassword by remember { mutableStateOf("") }
+    var newPassword by remember { mutableStateOf("") }
+    var confirmPassword by remember { mutableStateOf("") }
+    var showCurrentPassword by remember { mutableStateOf(false) }
+    var showNewPassword by remember { mutableStateOf(false) }
+    var showConfirmPassword by remember { mutableStateOf(false) }
+    var isLoading by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf("") }
 
     Scaffold(
         topBar = {
@@ -395,35 +408,210 @@ fun UserSettingPrivacyScreen(navController: NavController) {
             )
         }
     ) { padding ->
-        Column(modifier = Modifier.padding(padding).fillMaxSize()) {
-            Section("Account")
+        Column(
+            modifier = Modifier
+                .padding(padding)
+                .fillMaxSize()
+        ) {
+            Section("Account Security")
 
-            // Only keeping Change Password as per your advice
+            // Only Change Password option
             PrivacyItem("Change Password") {
-                currentUser?.email?.let { email ->
-                    userViewModel.forgetPassword(email) { success, message ->
-                        dialogMessage = if (success) {
-                            "A password reset link has been sent to your email: $email"
-                        } else {
-                            "Error: $message"
-                        }
-                        showDialog = true
-                    }
-                }
+                showChangePasswordDialog = true
+                // Reset form when opening dialog
+                currentPassword = ""
+                newPassword = ""
+                confirmPassword = ""
+                errorMessage = ""
             }
         }
     }
 
-    if (showDialog) {
+    // Change Password Dialog
+    if (showChangePasswordDialog) {
         AlertDialog(
-            onDismissRequest = { showDialog = false },
-            confirmButton = {
-                TextButton(onClick = { showDialog = false }) {
-                    Text("OK")
+            onDismissRequest = { showChangePasswordDialog = false },
+            title = {
+                Text(
+                    "Change Password",
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+            },
+            text = {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    // Current Password Field
+                    OutlinedTextField(
+                        value = currentPassword,
+                        onValueChange = {
+                            currentPassword = it
+                            errorMessage = ""
+                        },
+                        label = { Text("Current Password") },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(8.dp),
+                        visualTransformation = if (showCurrentPassword) VisualTransformation.None
+                        else PasswordVisualTransformation(),
+                        trailingIcon = {
+                            IconButton(
+                                onClick = { showCurrentPassword = !showCurrentPassword },
+                                modifier = Modifier.size(20.dp)
+                            ) {
+                                Icon(
+                                    imageVector = if (showCurrentPassword) Icons.Default.Visibility
+                                    else Icons.Default.VisibilityOff,
+                                    contentDescription = if (showCurrentPassword) "Hide password"
+                                    else "Show password",
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        }
+                    )
+
+                    // New Password Field
+                    OutlinedTextField(
+                        value = newPassword,
+                        onValueChange = {
+                            newPassword = it
+                            errorMessage = ""
+                        },
+                        label = { Text("New Password") },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(8.dp),
+                        visualTransformation = if (showNewPassword) VisualTransformation.None
+                        else PasswordVisualTransformation(),
+                        trailingIcon = {
+                            IconButton(
+                                onClick = { showNewPassword = !showNewPassword },
+                                modifier = Modifier.size(20.dp)
+                            ) {
+                                Icon(
+                                    imageVector = if (showNewPassword) Icons.Default.Visibility
+                                    else Icons.Default.VisibilityOff,
+                                    contentDescription = if (showNewPassword) "Hide password"
+                                    else "Show password",
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        }
+                    )
+
+                    // Confirm Password Field
+                    OutlinedTextField(
+                        value = confirmPassword,
+                        onValueChange = {
+                            confirmPassword = it
+                            errorMessage = ""
+                        },
+                        label = { Text("Confirm New Password") },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(8.dp),
+                        visualTransformation = if (showConfirmPassword) VisualTransformation.None
+                        else PasswordVisualTransformation(),
+                        trailingIcon = {
+                            IconButton(
+                                onClick = { showConfirmPassword = !showConfirmPassword },
+                                modifier = Modifier.size(20.dp)
+                            ) {
+                                Icon(
+                                    imageVector = if (showConfirmPassword) Icons.Default.Visibility
+                                    else Icons.Default.VisibilityOff,
+                                    contentDescription = if (showConfirmPassword) "Hide password"
+                                    else "Show password",
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        }
+                    )
+
+                    // Error message
+                    if (errorMessage.isNotEmpty()) {
+                        Text(
+                            text = errorMessage,
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.labelSmall
+                        )
+                    }
                 }
             },
-            title = { Text("Security") },
-            text = { Text(dialogMessage) }
+            confirmButton = {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    TextButton(
+                        onClick = { showChangePasswordDialog = false },
+                        enabled = !isLoading
+                    ) {
+                        Text("Cancel")
+                    }
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    Button(
+                        onClick = {
+                            // Validation
+                            if (currentPassword.isEmpty()) {
+                                errorMessage = "Please enter current password"
+                                return@Button
+                            }
+
+                            if (newPassword.isEmpty()) {
+                                errorMessage = "Please enter new password"
+                                return@Button
+                            }
+
+                            if (newPassword.length < 6) {
+                                errorMessage = "New password must be at least 6 characters"
+                                return@Button
+                            }
+
+                            if (confirmPassword.isEmpty()) {
+                                errorMessage = "Please confirm new password"
+                                return@Button
+                            }
+
+                            if (newPassword != confirmPassword) {
+                                errorMessage = "Passwords don't match"
+                                return@Button
+                            }
+
+                            if (newPassword == currentPassword) {
+                                errorMessage = "New password must be different"
+                                return@Button
+                            }
+
+                            // Call change password
+                            isLoading = true
+                            userViewModel.changePassword(currentPassword, newPassword) { success, message ->
+                                isLoading = false
+
+                                if (success) {
+                                    Toast.makeText(context, "Password changed successfully!", Toast.LENGTH_SHORT).show()
+                                    showChangePasswordDialog = false
+                                } else {
+                                    errorMessage = message
+                                }
+                            }
+                        },
+                        enabled = !isLoading
+                    ) {
+                        if (isLoading) {
+                            CircularProgressIndicator(
+                                color = MaterialTheme.colorScheme.onPrimary,
+                                modifier = Modifier.size(16.dp),
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            Text("Change Password")
+                        }
+                    }
+                }
+            }
         )
     }
 }
