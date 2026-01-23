@@ -84,6 +84,10 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.systemBars
 import com.example.tradeflow.R
 import com.example.tradeflow.model.NotificationModel
 import com.example.tradeflow.model.ProductModel
@@ -122,26 +126,17 @@ class AdminDashItem : ComponentActivity() {
 @OptIn(ExperimentalMaterial3Api::class)
 fun AdminItemScreen(initialTab: Int = 0, onBackClick: () -> Unit = {}) {
     val context = LocalContext.current
-    var selectedIndex by remember { mutableStateOf(3) } // Admin Items tab selected
     var selectedTab by remember { mutableStateOf(initialTab) } // 0 for Listed Items, 1 for Unlisted Items
 
     // Notification view model for unread count
     val notificationViewModel = remember { NotificationViewModel(NotificationRepoImpl()) }
-    val unreadCount by notificationViewModel.unreadCount.collectAsState()
-
+    
     LaunchedEffect(Unit) {
         notificationViewModel.getUnreadCount()
     }
 
-    BackHandler {
-        val intent = Intent(context, AdminDashExp::class.java)
-        context.startActivity(intent)
-        if (context is ComponentActivity) {
-            context.finish()
-        }
-    }
-
     Scaffold(
+        contentWindowInsets = WindowInsets.systemBars.only(WindowInsetsSides.Horizontal),
         topBar = {
             TopAppBar(
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -150,20 +145,13 @@ fun AdminItemScreen(initialTab: Int = 0, onBackClick: () -> Unit = {}) {
                     navigationIconContentColor = DarkGreen
                 ),
                 navigationIcon = {
-                    IconButton(onClick = onBackClick) {
-                        Icon(
-                            painter = painterResource(id = R.drawable.ic_back),
-                            contentDescription = "Back",
-                            tint = Color.White
-
-                        )
-                    }
+                    // Optional: Only show back if needed, or if this screen is pushed on a stack.
                 },
                 title = {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(end = 48.dp), // Compensate for back button width
+                            .padding(end = 48.dp), 
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
@@ -174,107 +162,6 @@ fun AdminItemScreen(initialTab: Int = 0, onBackClick: () -> Unit = {}) {
                     }
                 }
             )
-        },
-        bottomBar = {
-            NavigationBar(containerColor = Greenish) {
-                NavigationBarItem(
-                    selected = selectedIndex == 0,
-                    onClick = {
-                        val intent = Intent(context, AdminDashExp::class.java)
-                        context.startActivity(intent)
-                        if (context is ComponentActivity) {
-                            context.finish()
-                        }
-                    },
-                    icon = {
-                        Icon(
-                            painter = painterResource(R.drawable.ic_explore),
-                            contentDescription = "Explore",
-                            tint = Color.White
-                        )
-                    },
-                    label = { Text("Explore", color = Color.White) }
-                )
-
-                NavigationBarItem(
-                    selected = selectedIndex == 1,
-                    onClick = {
-                        val intent = Intent(context, AdminDashUser::class.java)
-                        context.startActivity(intent)
-                        if (context is ComponentActivity) {
-                            context.finish()
-                        }
-                    },
-                    icon = {
-                        Icon(
-                            painter = painterResource(R.drawable.ic_user),
-                            contentDescription = "Users",
-                            tint = Color.White
-                        )
-                    },
-                    label = { Text("Users", color = Color.White) }
-                )
-                NavigationBarItem(
-                    selected = selectedIndex == 3,
-                    onClick = {
-                        val intent = Intent(context, AdminDashItem::class.java)
-                        context.startActivity(intent)
-                        if (context is ComponentActivity) {
-                            context.finish()
-                        }
-                    },
-                    icon = {
-                        Icon(
-                            painter = painterResource(R.drawable.ic_items),
-                            contentDescription = "Items",
-                            tint = Color.White
-                        )
-                    },
-                    label = { Text("Items", color = Color.White) }
-                )
-
-
-                NavigationBarItem(
-                    selected = selectedIndex == 4,
-                    onClick = {
-                        val intent = Intent(context, AdminNotification::class.java)
-                        context.startActivity(intent)
-                        if (context is ComponentActivity) {
-                            context.finish()
-                        }
-                    },
-                    icon = {
-                        BadgedNotificationIconItem(
-                            unreadCount = unreadCount,
-                            iconPainter = painterResource(R.drawable.notification_filled),
-                            contentDescription = "notification"
-                        )
-                    },
-                    label = { Text("notification", color = Color.White) }
-                )
-
-
-                NavigationBarItem(
-                    selected = selectedIndex == 2,
-                    onClick = {
-                        val intent = Intent(context, AdminProfile::class.java)
-                        context.startActivity(intent)
-                        if (context is ComponentActivity) {
-                            context.finish()
-                        }
-                    },
-                    icon = {
-                        Icon(
-                            painter = painterResource(R.drawable.ic_profile),
-                            contentDescription = "Profile",
-                            tint = Color.White
-                        )
-                    },
-                    label = { Text("Profile", color = Color.White) }
-                )
-
-
-            }
         }
     ) { padding ->
         Column(

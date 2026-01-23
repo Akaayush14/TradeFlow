@@ -110,6 +110,10 @@ import kotlin.math.cos
 import kotlin.math.sin
 import androidx.compose.ui.graphics.StrokeCap
 
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.systemBars
 import com.example.tradeflow.R
 import com.example.tradeflow.model.NotificationModel
 import com.example.tradeflow.model.ProductModel
@@ -141,12 +145,10 @@ class AdminDashExp : ComponentActivity() {
 fun AdminExp() {
     val context = LocalContext.current
     var selectedIndex by remember { mutableStateOf(0) }
-    var searchText by remember { mutableStateOf("") }
-    var selectedTab by remember { mutableStateOf(1) } // 0 for User, 1 for Metrics, 2 for Items
+    var userTab by remember { mutableStateOf(0) }
+    var itemTab by remember { mutableStateOf(0) }
     var backPressedTime by remember { mutableLongStateOf(0L) }
-    var showPasswordDialog by remember { mutableStateOf(false) }
-    var passwordInput by remember { mutableStateOf("") }
-
+    
     // Notification view model for unread count
     val notificationViewModel = remember { NotificationViewModel(NotificationRepoImpl()) }
     val unreadCount by notificationViewModel.unreadCount.collectAsState()
@@ -157,19 +159,130 @@ fun AdminExp() {
 
     // Handle back button press
     BackHandler {
-        val currentTime = System.currentTimeMillis()
-        if (currentTime - backPressedTime < 2000) {
-            // Exit app if pressed twice within 2 seconds
-            if (context is ComponentActivity) {
-                context.finishAffinity()
-            }
+        if (selectedIndex != 0) {
+            selectedIndex = 0
         } else {
-            backPressedTime = currentTime
-            Toast.makeText(context, "Click again to quit", Toast.LENGTH_SHORT).show()
+            val currentTime = System.currentTimeMillis()
+            if (currentTime - backPressedTime < 2000) {
+                if (context is ComponentActivity) {
+                    context.finishAffinity()
+                }
+            } else {
+                backPressedTime = currentTime
+                Toast.makeText(context, "Click again to quit", Toast.LENGTH_SHORT).show()
+            }
         }
     }
 
     Scaffold(
+        bottomBar = {
+            NavigationBar(containerColor = Greenish) {
+                NavigationBarItem(
+                    selected = selectedIndex == 0,
+                    onClick = { selectedIndex = 0 },
+                    icon = {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_explore),
+                            contentDescription = "Explore",
+                            tint = Color.White
+                        )
+                    },
+                    label = { Text("Explore", color = Color.White) }
+                )
+
+                NavigationBarItem(
+                    selected = selectedIndex == 1,
+                    onClick = { selectedIndex = 1 },
+                    icon = {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_user),
+                            contentDescription = "User",
+                            tint = Color.White
+                        )
+                    },
+                    label = { Text("User", color = Color.White) }
+                )
+                
+                NavigationBarItem(
+                    selected = selectedIndex == 3,
+                    onClick = { selectedIndex = 3 },
+                    icon = {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_items),
+                            contentDescription = "Items",
+                            tint = Color.White
+                        )
+                    },
+                    label = { Text("Items", color = Color.White) }
+                )
+                
+                NavigationBarItem(
+                    selected = selectedIndex == 4,
+                    onClick = { selectedIndex = 4 },
+                    icon = {
+                        BadgedNotificationIconExp(
+                            unreadCount = unreadCount,
+                            iconPainter = painterResource(R.drawable.notification_filled),
+                            contentDescription = "notification"
+                        )
+                    },
+                    label = { Text("notification", color = Color.White) }
+                )
+
+                NavigationBarItem(
+                    selected = selectedIndex == 2,
+                    onClick = { selectedIndex = 2 },
+                    icon = {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_profile),
+                            contentDescription = "Profile",
+                            tint = Color.White
+                        )
+                    },
+                    label = { Text("Profile", color = Color.White) }
+                )
+            }
+        }
+    ) { padding ->
+        Box(
+            modifier = Modifier
+                .padding(bottom = padding.calculateBottomPadding())
+                .fillMaxSize()
+        ) {
+            when (selectedIndex) {
+                0 -> AdminExploreScreen(
+                    onNavigateToUser = { tab ->
+                        userTab = tab
+                        selectedIndex = 1
+                    },
+                    onNavigateToItem = { tab ->
+                        itemTab = tab
+                        selectedIndex = 3
+                    }
+                )
+                1 -> AdminUserScreen(initialTab = userTab, onBackClick = { selectedIndex = 0 })
+                2 -> AdminProfileScreen(onBackClick = { selectedIndex = 0 })
+                3 -> AdminItemScreen(initialTab = itemTab, onBackClick = { selectedIndex = 0 })
+                4 -> AdminNotificationScreen(onBackClick = { selectedIndex = 0 })
+            }
+        }
+    }
+}
+
+@Composable
+@OptIn(ExperimentalMaterial3Api::class)
+fun AdminExploreScreen(
+    onNavigateToUser: (Int) -> Unit,
+    onNavigateToItem: (Int) -> Unit
+) {
+    val context = LocalContext.current
+    var searchText by remember { mutableStateOf("") }
+    var selectedTab by remember { mutableStateOf(1) } // 0 for User, 1 for Metrics, 2 for Items
+    var showPasswordDialog by remember { mutableStateOf(false) }
+    var passwordInput by remember { mutableStateOf("") }
+
+    Scaffold(
+        contentWindowInsets = WindowInsets.systemBars.only(WindowInsetsSides.Horizontal),
         topBar = {
             TopAppBar(
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -241,97 +354,6 @@ fun AdminExp() {
             ) {
                 Icon(Icons.Filled.Add, "Add Admin")
             }
-        },
-        bottomBar = {
-            NavigationBar(containerColor = Greenish) {
-                NavigationBarItem(
-                    selected = selectedIndex == 0,
-                    onClick = { selectedIndex = 0 },
-                    icon = {
-                        Icon(
-                            painter = painterResource(R.drawable.ic_explore),
-                            contentDescription = "Explore",
-                            tint = Color.White
-                        )
-                    },
-                    label = { Text("Explore", color = Color.White) }
-                )
-
-                NavigationBarItem(
-                    selected = selectedIndex == 1,
-                    onClick = {
-                        val intent = Intent(context, AdminDashUser::class.java)
-                        context.startActivity(intent)
-                        if (context is ComponentActivity) {
-                            context.finish()
-                        }
-                    },
-                    icon = {
-                        Icon(
-                            painter = painterResource(R.drawable.ic_user),
-                            contentDescription = "User",
-                            tint = Color.White
-                        )
-                    },
-                    label = { Text("User", color = Color.White) }
-                )
-                NavigationBarItem(
-                    selected = selectedIndex == 3,
-                    onClick = {
-                        val intent = Intent(context, AdminDashItem::class.java)
-                        context.startActivity(intent)
-                        if (context is ComponentActivity) {
-                            context.finish()
-                        }
-                    },
-                    icon = {
-                        Icon(
-                            painter = painterResource(R.drawable.ic_items),
-                            contentDescription = "Items",
-                            tint = Color.White
-                        )
-                    },
-                    label = { Text("Items", color = Color.White) }
-                )
-                NavigationBarItem(
-                    selected = selectedIndex == 4,
-                    onClick = {
-                        val intent = Intent(context, AdminNotification::class.java)
-                        context.startActivity(intent)
-                        if (context is ComponentActivity) {
-                            context.finish()
-                        }
-                    },
-                    icon = {
-                        BadgedNotificationIconExp(
-                            unreadCount = unreadCount,
-                            iconPainter = painterResource(R.drawable.notification_filled),
-                            contentDescription = "notification"
-                        )
-                    },
-                    label = { Text("notification", color = Color.White) }
-                )
-
-
-                NavigationBarItem(
-                    selected = selectedIndex == 2,
-                    onClick = {
-                        val intent = Intent(context, AdminProfile::class.java)
-                        context.startActivity(intent)
-                        if (context is ComponentActivity) {
-                            context.finish()
-                        }
-                    },
-                    icon = {
-                        Icon(
-                            painter = painterResource(R.drawable.ic_profile),
-                            contentDescription = "Profile",
-                            tint = Color.White
-                        )
-                    },
-                    label = { Text("Profile", color = Color.White) }
-                )
-            }
         }
     ) { padding ->
         Column(
@@ -397,7 +419,11 @@ fun AdminExp() {
             ) {
                 when (selectedTab) {
                     0 -> UsersContent(searchText = searchText)
-                    1 -> MetricsContent(onRequireAdminAccess = { showPasswordDialog = true })
+                    1 -> MetricsContent(
+                        onRequireAdminAccess = { showPasswordDialog = true },
+                        onNavigateToUser = onNavigateToUser,
+                        onNavigateToItem = onNavigateToItem
+                    )
                     2 -> ItemsContent(searchText = searchText)
                 }
             }
@@ -457,7 +483,11 @@ fun AdminExp() {
 }
 
 @Composable
-fun MetricsContent(onRequireAdminAccess: () -> Unit) {
+fun MetricsContent(
+    onRequireAdminAccess: () -> Unit,
+    onNavigateToUser: (Int) -> Unit,
+    onNavigateToItem: (Int) -> Unit
+) {
     val context = LocalContext.current
     val userViewModel = remember { UserViewModel(UserRepoImpl()) }
     val productViewModel = remember { ProductViewModel(ProductRepoImpl()) }
@@ -569,12 +599,7 @@ fun MetricsContent(onRequireAdminAccess: () -> Unit) {
                         icon = painterResource(R.drawable.ic_user),
                         color = Greenish,
                         modifier = Modifier.weight(1f),
-                        onClick = {
-                            val intent = Intent(context, AdminDashUser::class.java).apply {
-                                putExtra("target_tab", 0)
-                            }
-                            context.startActivity(intent)
-                        }
+                        onClick = { onNavigateToUser(0) }
                     )
                     MetricCard(
                         title = "Blocked",
@@ -582,12 +607,7 @@ fun MetricsContent(onRequireAdminAccess: () -> Unit) {
                         icon = painterResource(R.drawable.ic_user),
                         color = Color.Red,
                         modifier = Modifier.weight(1f),
-                        onClick = {
-                            val intent = Intent(context, AdminDashUser::class.java).apply {
-                                putExtra("target_tab", 2)
-                            }
-                            context.startActivity(intent)
-                        }
+                        onClick = { onNavigateToUser(2) }
                     )
                 }
 
@@ -601,12 +621,7 @@ fun MetricsContent(onRequireAdminAccess: () -> Unit) {
                         icon = painterResource(R.drawable.ic_user),
                         color = Color(0xFFFF9800),
                         modifier = Modifier.weight(1f),
-                        onClick = {
-                            val intent = Intent(context, AdminDashUser::class.java).apply {
-                                putExtra("target_tab", 2)
-                            }
-                            context.startActivity(intent)
-                        }
+                        onClick = { onNavigateToUser(1) }
                     )
 
                     // User Status Pie Chart Card
@@ -691,10 +706,7 @@ fun MetricsContent(onRequireAdminAccess: () -> Unit) {
                         icon = painterResource(R.drawable.ic_items),
                         color = Greenish,
                         modifier = Modifier.weight(1f),
-                        onClick = {
-                            val intent = Intent(context, AdminDashItem::class.java)
-                            context.startActivity(intent)
-                        }
+                        onClick = { onNavigateToItem(0) } // Default to listed/all? Or use separate logic. Let's say 0 is Listed.
                     )
                     MetricCard(
                         title = "Listed",
@@ -702,12 +714,7 @@ fun MetricsContent(onRequireAdminAccess: () -> Unit) {
                         icon = painterResource(R.drawable.ic_items),
                         color = DarkGreen,
                         modifier = Modifier.weight(1f),
-                        onClick = {
-                            val intent = Intent(context, AdminDashItem::class.java).apply {
-                                putExtra("target_tab", 0)
-                            }
-                            context.startActivity(intent)
-                        }
+                        onClick = { onNavigateToItem(0) }
                     )
                 }
 
@@ -732,12 +739,7 @@ fun MetricsContent(onRequireAdminAccess: () -> Unit) {
                             icon = painterResource(R.drawable.ic_items),
                             color = Color.Red,
                             modifier = Modifier.weight(1f),
-                            onClick = {
-                                val intent = Intent(context, AdminDashItem::class.java).apply {
-                                    putExtra("target_tab", 1)
-                                }
-                                context.startActivity(intent)
-                            }
+                            onClick = { onNavigateToItem(1) }
                         )
                         MetricCard(
                             title = "Avg Price",
