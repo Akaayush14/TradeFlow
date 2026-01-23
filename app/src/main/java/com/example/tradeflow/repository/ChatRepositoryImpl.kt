@@ -259,4 +259,8 @@ AI:
         ref.addValueEventListener(listener)
         awaitClose { ref.removeEventListener(listener) }
     }
+
+    override fun deleteMessage(roomId: String, messageId: String) {
+        database.getReference("chats").child(roomId).child(messageId).removeValue()
+    }
 }

@@ -60,4 +60,8 @@ class ChatViewModel(private val context: Context) : ViewModel() {
             }
         )
     }
+
+    fun deleteMessage(messageId: String, roomId: String) {
+        repository.deleteMessage(roomId, messageId)
+    }
 }
