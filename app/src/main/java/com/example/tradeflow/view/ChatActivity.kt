@@ -67,6 +67,7 @@ fun ChatScreen(
     viewModel: ChatViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val isTyping by viewModel.isTyping.collectAsState()
     var messageText by remember { mutableStateOf("") }
 
     LaunchedEffect(senderId, receiverId) {
@@ -81,7 +82,7 @@ fun ChatScreen(
                 title = {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Image(
-                            painter = painterResource(id = if (receiverId == "chat_bot") R.drawable.traded else R.drawable.house_rent_logo),
+                            painter = painterResource(id = if (receiverId == "chat_bot") R.drawable.chatbot else R.drawable.house_rent_logo),
                             contentDescription = "Receiver Image",
                             modifier = Modifier
                                 .size(40.dp)
@@ -106,7 +107,7 @@ fun ChatScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color(0xFF006400)
+                    containerColor = Color(0xFF007D70)
                 )
             )
         },
@@ -151,7 +152,7 @@ fun ChatScreen(
                             ) {
                                 items(state.messages) { message ->
                                     ChatBubble(message, senderId == message.senderId)
-                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Spacer(modifier = Modifier.height(12.dp))
                                 }
                             }
                         }
@@ -192,7 +193,7 @@ fun ChatScreen(
                         },
                         modifier = Modifier
                             .size(48.dp)
-                            .background(Color(0xFF006400), CircleShape)
+                            .background(Color(0xFF01423C), CircleShape)
                     ) {
                         Icon(
                             imageVector = Icons.Default.Send,
@@ -208,7 +209,7 @@ fun ChatScreen(
 
 @Composable
 fun ChatBubble(message: ChatMessage, isMe: Boolean) {
-    val backgroundColor = if (isMe) Color(0xFF006400) else Color.White
+    val backgroundColor = if (isMe) Color(0xFF01423C0) else Color.White
     val contentColor = if (isMe) Color.White else Color.Black
     val shape = if (isMe) {
         RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomStart = 16.dp, bottomEnd = 0.dp)
@@ -221,23 +222,43 @@ fun ChatBubble(message: ChatMessage, isMe: Boolean) {
         modifier = Modifier.fillMaxWidth(),
         horizontalAlignment = alignment
     ) {
-        Surface(
-            color = backgroundColor,
-            shape = shape,
-            shadowElevation = 2.dp
+        Row(
+            verticalAlignment = Alignment.Bottom,
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = if (isMe) Arrangement.End else Arrangement.Start
         ) {
-            Column(modifier = Modifier.padding(12.dp)) {
-                Text(
-                    text = message.message,
-                    color = contentColor,
-                    fontSize = 16.sp
+            if (!isMe) {
+                Image(
+                    painter = painterResource(id = R.drawable.chatbot),
+                    contentDescription = "Bot Avatar",
+                    modifier = Modifier
+                        .size(32.dp)
+                        .clip(CircleShape)
+                        .background(Color.LightGray),
+                    contentScale = ContentScale.Crop
                 )
-                Text(
-                    text = formatChatTime(message.timestamp),
-                    color = contentColor.copy(alpha = 0.7f),
-                    fontSize = 10.sp,
-                    modifier = Modifier.align(Alignment.End)
-                )
+                Spacer(modifier = Modifier.width(8.dp))
+            }
+            
+            Surface(
+                color = backgroundColor,
+                shape = shape,
+                shadowElevation = 2.dp,
+                modifier = Modifier.widthIn(max = 280.dp) // Max width ~70% of typical screen, allows wrapping
+            ) {
+                Column(modifier = Modifier.padding(12.dp)) {
+                    Text(
+                        text = message.message,
+                        color = contentColor,
+                        fontSize = 16.sp
+                    )
+                    Text(
+                        text = formatChatTime(message.timestamp),
+                        color = contentColor.copy(alpha = 0.7f),
+                        fontSize = 10.sp,
+                        modifier = Modifier.align(Alignment.End)
+                    )
+                }
             }
         }
     }
@@ -246,4 +267,30 @@ fun ChatBubble(message: ChatMessage, isMe: Boolean) {
 fun formatChatTime(timestamp: Long): String {
     val sdf = SimpleDateFormat("hh:mm a", Locale.getDefault())
     return sdf.format(Date(timestamp))
+}
+
+@Composable
+fun TypingIndicator() {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.Start
+    ) {
+        Surface(
+            color = Color.White,
+            shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomEnd = 16.dp, bottomStart = 0.dp),
+            shadowElevation = 2.dp
+        ) {
+            Row(
+                modifier = Modifier.padding(12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Typing...",
+                    color = Color.Gray,
+                    fontSize = 14.sp,
+                    fontStyle = androidx.compose.ui.text.font.FontStyle.Italic
+                )
+            }
+        }
+    }
 }

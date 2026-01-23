@@ -80,7 +80,7 @@ fun UserInboxScreen(onBackClick: () -> Unit = {}) {
                 contentColor = Color.White
             ) {
                 Icon(
-                    painter = painterResource(id = R.drawable.traded),
+                    painter = painterResource(id = R.drawable.ic_chatbot),
                     contentDescription = "Chat Bot",
                     modifier = Modifier.size(24.dp)
                 )

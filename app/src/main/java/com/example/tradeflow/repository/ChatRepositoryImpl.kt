@@ -99,6 +99,20 @@ class ChatRepositoryImpl(private val context: Context) : ChatRepository {
             })
     }
 
+    private suspend fun getUserDetails(userId: String): Pair<String, String> = suspendCoroutine { continuation ->
+        database.getReference("Users").child(userId).addListenerForSingleValueEvent(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val name = snapshot.child("name").getValue(String::class.java) ?: "Unknown"
+                val location = snapshot.child("location").getValue(String::class.java) ?: "Unknown"
+                continuation.resume(Pair(name, location))
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                continuation.resume(Pair("Unknown", "Unknown"))
+            }
+        })
+    }
+
     override fun sendMessage(senderId: String, receiverId: String, message: String, onSuccess: () -> Unit, onError: (Exception) -> Unit) {
         val roomId = getRoomId(senderId, receiverId)
         val ref = database.getReference("chats").child(roomId).push()
@@ -151,82 +165,75 @@ AI:
              fullPrompt = "$SYSTEM_PROMPT\n\nUser: $prompt\nAI:"
         }
 
-        try {
-            // Verify API key format first
-            val apiKey = BuildConfig.GEMINI_API_KEY
-            if (apiKey.isBlank() || !apiKey.startsWith("AIza")) {
-                throw IllegalArgumentException("Invalid API key format")
+        var botReply: String? = null
+        var lastError: Exception? = null
+        
+        // Get keys from BuildConfig
+        val apiKeys = BuildConfig.GEMINI_API_KEYS
+        
+        Log.d("ChatBot", "Starting generation with ${apiKeys.size} available keys")
+
+        for ((index, apiKey) in apiKeys.withIndex()) {
+            if (apiKey.isBlank()) continue
+            
+            try {
+                Log.d("ChatBot", "Trying Key #${index + 1}")
+                
+                // Try Primary Model (gemini-2.5-flash)
+                try {
+                    val generativeModel = GenerativeModel(
+                        modelName = "gemini-2.5-flash",
+                        apiKey = apiKey
+                    )
+                    val response = generativeModel.generateContent(fullPrompt)
+                    botReply = response.text
+                    Log.d("ChatBot", "Success with Key #${index + 1} (Primary)")
+                    break
+                } catch (e: Exception) {
+                    Log.w("ChatBot", "Key #${index + 1} Primary model failed: ${e.message}")
+                    
+                    // Try Fallback Model (gemini-2.0-flash-lite) with SAME key
+                    // (In case it's just a model availability issue, not a key quota issue)
+                    Log.d("ChatBot", "Trying Fallback model with Key #${index + 1}")
+                    val fallbackModel = GenerativeModel(
+                        modelName = "gemini-2.0-flash-lite",
+                        apiKey = apiKey
+                    )
+                    val response = fallbackModel.generateContent(fullPrompt)
+                    botReply = response.text
+                    Log.d("ChatBot", "Success with Key #${index + 1} (Fallback)")
+                    break
+                }
+            } catch (e: Exception) {
+                Log.e("ChatBot", "Key #${index + 1} failed completely: ${e.message}")
+                lastError = e
+                // Loop continues to next key
             }
-            
-            // Use gemini-2.5-flash - the current stable model
-            val generativeModel = GenerativeModel(
-                modelName = "gemini-2.5-flash",
-                apiKey = apiKey
-            )
-
-            Log.d("ChatBot", "Sending request to Gemini API with model: gemini-2.5-flash")
-            Log.d("ChatBot", "API key: ${apiKey.take(10)}...")
-            
-            val response = generativeModel.generateContent(fullPrompt)
-            val botReply = response.text ?: "I'm sorry, I couldn't understand that."
-
-            Log.d("ChatBot", "Received response: $botReply")
-            sendMessage("chat_bot", senderId, botReply, {}, {})
-
-        } catch (e: Exception) {
-            Log.e("ChatBot", "Primary model error - Type: ${e.javaClass.simpleName}, Message: ${e.message}", e)
-            e.printStackTrace()
-            
-            // Log the full exception details for debugging
-            Log.e("ChatBot", "Full exception: $e")
-
-            // Try fallback to flash-lite if flash fails
-            tryFallbackModel(senderId, fullPrompt, e)
         }
-    }
 
-    private suspend fun tryFallbackModel(senderId: String, prompt: String, originalError: Exception) {
-        try {
-            Log.d("ChatBot", "Trying fallback model: gemini-2.0-flash-lite")
-            val apiKey = BuildConfig.GEMINI_API_KEY
-            
-            val fallbackModel = GenerativeModel(
-                modelName = "gemini-2.0-flash-lite",
-                apiKey = apiKey
-            )
-
-            Log.d("ChatBot", "Fallback API key: ${apiKey.take(10)}...")
-            val response = fallbackModel.generateContent(prompt)
-            val botReply = response.text ?: "I'm sorry, I couldn't understand that."
-
-            Log.d("ChatBot", "Fallback successful: $botReply")
+        if (botReply != null) {
             sendMessage("chat_bot", senderId, botReply, {}, {})
-
-        } catch (e: Exception) {
-            Log.e("ChatBot", "Fallback model error - Type: ${e.javaClass.simpleName}, Message: ${e.message}", e)
-            Log.e("ChatBot", "Original error - Type: ${originalError.javaClass.simpleName}, Message: ${originalError.message}")
-
+        } else {
+            // All keys failed
+            val finalError = lastError ?: Exception("No valid API keys found")
+            Log.e("ChatBot", "All API keys exhausted. Last error: ${finalError.message}")
+            
             val errorMessage = when {
-                originalError.message?.contains("API key", ignoreCase = true) == true ->
-                    "API Key Error: The key you are using is invalid or revoked. Please generate a NEW key from Google AI Studio and update local.properties."
-                originalError.message?.contains("quota", ignoreCase = true) == true ||
-                        originalError.message?.contains("429", ignoreCase = true) == true ->
-                    "Daily limit reached. Try again later."
-                originalError.message?.contains("404", ignoreCase = true) == true ||
-                        originalError.message?.contains("not found", ignoreCase = true) == true ->
-                    "Service temporarily unavailable. Please try again."
-                originalError.message?.contains("service unavailable", ignoreCase = true) == true ||
-                        originalError.message?.contains("503", ignoreCase = true) == true ->
-                    "Service temporarily unavailable. Please try again in a few moments."
-                e.message?.contains("service unavailable", ignoreCase = true) == true ||
-                        e.message?.contains("503", ignoreCase = true) == true ->
-                    "Service temporarily unavailable. Please try again in a few moments."
+                finalError.message?.contains("API key", ignoreCase = true) == true ->
+                    "API Configuration Error: Please check your API keys in local.properties."
+                finalError.message?.contains("quota", ignoreCase = true) == true ||
+                        finalError.message?.contains("429", ignoreCase = true) == true ->
+                    "System overloaded. All API keys have reached their daily limit. Please try again tomorrow."
+                finalError.message?.contains("404", ignoreCase = true) == true ||
+                        finalError.message?.contains("not found", ignoreCase = true) == true ->
+                    "AI Service temporarily unavailable. Please try again later."
                 else ->
-                    "Sorry, I'm having trouble responding. Error: ${originalError.message?.take(50) ?: e.message?.take(50)}"
+                    "I'm having trouble connecting right now. Please try again later. (Error: ${finalError.message?.take(50)})"
             }
             sendMessage("chat_bot", senderId, errorMessage, {}, {})
         }
     }
+
 
     override fun getMessages(senderId: String, receiverId: String): Flow<List<ChatMessage>> = callbackFlow {
         val roomId = getRoomId(senderId, receiverId)

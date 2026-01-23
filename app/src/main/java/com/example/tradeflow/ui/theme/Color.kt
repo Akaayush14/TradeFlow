@@ -36,7 +36,7 @@ val TransparentWhite = Color(0x80FFFFFF)
 val TealBlue = Color(0xFF044852)
 
 //from ronan
-val TealBlue1 = Color(0xFF006B7D)
+val TealBlue1 = Color(0xFF006B72)
 
 val Black = Color(0xFF000000)
 

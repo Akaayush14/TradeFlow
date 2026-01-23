@@ -25,6 +25,9 @@ class ChatViewModel(private val context: Context) : ViewModel() {
     private val _uiState = MutableStateFlow<ChatUiState>(ChatUiState.Loading)
     val uiState: StateFlow<ChatUiState> = _uiState.asStateFlow()
 
+    private val _isTyping = MutableStateFlow(false)
+    val isTyping: StateFlow<Boolean> = _isTyping.asStateFlow()
+
     fun loadMessages(senderId: String, receiverId: String) {
         viewModelScope.launch {
             _uiState.value = ChatUiState.Loading
@@ -43,7 +46,12 @@ class ChatViewModel(private val context: Context) : ViewModel() {
                 // Message sent successfully
                 if (receiverId == "chat_bot") {
                     viewModelScope.launch {
-                        repository.generateBotResponse(senderId, text)
+                        _isTyping.value = true
+                        try {
+                            repository.generateBotResponse(senderId, text)
+                        } finally {
+                            _isTyping.value = false
+                        }
                     }
                 }
             },

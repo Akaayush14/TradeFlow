@@ -29,6 +29,13 @@ android {
         
         val apiKey = localProperties.getProperty("GEMINI_API_KEY") ?: ""
         buildConfigField("String", "GEMINI_API_KEY", "\"$apiKey\"")
+
+        val apiKey1 = localProperties.getProperty("GEMINI_API_KEY_1") ?: ""
+        val apiKey2 = localProperties.getProperty("GEMINI_API_KEY_2") ?: ""
+        val apiKey3 = localProperties.getProperty("GEMINI_API_KEY_3") ?: ""
+        val apiKey4 = localProperties.getProperty("GEMINI_API_KEY_4") ?: ""
+        
+        buildConfigField("String[]", "GEMINI_API_KEYS", "new String[]{\"${apiKey1}\", \"${apiKey2}\", \"${apiKey3}\", \"${apiKey4}\"}")
     }
 
     buildTypes {
