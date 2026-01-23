@@ -202,6 +202,10 @@
             android:exported="false"
             android:theme="@style/Theme.TradeFlow" />
         <activity
+            android:name=".view.AdminItemDetailActivity"
+            android:exported="false"
+            android:theme="@style/Theme.TradeFlow" />
+        <activity
             android:name=".view.UserPointsActivity"
             android:exported="false"
             android:theme="@style/Theme.TradeFlow" />

@@ -57,7 +57,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.Icons
+import androidx.compose.foundation.layout.width
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -667,10 +672,16 @@ fun ItemCardItem(
     onUnlistClick: () -> Unit,
     onDeleteClick: () -> Unit
 ) {
+    val context = LocalContext.current
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 4.dp),
+            .padding(horizontal = 4.dp)
+            .clickable {
+                val intent = Intent(context, AdminItemDetailActivity::class.java)
+                intent.putExtra("productId", product.productId)
+                context.startActivity(intent)
+            },
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         colors = CardDefaults.cardColors(
             containerColor = if (!product.isListed) Color(0xFFFFEBEE) else Color.White
@@ -685,29 +696,36 @@ fun ItemCardItem(
             // Image on the left
             Box(
                 modifier = Modifier
-                    .size(100.dp)
+                    .size(130.dp)
                     .clip(RoundedCornerShape(8.dp))
                     .background(Color.LightGray),
                 contentAlignment = Alignment.Center
             ) {
-                // Placeholder icon for product image
-                Icon(
-                    painter = painterResource(R.drawable.ic_items),
-                    contentDescription = "Product Image",
-                    tint = Color.Gray,
-                    modifier = Modifier.size(48.dp)
-                )
+                val displayImage = if (product.imageUrl.isNotEmpty()) {
+                    product.imageUrl
+                } else if (product.imageUrls.isNotEmpty()) {
+                    product.imageUrls.first()
+                } else {
+                    ""
+                }
 
-                // If you have Coil library and imageUrl in ProductModel, use:
-                /*
-                AsyncImage(
-                    model = product.imageUrl,
-                    contentDescription = "Product Image",
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop,
-                    error = painterResource(R.drawable.ic_items)
-                )
-                */
+                if (displayImage.isNotEmpty()) {
+                    AsyncImage(
+                        model = displayImage,
+                        contentDescription = "Product Image",
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop,
+                        error = painterResource(R.drawable.ic_items),
+                        placeholder = painterResource(R.drawable.ic_items)
+                    )
+                } else {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_items),
+                        contentDescription = "Product Image",
+                        tint = Color.Gray,
+                        modifier = Modifier.size(48.dp)
+                    )
+                }
             }
 
             // Content on the right
@@ -723,9 +741,16 @@ fun ItemCardItem(
                     color = Color.Black
                 )
 
+                // Category
+                Text(
+                    text = "Category: ${product.category}",
+                    fontSize = 14.sp,
+                    color = Color.Gray
+                )
+
                 // Price
                 Text(
-                    text = "Price: $${product.price}",
+                    text = "Price: ${product.price}",
                     fontSize = 14.sp,
                     color = Color.Gray
                 )
@@ -737,11 +762,13 @@ fun ItemCardItem(
                     color = Color.Gray
                 )
 
-                // Location
+                // Description
                 Text(
-                    text = "Location: ${product.location}",
+                    text = "Description: ${product.description}",
                     fontSize = 14.sp,
-                    color = Color.Gray
+                    color = Color.Gray,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
                 )
 
                 // Unlisted status
@@ -758,45 +785,69 @@ fun ItemCardItem(
 
                 // Buttons
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     if (product.isListed) {
-                        // Show Unlist button when listed
+                        // Unlist Button
                         Button(
                             onClick = onUnlistClick,
-                            colors = ButtonDefaults.buttonColors(containerColor = Color.Red),
-                            modifier = Modifier.height(36.dp)
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFC107)),
+                            modifier = Modifier.height(40.dp),
+                            contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp)
                         ) {
+                            Icon(
+                                painter = painterResource(R.drawable.baseline_visibility_off_24),
+                                contentDescription = "Unlist",
+                                tint = Color.Black,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
                             Text(
                                 text = "Unlist",
-                                fontSize = 12.sp,
-                                color = Color.White
+                                fontSize = 14.sp,
+                                color = Color.Black
                             )
                         }
                     } else {
-                        // Show List button (green) when unlisted
+                        // List Button
                         Button(
                             onClick = onListClick,
                             colors = ButtonDefaults.buttonColors(containerColor = DarkGreen),
-                            modifier = Modifier.height(36.dp)
+                            modifier = Modifier.height(40.dp),
+                            contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp)
                         ) {
+                            Icon(
+                                painter = painterResource(R.drawable.baseline_visibility_24),
+                                contentDescription = "List",
+                                tint = Color.White,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
                             Text(
                                 text = "List",
-                                fontSize = 12.sp,
+                                fontSize = 14.sp,
                                 color = Color.White
                             )
                         }
                     }
 
-                    // Always show Delete button
+                    // Delete Button
                     Button(
                         onClick = onDeleteClick,
                         colors = ButtonDefaults.buttonColors(containerColor = Color.Red),
-                        modifier = Modifier.height(36.dp)
+                        modifier = Modifier.height(40.dp),
+                        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp)
                     ) {
+                        Icon(
+                            imageVector = Icons.Filled.Delete,
+                            contentDescription = "Delete",
+                            tint = Color.White,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             text = "Delete",
-                            fontSize = 12.sp,
+                            fontSize = 14.sp,
                             color = Color.White
                         )
                     }
