@@ -60,6 +60,10 @@ import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.size
 import com.example.tradeflow.R
+import coil.compose.AsyncImage
+import androidx.compose.ui.layout.ContentScale
+import com.example.tradeflow.model.ProductModel
+import androidx.compose.ui.draw.clip
 import com.example.tradeflow.model.NotificationModel
 import com.example.tradeflow.repository.NotificationRepoImpl
 import com.example.tradeflow.repository.ProductRepoImpl
@@ -515,6 +519,27 @@ fun NotificationCard(
         }
     }
 
+    // State for product image if it's an item notification
+    var product by remember { mutableStateOf<ProductModel?>(null) }
+    // Use a local ViewModel for fetching to avoid race conditions with shared StateFlow
+    val itemViewModel = remember { ProductViewModel(ProductRepoImpl()) }
+
+    LaunchedEffect(notification) {
+        if (notification.type.startsWith("item_") && notification.itemId.isNotEmpty()) {
+            itemViewModel.getProductById(notification.itemId)
+        }
+    }
+
+    // Observe product data
+    val fetchedProduct by itemViewModel.product.collectAsState()
+
+    // Update local product state when fetched product matches current notification item
+    LaunchedEffect(fetchedProduct) {
+        if (fetchedProduct?.productId == notification.itemId) {
+            product = fetchedProduct
+        }
+    }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -567,6 +592,44 @@ fun NotificationCard(
                             contentDescription = "Selected",
                             tint = Greenish,
                             modifier = Modifier.size(16.dp)
+                        )
+                    }
+                }
+            }
+
+            // Display item image if available and type is listed/unlisted
+            if ((notification.type == "item_listed" || notification.type == "item_unlisted") && product != null) {
+                Box(
+                    modifier = Modifier
+                        .padding(end = 12.dp)
+                        .size(60.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(Color.LightGray),
+                    contentAlignment = Alignment.Center
+                ) {
+                    val imageUrl = if (product!!.imageUrl.isNotEmpty()) {
+                        product!!.imageUrl
+                    } else if (product!!.imageUrls.isNotEmpty()) {
+                        product!!.imageUrls.first()
+                    } else {
+                        ""
+                    }
+
+                    if (imageUrl.isNotEmpty()) {
+                        AsyncImage(
+                            model = imageUrl,
+                            contentDescription = "Product Image",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop,
+                            placeholder = painterResource(R.drawable.ic_items),
+                            error = painterResource(R.drawable.ic_items)
+                        )
+                    } else {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_items),
+                            contentDescription = "Product Image",
+                            tint = Color.Gray,
+                            modifier = Modifier.size(24.dp)
                         )
                     }
                 }
