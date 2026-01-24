@@ -36,6 +36,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.RadioButton
+import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
@@ -96,6 +98,11 @@ import com.example.tradeflow.ui.theme.DarkGreen
 import com.example.tradeflow.ui.theme.Greenish
 import com.example.tradeflow.viewmodel.AdminViewModel
 import java.util.Calendar
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Block
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.foundation.layout.width
 
 class AdminAdmin : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -282,6 +289,8 @@ fun AdminListContent() {
     }
 }
 
+
+
 @Composable
 fun RegisterAdminContent() {
     val context = LocalContext.current
@@ -291,6 +300,7 @@ fun RegisterAdminContent() {
     var email by remember { mutableStateOf("") }
     var phone by remember { mutableStateOf("") }
     var dob by remember { mutableStateOf("") }
+    var gender by remember { mutableStateOf("Male") }
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
     
@@ -434,6 +444,36 @@ fun RegisterAdminContent() {
 
         Spacer(modifier = Modifier.height(8.dp))
 
+        // Gender Selection
+        Text("Gender", modifier = Modifier.align(Alignment.Start).padding(start = 8.dp), color = Color.Gray)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            RadioButton(
+                selected = gender == "Male",
+                onClick = { gender = "Male" },
+                colors = RadioButtonDefaults.colors(selectedColor = Greenish)
+            )
+            Text("Male", modifier = Modifier.padding(end = 16.dp))
+
+            RadioButton(
+                selected = gender == "Female",
+                onClick = { gender = "Female" },
+                colors = RadioButtonDefaults.colors(selectedColor = Greenish)
+            )
+            Text("Female", modifier = Modifier.padding(end = 16.dp))
+
+            RadioButton(
+                selected = gender == "Other",
+                onClick = { gender = "Other" },
+                colors = RadioButtonDefaults.colors(selectedColor = Greenish)
+            )
+            Text("Other")
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
         OutlinedTextField(
             value = password,
             onValueChange = { password = it },
@@ -470,12 +510,13 @@ fun RegisterAdminContent() {
                         Toast.makeText(context, "Uploading image...", Toast.LENGTH_SHORT).show()
                         viewModel.uploadImage(context, imageUri!!) { imageUrl ->
                             if (imageUrl != null) {
-                                registerAdmin(context, viewModel, name, email, phone, dob, password, imageUrl) {
+                                registerAdmin(context, viewModel, name, email, phone, dob, gender, password, imageUrl) {
                                     // Reset fields on success
                                     name = ""
                                     email = ""
                                     phone = ""
                                     dob = ""
+                                    gender = "Male"
                                     password = ""
                                     confirmPassword = ""
                                     imageUri = null
@@ -485,12 +526,13 @@ fun RegisterAdminContent() {
                             }
                         }
                     } else {
-                        registerAdmin(context, viewModel, name, email, phone, dob, password, "") {
+                        registerAdmin(context, viewModel, name, email, phone, dob, gender, password, "") {
                             // Reset fields on success
                             name = ""
                             email = ""
                             phone = ""
                             dob = ""
+                            gender = "Male"
                             password = ""
                             confirmPassword = ""
                             imageUri = null
@@ -516,6 +558,7 @@ fun registerAdmin(
     email: String,
     phone: String,
     dob: String,
+    gender: String,
     password: String,
     imageUrl: String,
     onSuccess: () -> Unit
@@ -528,6 +571,7 @@ fun registerAdmin(
                 email = email,
                 phone = phone,
                 dateOfBirth = dob,
+                gender = gender,
                 imageUrl = imageUrl,
                 isBlocked = false,
                 isRestricted = false
@@ -563,7 +607,12 @@ fun AdminCard(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 4.dp),
+            .padding(horizontal = 4.dp)
+            .clickable {
+                val intent = Intent(context, AdminDetailActivity::class.java)
+                intent.putExtra("adminId", admin.userId)
+                context.startActivity(intent)
+            },
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         colors = CardDefaults.cardColors(
             containerColor = Color.White
@@ -583,9 +632,9 @@ fun AdminCard(
                         model = admin.imageUrl,
                         contentDescription = "Admin Image",
                         modifier = Modifier
-                            .size(60.dp)
-                            .clip(CircleShape)
-                            .border(1.dp, Greenish, CircleShape),
+                            .size(100.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .border(1.dp, Greenish, RoundedCornerShape(8.dp)),
                         contentScale = ContentScale.Crop
                     )
                     Spacer(modifier = Modifier.size(16.dp))
@@ -593,17 +642,17 @@ fun AdminCard(
                     // Placeholder if no image
                     Box(
                         modifier = Modifier
-                            .size(60.dp)
-                            .clip(CircleShape)
+                            .size(100.dp)
+                            .clip(RoundedCornerShape(8.dp))
                             .background(Color.LightGray)
-                            .border(1.dp, Greenish, CircleShape),
+                            .border(1.dp, Greenish, RoundedCornerShape(8.dp)),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             painter = painterResource(id = R.drawable.ic_user),
                             contentDescription = "Default Admin Image",
                             tint = Color.White,
-                            modifier = Modifier.size(30.dp)
+                            modifier = Modifier.size(50.dp)
                         )
                     }
                     Spacer(modifier = Modifier.size(16.dp))
@@ -657,9 +706,21 @@ fun AdminCard(
                     colors = ButtonDefaults.buttonColors(
                         containerColor = if (admin.isBlocked) Color.Red else Color.Gray
                     ),
-                    modifier = Modifier.weight(1f).padding(end = 4.dp)
+                    modifier = Modifier.weight(1f).padding(end = 4.dp).height(40.dp),
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp)
                 ) {
-                    Text(if (admin.isBlocked) "Unblock" else "Block", fontSize = 12.sp)
+                    Icon(
+                        imageVector = if (admin.isBlocked) Icons.Filled.Lock else Icons.Filled.Block,
+                        contentDescription = null,
+                        modifier = Modifier.size(14.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = if (admin.isBlocked) "Unblock" else "Block",
+                        fontSize = 10.sp,
+                        maxLines = 1,
+                        lineHeight = 10.sp
+                    )
                 }
 
                 // Restrict/Unrestrict Button
@@ -676,9 +737,21 @@ fun AdminCard(
                     colors = ButtonDefaults.buttonColors(
                         containerColor = if (admin.isRestricted) Color(0xFFFFA500) else Color.Gray // Orange for restricted
                     ),
-                    modifier = Modifier.weight(1f).padding(horizontal = 4.dp)
+                    modifier = Modifier.weight(1.3f).padding(horizontal = 4.dp).height(40.dp),
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp)
                 ) {
-                    Text(if (admin.isRestricted) "Unrestrict" else "Restrict", fontSize = 12.sp)
+                    Icon(
+                        imageVector = if (admin.isRestricted) Icons.Filled.Lock else Icons.Filled.Block,
+                        contentDescription = null,
+                        modifier = Modifier.size(14.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = if (admin.isRestricted) "Unrestrict" else "Restrict",
+                        fontSize = 10.sp,
+                        maxLines = 1,
+                        lineHeight = 10.sp
+                    )
                 }
 
                 // Delete Button
@@ -689,9 +762,16 @@ fun AdminCard(
                         }
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = Color.Red),
-                    modifier = Modifier.weight(1f).padding(start = 4.dp)
+                    modifier = Modifier.weight(1f).padding(start = 4.dp).height(40.dp),
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp)
                 ) {
-                    Text("Delete", fontSize = 12.sp)
+                    Icon(
+                        imageVector = Icons.Filled.Delete,
+                        contentDescription = null,
+                        modifier = Modifier.size(14.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Delete", fontSize = 10.sp, maxLines = 1, lineHeight = 10.sp)
                 }
             }
         }

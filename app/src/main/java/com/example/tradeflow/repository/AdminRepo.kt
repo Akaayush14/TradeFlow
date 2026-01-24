@@ -51,6 +51,12 @@ interface AdminRepo {
         callback: (Boolean, String) -> Unit
     )
 
+    fun updateAdmin(
+        userId: String,
+        data: Map<String, Any>,
+        callback: (Boolean, String) -> Unit
+    )
+
     fun uploadImage(context: Context, imageUri: Uri, callback: (String?) -> Unit)
     fun getFileNameFromUri(context: Context, uri: Uri): String?
 }

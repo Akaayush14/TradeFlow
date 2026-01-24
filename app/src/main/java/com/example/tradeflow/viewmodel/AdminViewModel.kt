@@ -95,6 +95,14 @@ class AdminViewModel(val repo: AdminRepo): ViewModel(){
         repo.updateAdminStatus(userId, isBlocked, isRestricted, callback)
     }
 
+    fun updateAdmin(
+        userId: String,
+        data: Map<String, Any>,
+        callback: (Boolean, String) -> Unit
+    ) {
+        repo.updateAdmin(userId, data, callback)
+    }
+
     fun uploadImage(context: Context, imageUri: Uri, callback: (String?) -> Unit) {
         repo.uploadImage(context, imageUri, callback)
     }

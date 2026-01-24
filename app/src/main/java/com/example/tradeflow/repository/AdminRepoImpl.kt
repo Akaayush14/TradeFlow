@@ -204,6 +204,20 @@ class AdminRepoImpl : AdminRepo {
         }
     }
 
+    override fun updateAdmin(
+        userId: String,
+        data: Map<String, Any>,
+        callback: (Boolean, String) -> Unit
+    ) {
+        ref.child(userId).updateChildren(data).addOnCompleteListener {
+            if (it.isSuccessful) {
+                callback(true, "Profile updated successfully")
+            } else {
+                callback(false, it.exception?.message ?: "Error updating profile")
+            }
+        }
+    }
+
     override fun uploadImage(context: Context, imageUri: Uri, callback: (String?) -> Unit) {
         val executor = Executors.newSingleThreadExecutor()
         executor.execute {
