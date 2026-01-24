@@ -59,14 +59,12 @@ fun UserInboxScreen(onBackClick: () -> Unit = {}) {
     Scaffold(
         topBar = {
             InboxTopAppBar(onBackClick = onBackClick)
-        },
-        containerColor = White
+        }
     ) { innerPadding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .background(White)
         ) {
 
             OutlinedTextField(

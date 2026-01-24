@@ -124,7 +124,6 @@ fun PointsScreen() {
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .background(Color.White)
         ) {
             // Points Summary Card
             item {

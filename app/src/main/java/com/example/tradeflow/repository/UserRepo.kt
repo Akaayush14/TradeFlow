@@ -75,8 +75,8 @@ interface UserRepo {
     )
 
     fun changePassword(
-    currentPassword: String,
-    newPassword: String,
-    callback: (Boolean, String) -> Unit
+        currentPassword: String,
+        newPassword: String,
+        callback: (Boolean, String) -> Unit
     )
 }

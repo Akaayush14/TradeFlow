@@ -2,6 +2,7 @@ package com.example.tradeflow.repository
 
 import android.content.Context
 import android.database.Cursor
+import android.location.Geocoder  // Add this import
 import android.util.Log
 import android.os.Handler
 import android.os.Looper
@@ -18,10 +19,11 @@ import com.google.firebase.database.ValueEventListener
 import com.google.firebase.storage.FirebaseStorage
 import kotlinx.coroutines.tasks.await
 import java.io.InputStream
+import java.util.*
 import java.util.UUID
 import java.util.concurrent.Executors
 import kotlin.collections.toMap
-
+import com.google.android.gms.maps.model.LatLng
 
 class ProductRepoImpl: ProductRepo {
     val database: FirebaseDatabase = FirebaseDatabase.getInstance()
@@ -253,6 +255,7 @@ class ProductRepoImpl: ProductRepo {
             }
         })
     }
+
     override fun uploadImage(context: Context, imageUri: Uri, callback: (String?) -> Unit) {
         val executor = Executors.newSingleThreadExecutor()
         executor.execute {
@@ -315,6 +318,38 @@ class ProductRepoImpl: ProductRepo {
             }
         }
     }
+
+    override fun getLatLngFromAddress(context: Context, address: String): LatLng? {
+        return try {
+            val geocoder = Geocoder(context, Locale.getDefault())
+
+            val addressVariations = listOf(
+                "$address, Kathmandu, Nepal",
+                "$address, Nepal",
+                address
+            )
+
+            for (addressVariant in addressVariations) {
+                try {
+                    @Suppress("DEPRECATION")
+                    val addresses = geocoder.getFromLocationName(addressVariant, 1)
+
+                    if (addresses != null && addresses.isNotEmpty()) {  // Fixed: Use && instead of !.
+                        val addressObj = addresses[0]
+                        return LatLng(
+                            addressObj.latitude,  // Fixed: No type inference needed
+                            addressObj.longitude
+                        )
+                    }
+                } catch (e: Exception) {
+                    continue
+                }
+            }
+
+            null
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
+    }
 }
-
-

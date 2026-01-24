@@ -19,6 +19,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Create
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -99,11 +100,11 @@ fun UserProfileScreen(
         }
     }
 
-    // Log user data changes for debugging - SPECIFICALLY FOR PROFILE IMAGE
+    // Log user data changes for debugging
     LaunchedEffect(userData) {
-        Log.d("ProfileScreen", "User data updated: name=${userData?.name}")
-        Log.d("ProfileScreen", "User profileImageUrl: ${userData?.profileImageUrl}")
-        Log.d("ProfileScreen", "Is profileImageUrl empty?: ${userData?.profileImageUrl.isNullOrEmpty()}")
+        Log.d("ProfileScreen", "User data updated: $userData")
+        Log.d("ProfileScreen", "User name: ${userData?.name}")
+        Log.d("ProfileScreen", "User email: ${userData?.email}")
     }
 
     // Memoized filtering logic
@@ -126,10 +127,14 @@ fun UserProfileScreen(
     val userName = userData?.name ?: currentUser?.displayName ?: "User"
     val userEmail = userData?.email ?: currentUser?.email ?: ""
     val userDisplayEmail = userEmail
-    val profileImageUrl = userData?.profileImageUrl // Get the profile image URL from Cloudinary
+
+    // Debug logging
+    Log.d("ProfileScreen", "Final userName: $userName")
+    Log.d("ProfileScreen", "userData?.name: ${userData?.name}")
+    Log.d("ProfileScreen", "currentUser?.displayName: ${currentUser?.displayName}")
 
     // Show loading state while user data is being fetched
-    val isLoading = userData == null && targetUserId.isNotEmpty()
+    val isLoading = userData == null
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
 
@@ -152,9 +157,9 @@ fun UserProfileScreen(
                 onBackClick = onBackClick
             )
         },
-        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
-        containerColor = White
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
     ) { innerPadding ->
+        // Single scrollable column so header + listings scroll together
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
@@ -178,66 +183,93 @@ fun UserProfileScreen(
                                 snackbarHostState.showSnackbar("Unable to open Settings")
                             }
                         }
-                    },
-                    profileImageUrl = profileImageUrl
+                    }
                 )
-                TabRow(
-                    selectedTabIndex = when (selectedTab) {
-                        ListingType.BARTER -> 0
-                        ListingType.RENTAL -> 1
-                        ListingType.BOTH -> 2
-                    },
-                    containerColor = White
+
+                // Segmented Tabs for Barter / Rental / Both listings
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                        .height(50.dp),
+                    shape = RoundedCornerShape(25.dp),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                    colors = CardDefaults.cardColors(containerColor = White)
                 ) {
-                    Tab(
-                        selected = selectedTab == ListingType.BARTER,
-                        onClick = { selectedTab = ListingType.BARTER },
-                        text = { Text("Barter", fontSize = 14.sp, fontWeight = FontWeight.SemiBold) }
-                    )
-                    Tab(
-                        selected = selectedTab == ListingType.RENTAL,
-                        onClick = { selectedTab = ListingType.RENTAL },
-                        text = { Text("Rental", fontSize = 14.sp, fontWeight = FontWeight.SemiBold) }
-                    )
-                    Tab(
-                        selected = selectedTab == ListingType.BOTH,
-                        onClick = { selectedTab = ListingType.BOTH },
-                        text = { Text("Both", fontSize = 14.sp, fontWeight = FontWeight.SemiBold) }
-                    )
+                    Row(
+                        modifier = Modifier.fillMaxSize(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        listOf(ListingType.BARTER, ListingType.RENTAL, ListingType.BOTH).forEach { type ->
+                            val isSelected = selectedTab == type
+                            val title = when (type) {
+                                ListingType.BARTER -> "Barter"
+                                ListingType.RENTAL -> "Rental"
+                                ListingType.BOTH -> "Both"
+                            }
+
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .fillMaxHeight()
+                                    .padding(4.dp)
+                                    .clip(RoundedCornerShape(25.dp))
+                                    .background(if (isSelected) Greenish else Color.Transparent)
+                                    .clickable { selectedTab = type },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = title,
+                                    color = if (isSelected) White else Color.Black,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                    fontSize = 14.sp
+                                )
+                            }
+                        }
+                    }
                 }
 
-                TabRow(
-                    selectedTabIndex = when (selectedStatus) {
-                        ListingStatus.ALL -> 0
-                        ListingStatus.AVAILABLE -> 1
-                        ListingStatus.PENDING -> 2
-                        ListingStatus.COMPLETED -> 3
-                    },
-                    containerColor = Color(0xFFF5F5F5),
-                    modifier = Modifier.padding(horizontal = 16.dp)
+                // Status filter Chips (All, Available, Pending, Completed)
+                androidx.compose.foundation.lazy.LazyRow(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
+                    contentPadding = PaddingValues(horizontal = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Tab(
-                        selected = selectedStatus == ListingStatus.ALL,
-                        onClick = { selectedStatus = ListingStatus.ALL },
-                        text = { Text("All", fontSize = 12.sp, fontWeight = FontWeight.Medium) }
-                    )
-                    Tab(
-                        selected = selectedStatus == ListingStatus.AVAILABLE,
-                        onClick = { selectedStatus = ListingStatus.AVAILABLE },
-                        text = { Text("Available", fontSize = 12.sp, fontWeight = FontWeight.Medium) }
-                    )
-                    Tab(
-                        selected = selectedStatus == ListingStatus.PENDING,
-                        onClick = { selectedStatus = ListingStatus.PENDING },
-                        text = { Text("Pending", fontSize = 12.sp, fontWeight = FontWeight.Medium) }
-                    )
-                    Tab(
-                        selected = selectedStatus == ListingStatus.COMPLETED,
-                        onClick = { selectedStatus = ListingStatus.COMPLETED },
-                        text = { Text("Completed", fontSize = 12.sp, fontWeight = FontWeight.Medium) }
-                    )
+                    items(ListingStatus.values()) { status ->
+                        val isSelected = selectedStatus == status
+                        val label = when (status) {
+                            ListingStatus.ALL -> "All"
+                            ListingStatus.AVAILABLE -> "Available"
+                            ListingStatus.PENDING -> "Pending"
+                            ListingStatus.COMPLETED -> "Completed"
+                        }
+
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(50))
+                                .background(if (isSelected) Greenish else Color.Transparent)
+                                .border(
+                                    width = 1.dp,
+                                    color = if (isSelected) Color.Transparent else Color(0xFFE0E0E0),
+                                    shape = RoundedCornerShape(50)
+                                )
+                                .clickable { selectedStatus = status }
+                                .padding(horizontal = 20.dp, vertical = 8.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = label,
+                                color = if (isSelected) White else Color.Black,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    }
                 }
 
+                // Listing section title
                 Text(
                     text = when (selectedTab) {
                         ListingType.BARTER -> "My Barter Listings"
@@ -249,6 +281,8 @@ fun UserProfileScreen(
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                 )
             }
+
+            // Display products from database
             val data = filteredListings
             if (data.isEmpty()) {
                 item {
@@ -320,176 +354,143 @@ fun ProfileHeaderSection(
     rentalCount: Int,
     completedCount: Int,
     isLoading: Boolean = false,
-    onEditProfileClick: () -> Unit = {},
-    profileImageUrl: String? = null
+    onEditProfileClick: () -> Unit = {}
 ) {
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(16.dp),
-        horizontalAlignment = Alignment.Start
+            .padding(16.dp)
     ) {
-        Row(
+        Card(
             modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
+            shape = RoundedCornerShape(16.dp),
+            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+            colors = CardDefaults.cardColors(containerColor = White)
         ) {
-            // Profile picture on the left - UPDATED FOR CLOUDINARY
-            Box {
-                Box(
-                    modifier = Modifier
-                        .size(80.dp)
-                        .clip(CircleShape)
-                        .background(Color(0xFFE3F2FD))
+            Column(
+                modifier = Modifier.padding(16.dp)
+            ) {
+                // Profile Info Row
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Check if we have a Cloudinary URL
-                    if (!profileImageUrl.isNullOrEmpty()) {
-                        // Show Cloudinary profile image
-                        AsyncImage(
-                            model = profileImageUrl,
-                            contentDescription = "Profile Avatar",
-                            modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Crop,
-                            placeholder = painterResource(R.drawable.placeholderimage),
-                            error = painterResource(R.drawable.house_rent_logo)
-                        )
-                    } else {
-                        // Show default icon if no profile image
-                        Icon(
-                            Icons.Default.Person,
-                            contentDescription = "Profile Avatar",
+                    // Avatar
+                    Box {
+                        Box(
                             modifier = Modifier
-                                .size(50.dp)
-                                .align(Alignment.Center),
-                            tint = Color(0xFF0288D1)
+                                .size(60.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFF26A69A)) // Teal-ish color
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Person,
+                                contentDescription = null,
+                                tint = White,
+                                modifier = Modifier
+                                    .size(30.dp)
+                                    .align(Alignment.Center)
+                            )
+                        }
+                        // Edit Icon
+                        Box(
+                            modifier = Modifier
+                                .size(24.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFF00695C)) // Darker Teal
+                                .border(1.dp, White, CircleShape)
+                                .align(Alignment.BottomEnd)
+                                .clickable { onEditProfileClick() },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Create,
+                                contentDescription = "Edit",
+                                tint = White,
+                                modifier = Modifier.size(14.dp)
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.width(16.dp))
+
+                    Column {
+                        Text(
+                            text = userName,
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.Black
+                        )
+                        Text(
+                            text = userDisplayEmail,
+                            fontSize = 14.sp,
+                            color = Color.Gray
                         )
                     }
                 }
 
-                // Pencil icon over avatar (bottom-right) - ONLY THIS IS CLICKABLE
-                Box(
-                    modifier = Modifier
-                        .size(24.dp)
-                        .clip(CircleShape)
-                        .background(Greenish)
-                        .align(Alignment.BottomEnd)
-                        .clickable {
-                            // Navigate to Edit Profile screen
-                            onEditProfileClick()
-                        },
-                    contentAlignment = Alignment.Center
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // Stats Row
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Create,
-                        contentDescription = "Edit Profile / Settings",
-                        tint = White,
-                        modifier = Modifier.size(12.dp)
+                    StatBox(
+                        count = barterCount.toString(),
+                        label = "Barter Items",
+                        backgroundColor = Color(0xFFE0F2F1), // Light Teal
+                        textColor = Color(0xFF00695C),
+                        modifier = Modifier.weight(1f)
                     )
-                }
-            }
-
-            Spacer(modifier = Modifier.width(16.dp))
-
-            // Name and email on the right of profile picture
-            Column(
-                verticalArrangement = Arrangement.Center
-            ) {
-                Text(
-                    text = userName,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 20.sp,
-                    color = Color.Black
-                )
-                Text(userDisplayEmail, fontSize = 14.sp, color = Color.Gray)
-            }
-        }
-
-        Spacer(modifier = Modifier.height(20.dp))
-
-        // Stats row with better styling
-        Card(
-            modifier = Modifier
-                .fillMaxWidth(),
-            colors = CardDefaults.cardColors(
-                containerColor = Color(0xFFF8F9FA)
-            ),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-            shape = RoundedCornerShape(12.dp)
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceEvenly
-            ) {
-                ProfileStat(
-                    label = "Barter Items",
-                    value = barterCount.toString(),
-                    modifier = Modifier.weight(1f)
-                )
-                // Divider between stats
-                Box(
-                    modifier = Modifier
-                        .width(1.dp)
-                        .height(40.dp)
-                        .background(Color(0xFFE0E0E0))
-                )
-                ProfileStat(
-                    label = "Rental Items",
-                    value = rentalCount.toString(),
-                    modifier = Modifier.weight(1f)
-                )
-                // Divider between stats
-                Box(
-                    modifier = Modifier
-                        .width(1.dp)
-                        .height(40.dp)
-                        .background(Color(0xFFE0E0E0))
-                )
-                // Completed Trades Stat
-                Column(
-                    modifier = Modifier.weight(1f),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text(
-                        text = completedCount.toString(),
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 18.sp,
-                        color = Color.Black
+                    StatBox(
+                        count = rentalCount.toString(),
+                        label = "Rental Items",
+                        backgroundColor = Color(0xFFE8F5E9), // Light Green
+                        textColor = Color(0xFF2E7D32),
+                        modifier = Modifier.weight(1f)
                     )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = "Completed",
-                        fontSize = 12.sp,
-                        color = Color.Gray,
-                        fontWeight = FontWeight.Medium
+                    StatBox(
+                        count = completedCount.toString(),
+                        label = "Completed",
+                        backgroundColor = Color(0xFFFFFDE7), // Light Yellow
+                        textColor = Color(0xFFF57F17),
+                        modifier = Modifier.weight(1f)
                     )
                 }
             }
         }
-
-        Spacer(modifier = Modifier.height(16.dp))
     }
 }
 
 @Composable
-fun ProfileStat(label: String, value: String, modifier: Modifier = Modifier) {
+fun StatBox(
+    count: String,
+    label: String,
+    backgroundColor: Color,
+    textColor: Color,
+    modifier: Modifier = Modifier
+) {
     Column(
-        modifier = modifier,
-        horizontalAlignment = Alignment.CenterHorizontally
+        modifier = modifier
+            .clip(RoundedCornerShape(12.dp))
+            .background(backgroundColor)
+            .padding(vertical = 16.dp, horizontal = 4.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
     ) {
         Text(
-            text = value,
+            text = count,
+            fontSize = 24.sp,
             fontWeight = FontWeight.Bold,
-            fontSize = 18.sp,
-            color = Color.Black
+            color = textColor
         )
         Spacer(modifier = Modifier.height(4.dp))
         Text(
             text = label,
             fontSize = 12.sp,
-            color = Color.Gray,
-            fontWeight = FontWeight.Medium
+            color = textColor.copy(alpha = 0.8f),
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+            lineHeight = 14.sp
         )
     }
 }
@@ -503,22 +504,25 @@ fun ProductItemCard(
     onDeleteRequest: (ProductModel) -> Unit,
     onMarkTradedRequest: (ProductModel) -> Unit
 ) {
+    // Determine background color based on status and type
+    val cardBackgroundColor = when {
+        product.status == "Completed" -> Color(0xFFFFFDE7) // Light Yellow for Completed
+        product.type == "Barter" -> Color(0xFFE0F2F1) // Light Teal for Barter
+        product.type == "Rent" -> Color(0xFFE8F5E9) // Light Green for Rent
+        else -> Color(0xFFF8F8F8) // Default fallback
+    }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 4.dp)
-            .clickable(onClick = onClick)
-            .border(
-                width = 1.dp,
-                color = Color.LightGray,
-                shape = RoundedCornerShape(8.dp)
-            ),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFFF8F8F8)),
+            .clickable(onClick = onClick),
+        colors = CardDefaults.cardColors(containerColor = cardBackgroundColor),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        shape = RoundedCornerShape(8.dp)
+        shape = RoundedCornerShape(12.dp)
     ) {
         Row(
-            modifier = Modifier.padding(vertical = 8.dp),
+            modifier = Modifier.padding(vertical = 8.dp, horizontal = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             // Image Display Area (Left Side)
@@ -637,7 +641,7 @@ fun ProductItemCard(
                 ) {
                     // Location Icon from drawable
                     Image(
-                        painter = painterResource(R.drawable.location_on),
+                        painter = painterResource(R.drawable.location_on), // You'll need to add this drawable
                         contentDescription = "Location",
                         modifier = Modifier.size(16.dp)
                     )
