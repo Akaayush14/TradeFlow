@@ -100,11 +100,11 @@ fun UserProfileScreen(
         }
     }
 
-    // Log user data changes for debugging
+    // Log user data changes for debugging - INCLUDING PROFILE IMAGE
     LaunchedEffect(userData) {
-        Log.d("ProfileScreen", "User data updated: $userData")
-        Log.d("ProfileScreen", "User name: ${userData?.name}")
-        Log.d("ProfileScreen", "User email: ${userData?.email}")
+        Log.d("ProfileScreen", "User data updated: name=${userData?.name}")
+        Log.d("ProfileScreen", "User profileImageUrl: ${userData?.profileImageUrl}")
+        Log.d("ProfileScreen", "Is profileImageUrl empty?: ${userData?.profileImageUrl.isNullOrEmpty()}")
     }
 
     // Memoized filtering logic
@@ -127,14 +127,10 @@ fun UserProfileScreen(
     val userName = userData?.name ?: currentUser?.displayName ?: "User"
     val userEmail = userData?.email ?: currentUser?.email ?: ""
     val userDisplayEmail = userEmail
-
-    // Debug logging
-    Log.d("ProfileScreen", "Final userName: $userName")
-    Log.d("ProfileScreen", "userData?.name: ${userData?.name}")
-    Log.d("ProfileScreen", "currentUser?.displayName: ${currentUser?.displayName}")
+    val profileImageUrl = userData?.profileImageUrl // Get the profile image URL from Cloudinary
 
     // Show loading state while user data is being fetched
-    val isLoading = userData == null
+    val isLoading = userData == null && targetUserId.isNotEmpty()
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
 
@@ -183,7 +179,8 @@ fun UserProfileScreen(
                                 snackbarHostState.showSnackbar("Unable to open Settings")
                             }
                         }
-                    }
+                    },
+                    profileImageUrl = profileImageUrl // Pass the profile image URL here
                 )
 
                 // Segmented Tabs for Barter / Rental / Both listings
@@ -354,7 +351,8 @@ fun ProfileHeaderSection(
     rentalCount: Int,
     completedCount: Int,
     isLoading: Boolean = false,
-    onEditProfileClick: () -> Unit = {}
+    onEditProfileClick: () -> Unit = {},
+    profileImageUrl: String? = null
 ) {
     Box(
         modifier = Modifier
@@ -374,40 +372,36 @@ fun ProfileHeaderSection(
                 Row(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Avatar
+                    // Avatar - UPDATED TO USE PROFILE IMAGE URL
                     Box {
                         Box(
                             modifier = Modifier
                                 .size(60.dp)
                                 .clip(CircleShape)
-                                .background(Color(0xFF26A69A)) // Teal-ish color
+                                .background(Color(0xFFE3F2FD))
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.Person,
-                                contentDescription = null,
-                                tint = White,
-                                modifier = Modifier
-                                    .size(30.dp)
-                                    .align(Alignment.Center)
-                            )
-                        }
-                        // Edit Icon
-                        Box(
-                            modifier = Modifier
-                                .size(24.dp)
-                                .clip(CircleShape)
-                                .background(Color(0xFF00695C)) // Darker Teal
-                                .border(1.dp, White, CircleShape)
-                                .align(Alignment.BottomEnd)
-                                .clickable { onEditProfileClick() },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Create,
-                                contentDescription = "Edit",
-                                tint = White,
-                                modifier = Modifier.size(14.dp)
-                            )
+                            // Check if we have a Cloudinary URL
+                            if (!profileImageUrl.isNullOrEmpty()) {
+                                // Show Cloudinary profile image
+                                AsyncImage(
+                                    model = profileImageUrl,
+                                    contentDescription = "Profile Avatar",
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = ContentScale.Crop,
+                                    placeholder = painterResource(R.drawable.placeholderimage),
+                                    error = painterResource(R.drawable.house_rent_logo)
+                                )
+                            } else {
+                                // Show default icon if no profile image
+                                Icon(
+                                    Icons.Default.Person,
+                                    contentDescription = "Profile Avatar",
+                                    modifier = Modifier
+                                        .size(30.dp)
+                                        .align(Alignment.Center),
+                                    tint = Color(0xFF0288D1)
+                                )
+                            }
                         }
                     }
 

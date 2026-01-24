@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
+
     <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />"
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
 
     <application
@@ -12,10 +13,10 @@
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:networkSecurityConfig="@xml/network_security_config"
-        tools:replace="android:fullBackupContent"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.TradeFlow">
+        android:theme="@style/Theme.TradeFlow"
+        tools:replace="android:fullBackupContent">
         <activity
             android:name=".view.MainActivity"
             android:exported="true"
@@ -68,7 +69,6 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-
         <activity
             android:name=".view.UserDashboard"
             android:exported="true"
@@ -89,7 +89,6 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-
         <activity
             android:name=".view.UserSetting"
             android:exported="true"
@@ -120,7 +119,6 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-
         <activity
             android:name=".view.AdminDashUser"
             android:exported="true"
@@ -131,7 +129,6 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-
         <activity
             android:name=".view.AdminProfile"
             android:exported="true"
@@ -143,7 +140,6 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-
         <activity
             android:name=".view.AdminNotification"
             android:exported="true"
@@ -158,17 +154,14 @@
             android:name=".view.AdminUserMetric"
             android:exported="true"
             android:theme="@style/Theme.TradeFlow" />
-
         <activity
             android:name=".view.AdminAdminMetric"
             android:exported="true"
             android:theme="@style/Theme.TradeFlow" />
-
         <activity
             android:name=".view.AdminProductMetric"
             android:exported="true"
             android:theme="@style/Theme.TradeFlow" />
-
         <activity
             android:name=".view.AdminProductPriceMetric"
             android:exported="true"
@@ -177,7 +170,6 @@
             android:name=".view.AdminAdmin"
             android:exported="false"
             android:theme="@style/Theme.TradeFlow" />
-
         <activity
             android:name=".view.AdminSettings"
             android:exported="true"
