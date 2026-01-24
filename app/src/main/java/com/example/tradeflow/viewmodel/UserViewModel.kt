@@ -1,5 +1,7 @@
 package com.example.tradeflow.viewmodel
 
+import android.content.Context
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseUser
@@ -180,6 +182,7 @@ class UserViewModel( val repo: UserRepo): ViewModel(){
     ) {
         repo.updateUserProfile(userId, updates, callback)
     }
+
     private val _validationErrors = MutableStateFlow<Map<String, String>>(emptyMap())
     val validationErrors: StateFlow<Map<String, String>> = _validationErrors.asStateFlow()
 
@@ -190,4 +193,21 @@ class UserViewModel( val repo: UserRepo): ViewModel(){
     fun setValidationError(field: String, message: String) {
         _validationErrors.value = _validationErrors.value + (field to message)
     }
+
+    fun uploadImage(
+        context: Context,
+        imageUri: Uri,
+        callback: (String?) -> Unit
+    ) {
+        repo.uploadImage(context, imageUri, callback)
+    }
+
+    fun changePassword(
+        currentPassword: String,
+        newPassword: String,
+        callback: (Boolean, String) -> Unit
+    ) {
+        repo.changePassword(currentPassword, newPassword, callback)
+    }
+
 }

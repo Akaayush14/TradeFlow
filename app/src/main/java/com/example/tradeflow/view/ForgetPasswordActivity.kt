@@ -9,33 +9,14 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Checkbox
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -44,13 +25,10 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import kotlinx.coroutines.launch
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import com.example.tradeflow.R
-import com.example.tradeflow.repository.UserRepoImpl
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.database.FirebaseDatabase
 import com.example.tradeflow.ui.theme.Greenish
-
 
 class ForgetPasswordActivity: ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -62,18 +40,47 @@ class ForgetPasswordActivity: ComponentActivity() {
     }
 }
 
-
 @Composable
 fun ForgotBody() {
-    val userRepo = UserRepoImpl()
+    val auth = FirebaseAuth.getInstance()
     var emailError by remember { mutableStateOf(false) }
     val context = LocalContext.current
     var email by remember { mutableStateOf("") }
     var terms by remember { mutableStateOf(false) }
+    var isLoading by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
     val BlueButton = Color(0xFF006CFF)
 
+    LaunchedEffect(Unit) {
+        val passedEmail = (context as? ComponentActivity)?.intent?.getStringExtra("email")
+        if (!passedEmail.isNullOrEmpty()) {
+            email = passedEmail
+        }
+    }
+
+    fun checkUserType(email: String, onResult: (isAdmin: Boolean?) -> Unit) {
+        val database = FirebaseDatabase.getInstance()
+
+        // First check Admins collection
+        database.getReference("Admins")
+            .orderByChild("email").equalTo(email)
+            .get().addOnSuccessListener { adminSnapshot ->
+                if (adminSnapshot.exists()) {
+                    onResult(true)
+                } else {
+                    database.getReference("Users")
+                        .orderByChild("email").equalTo(email)
+                        .get().addOnSuccessListener { userSnapshot ->
+                            if (userSnapshot.exists()) {
+                                onResult(false)
+                            } else {
+                                onResult(null)
+                            }
+                        }
+                }
+            }
+    }
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) }
@@ -106,12 +113,19 @@ fun ForgotBody() {
                     .fillMaxWidth()
                     .padding(horizontal = 24.dp)
             ) {
-
                 Text(
-                    text = "Forgot Password?",
+                    text = "Reset Password",
                     fontSize = 24.sp,
                     fontWeight = FontWeight.Bold,
                     color = Greenish
+                )
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                Text(
+                    text = "Enter your email to receive password reset link",
+                    fontSize = 14.sp,
+                    color = Color.Gray
                 )
 
                 Spacer(modifier = Modifier.height(20.dp))
@@ -119,14 +133,22 @@ fun ForgotBody() {
                 OutlinedTextField(
                     value = email,
                     onValueChange = { email = it },
-                    label = { Text("email") },
+                    label = { Text("Email Address") },
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp)
+                    shape = RoundedCornerShape(12.dp),
+                    isError = emailError
                 )
 
+                if (emailError) {
+                    Text(
+                        text = "Please enter a valid email address",
+                        color = Color.Red,
+                        fontSize = 12.sp,
+                        modifier = Modifier.padding(top = 4.dp)
+                    )
+                }
+
                 Spacer(modifier = Modifier.height(12.dp))
-
-
 
                 Row(
                     verticalAlignment = Alignment.CenterVertically
@@ -153,22 +175,54 @@ fun ForgotBody() {
 
                 Spacer(modifier = Modifier.height(20.dp))
 
-
                 Button(
                     onClick = {
-                        if (email.isEmpty() || !email.endsWith("@gmail.com")) {
+                        if (email.isEmpty() || !email.contains("@")) {
                             emailError = true
-                        } else {
-                            emailError = false
-                            val userRepo = UserRepoImpl()
-                            userRepo.forgetPassword(email) { success, message ->
-                                (context as? ComponentActivity)?.runOnUiThread {
-                                    Toast.makeText(context, "Password reset link sent successfully", Toast.LENGTH_LONG).show()
-                                    if (success) {
-                                        // Navigate back to login screen
-                                        context.startActivity(Intent(context, LoginActivity::class.java))
+                            return@Button
+                        }
+
+                        if (!terms) {
+                            Toast.makeText(context, "Please agree to terms and conditions", Toast.LENGTH_SHORT).show()
+                            return@Button
+                        }
+
+                        emailError = false
+                        isLoading = true
+
+                        checkUserType(email.trim()) { userType ->
+                            if (userType == null) {
+                                // Email not found in database
+                                isLoading = false
+                                Toast.makeText(
+                                    context,
+                                    "Email not found in system",
+                                    Toast.LENGTH_LONG
+                                ).show()
+                            } else {
+                                // Email exists, send reset link
+                                auth.sendPasswordResetEmail(email.trim())
+                                    .addOnCompleteListener { task ->
+                                        isLoading = false
+                                        if (task.isSuccessful) {
+                                            val userTypeText = if (userType) "Admin" else "User"
+                                            Toast.makeText(
+                                                context,
+                                                "Password reset link sent to $email ($userTypeText account)",
+                                                Toast.LENGTH_LONG
+                                            ).show()
+                                            // Navigate back to login screen
+                                            context.startActivity(
+                                                Intent(context, LoginActivity::class.java)
+                                            )
+                                        } else {
+                                            Toast.makeText(
+                                                context,
+                                                "Error: ${task.exception?.message}",
+                                                Toast.LENGTH_LONG
+                                            ).show()
+                                        }
                                     }
-                                }
                             }
                         }
                     },
@@ -176,9 +230,18 @@ fun ForgotBody() {
                         .fillMaxWidth()
                         .height(52.dp),
                     shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = BlueButton)
+                    colors = ButtonDefaults.buttonColors(containerColor = BlueButton),
+                    enabled = !isLoading
                 ) {
-                    Text("Reset Password", color = Color.White, fontSize = 16.sp)
+                    if (isLoading) {
+                        CircularProgressIndicator(
+                            color = Color.White,
+                            strokeWidth = 2.dp,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    } else {
+                        Text("Send Reset Link", color = Color.White, fontSize = 16.sp)
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(9.dp))
@@ -202,6 +265,7 @@ fun ForgotBody() {
         }
     }
 }
+
 @Preview
 @Composable
 fun PreviewForgot() {
