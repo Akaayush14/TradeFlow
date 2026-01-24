@@ -3,6 +3,11 @@ package com.example.tradeflow.view
 import android.app.Activity
 import android.content.Intent
 import android.util.Log
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -17,10 +22,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
@@ -63,6 +70,7 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.ui.text.style.TextOverflow
@@ -80,6 +88,16 @@ import coil.compose.AsyncImage
 import com.example.tradeflow.R
 
 
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+
+import com.example.tradeflow.repository.SavedItemRepoImpl
+import com.example.tradeflow.viewmodel.SavedItemViewModel
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.FloatingActionButtonDefaults
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material3.BadgedBox
+import androidx.compose.material3.Badge
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun UserExploreScreen() {
@@ -88,9 +106,12 @@ fun UserExploreScreen() {
 
     var selectedTab by remember { mutableStateOf("All") }
     var searchQuery by remember { mutableStateOf("") }
+    var showAllRecommended by remember { mutableStateOf(false) }
+    var showSavedScreen by remember { mutableStateOf(false) }
 
     val productViewModel: ProductViewModel = remember { ProductViewModel(ProductRepoImpl()) }
     val userViewModel: UserViewModel = remember { UserViewModel(UserRepoImpl()) }
+    val savedItemViewModel: SavedItemViewModel = remember { SavedItemViewModel(SavedItemRepoImpl()) }
 
     val currentUser = FirebaseAuth.getInstance().currentUser
     val userId = currentUser?.uid ?: ""
@@ -102,10 +123,13 @@ fun UserExploreScreen() {
             userViewModel.getUserById(userId) { success, _, user ->
                 // User data loaded
             }
+            savedItemViewModel.getSavedItems(userId)
         }
     }
 
     val allProducts by productViewModel.allProducts.collectAsState()
+    val savedItems by savedItemViewModel.savedItems.collectAsState()
+    val savedProductIds by savedItemViewModel.savedProductIds.collectAsState()
     val userData by userViewModel.users.collectAsState()
     val allUsers by userViewModel.allUsers.collectAsState()
     val userPoints = userData?.points ?: 0L
@@ -122,7 +146,11 @@ fun UserExploreScreen() {
         emptyList()
     }
 
-    val filteredProducts = allProducts.filter { product ->
+    val availableProducts = allProducts.filter { product ->
+        !product.isDeleted && product.status == "Available" && product.ownerId != userId
+    }
+
+    val filteredProducts = availableProducts.filter { product ->
         val matchesTab = when (selectedTab) {
             "Rent" -> product.type == "Rent"
             "Trade" -> product.type == "Barter"
@@ -130,10 +158,71 @@ fun UserExploreScreen() {
         }
         val matchesSearch = product.name.contains(searchQuery, ignoreCase = true) ||
                 product.description.contains(searchQuery, ignoreCase = true)
-        matchesTab && matchesSearch && !product.isDeleted
+        matchesTab && matchesSearch
+    }
+
+    val recommendedAllProducts = if (searchQuery.isNotEmpty()) {
+        filteredProducts
+    } else {
+        availableProducts.sortedByDescending { it.createdAt }
+    }
+
+    val recommendedRowProducts = recommendedAllProducts.take(10)
+    val gridProducts = if (showAllRecommended && recommendedAllProducts.isNotEmpty()) {
+        recommendedAllProducts
+    } else {
+        filteredProducts
+    }
+
+    if (showSavedScreen) {
+        val savedProductsList = allProducts.filter { savedProductIds.contains(it.productId) }
+        UserSavedItemsScreen(
+            savedProducts = savedProductsList,
+            onBackClick = { showSavedScreen = false },
+            onProductClick = { product ->
+                val intent = Intent(context, UserItemDetails::class.java)
+                intent.putExtra("productId", product.productId)
+                context.startActivity(intent)
+            },
+            onUnsaveClick = { product ->
+                if (userId.isNotEmpty()) {
+                    savedItemViewModel.unsaveItem(userId, product.productId)
+                }
+            }
+        )
+        return
     }
 
     Scaffold(
+        floatingActionButton = {
+            AnimatedVisibility(
+                visible = savedItems.isNotEmpty(),
+                enter = fadeIn() + scaleIn(),
+                exit = fadeOut() + scaleOut()
+            ) {
+                Box {
+                    FloatingActionButton(
+                        onClick = { showSavedScreen = true },
+                        containerColor = Greenish,
+                        contentColor = White,
+                        shape = CircleShape
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Favorite,
+                            contentDescription = "Saved Items"
+                        )
+                    }
+                    Badge(
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(top = 0.dp, end = 0.dp)
+                            .offset(x = 4.dp, y = (-4).dp)
+                    ) { 
+                        Text(savedItems.size.toString()) 
+                    }
+                }
+            }
+        },
         topBar = {
             Column {
                 // Points display row
@@ -179,7 +268,10 @@ fun UserExploreScreen() {
                     title = {
                         TextField(
                             value = searchQuery,
-                            onValueChange = { searchQuery = it },
+                            onValueChange = {
+                                searchQuery = it
+                                showAllRecommended = false
+                            },
                             placeholder = {
                                 Text(
                                     "Search items or users...",
@@ -245,48 +337,55 @@ fun UserExploreScreen() {
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .background(color = White)
         ) {
-
-            Row(
+            // Fixed Filter Tabs Section
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .border(
-                        width = 1.dp,
-                        color = Color.LightGray,
-                        shape = RoundedCornerShape(12.dp)
-                    ),
-                verticalAlignment = Alignment.CenterVertically
+                    .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 8.dp)
             ) {
-                val tabs = listOf("All","Rent","Barter")
-                tabs.forEach { tabName ->
-                    val isSelected = selectedTab == tabName
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(48.dp)
-                            .background(if (isSelected) White else Color(0xFFF0F0F0))
-                            .clickable { selectedTab = tabName },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = tabName,
-                            color = if (isSelected) Color.Black else Color.Gray
-                        )
+                ExploreTabs(
+                    selectedTab = selectedTab,
+                    onTabSelected = {
+                        selectedTab = it
+                        showAllRecommended = false
                     }
-                }
+                )
             }
 
-            // Show users if search query exists and users are found
             if (searchQuery.isNotEmpty() && searchedUsers.isNotEmpty()) {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    // User results section
+                    // Tabs removed from here
+
+                    // Recommendations
+                    if (recommendedRowProducts.isNotEmpty()) {
+                        item {
+                            RecommendationHeader(
+                                onSeeAllClick = { showAllRecommended = true }
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            CompactRecommendationSection(
+                                products = recommendedRowProducts,
+                                onProductClick = { product ->
+                                    val intent = Intent(context, UserItemDetails::class.java)
+                                    intent.putExtra("productId", product.productId)
+                                    context.startActivity(intent)
+                                }
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Divider(
+                                color = Color(0xFFCCCCCC),
+                                thickness = 5.dp,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                        }
+                    }
+
                     item {
                         Text(
                             text = "Users (${searchedUsers.size})",
@@ -307,7 +406,6 @@ fun UserExploreScreen() {
                         )
                     }
 
-                    // Products section if there are matching products
                     if (filteredProducts.isNotEmpty()) {
                         item {
                             Spacer(modifier = Modifier.height(16.dp))
@@ -319,7 +417,6 @@ fun UserExploreScreen() {
                             )
                         }
 
-                        // Show products in grid within the LazyColumn
                         items(filteredProducts.chunked(2)) { rowProducts ->
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
@@ -337,7 +434,6 @@ fun UserExploreScreen() {
                                         )
                                     }
                                 }
-                                // Add empty box if odd number of products in last row
                                 if (rowProducts.size == 1) {
                                     Spacer(modifier = Modifier.weight(1f))
                                 }
@@ -346,7 +442,6 @@ fun UserExploreScreen() {
                     }
                 }
             } else {
-                // Show products grid when no user search
                 LazyVerticalGrid(
                     columns = GridCells.Fixed(2),
                     modifier = Modifier.fillMaxSize(),
@@ -354,9 +449,49 @@ fun UserExploreScreen() {
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    items(filteredProducts) { product ->
+                    // Tabs removed from here
+
+                    // Recommendations
+                    if (recommendedRowProducts.isNotEmpty()) {
+                        item(span = { GridItemSpan(maxLineSpan) }) {
+                            Column {
+                                Spacer(modifier = Modifier.height(16.dp))
+                                RecommendationHeader(
+                                    onSeeAllClick = { showAllRecommended = true }
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                CompactRecommendationSection(
+                                    products = recommendedRowProducts,
+                                    onProductClick = { product ->
+                                        val intent = Intent(context, UserItemDetails::class.java)
+                                        intent.putExtra("productId", product.productId)
+                                        context.startActivity(intent)
+                                    }
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Divider(
+                                    color = Color(0xFFCCCCCC),
+                                    thickness = 5.dp,
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                                Spacer(modifier = Modifier.height(16.dp))
+                            }
+                        }
+                    }
+
+                    items(gridProducts) { product ->
                         ExploreItemCard(
                             product = product,
+                            isSaved = savedProductIds.contains(product.productId),
+                            onFavoriteClick = {
+                                if (userId.isNotEmpty()) {
+                                    if (savedProductIds.contains(product.productId)) {
+                                        savedItemViewModel.unsaveItem(userId, product.productId)
+                                    } else {
+                                        savedItemViewModel.saveItem(userId, product.productId)
+                                    }
+                                }
+                            },
                             onClick = {
                                 val intent = Intent(context, UserItemDetails::class.java)
                                 intent.putExtra("productId", product.productId)
@@ -371,14 +506,182 @@ fun UserExploreScreen() {
 }
 
 @Composable
+fun ExploreTabs(selectedTab: String, onTabSelected: (String) -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            // Removed vertical padding here to tighten spacing
+            .clip(RoundedCornerShape(12.dp))
+            .border(
+                width = 1.dp,
+                color = Color.LightGray,
+                shape = RoundedCornerShape(12.dp)
+            ),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        val tabs = listOf("All", "Rent", "Barter")
+        tabs.forEach { tabName ->
+            val isSelected = selectedTab == tabName
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .height(48.dp)
+                    .background(if (isSelected) White else Color(0xFFF0F0F0))
+                    .clickable { onTabSelected(tabName) },
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = tabName,
+                    color = if (isSelected) Color.Black else Color.Gray
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun RecommendationHeader(onSeeAllClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Image(
+                painter = painterResource(id = R.drawable.shines),
+                contentDescription = null,
+                modifier = Modifier.size(18.dp)
+            )
+            Spacer(modifier = Modifier.width(6.dp))
+            Text(
+                text = "Recommended for you",
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
+        Text(
+            text = "See All >",
+            fontSize = 14.sp,
+            color = Greenish,
+            fontWeight = FontWeight.Medium,
+            modifier = Modifier.clickable { onSeeAllClick() }
+        )
+    }
+}
+
+
+@Composable
+fun CompactRecommendationSection(
+    products: List<ProductModel>,
+    onProductClick: (ProductModel) -> Unit
+) {
+    val configuration = androidx.compose.ui.platform.LocalConfiguration.current
+    val screenWidth = configuration.screenWidthDp.dp
+    // Calculate card width to fit 4 items
+    // Padding: 16dp * 2 = 32dp
+    // Spacing: 8dp * 3 = 24dp
+    // Total non-card space: 56dp
+    val cardWidth = (screenWidth - 56.dp) / 4
+
+    LazyRow(
+        modifier = Modifier.fillMaxWidth(),
+        contentPadding = PaddingValues(horizontal = 16.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        items(products) { product ->
+            CompactRecommendationCard(
+                product = product,
+                width = cardWidth,
+                onClick = { onProductClick(product) }
+            )
+        }
+    }
+}
+
+@Composable
+fun CompactRecommendationCard(
+    product: ProductModel,
+    width: androidx.compose.ui.unit.Dp,
+    onClick: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .width(width)
+            .clickable(onClick = onClick),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        // Square Card with soft shadow and light background
+        Card(
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+            modifier = Modifier
+                .size(width) // Square
+        ) {
+            Box(modifier = Modifier.fillMaxSize()) {
+                val displayImage = if (product.imageUrl.isNotEmpty()) {
+                    product.imageUrl
+                } else if (product.imageUrls.isNotEmpty()) {
+                    product.imageUrls.first()
+                } else {
+                    ""
+                }
+
+                if (displayImage.isNotEmpty()) {
+                    AsyncImage(
+                        model = displayImage,
+                        contentDescription = product.name,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop,
+                        placeholder = painterResource(R.drawable.placeholderimage)
+                    )
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color(0xFFF0F0F0)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        // Fallback icon if no image
+                        Icon(
+                            imageVector = Icons.Default.Star, // Generic icon
+                            contentDescription = null,
+                            tint = Color.Gray,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(4.dp))
+
+        // Short title
+        Text(
+            text = product.name,
+            fontSize = 10.sp,
+            fontWeight = FontWeight.Medium,
+            color = Color.Black,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.fillMaxWidth(),
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+        )
+    }
+}
+
+@Composable
 fun UserSearchCard(user: UserModel, onClick: () -> Unit) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onClick() },
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Row(
             modifier = Modifier
@@ -449,14 +752,20 @@ fun UserSearchCard(user: UserModel, onClick: () -> Unit) {
 }
 
 @Composable
-fun ExploreItemCard(product: ProductModel, onClick: () -> Unit) {
+fun ExploreItemCard(
+    product: ProductModel, 
+    compact: Boolean = false, 
+    isSaved: Boolean = false, 
+    onFavoriteClick: () -> Unit = {}, 
+    onClick: () -> Unit
+) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onClick() },
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Column(
             modifier = Modifier.fillMaxWidth()
@@ -465,7 +774,7 @@ fun ExploreItemCard(product: ProductModel, onClick: () -> Unit) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(140.dp)
+                    .height(if (compact) 120.dp else 140.dp)
                     .background(Color.LightGray)
             ) {
                 val displayImage = if (product.imageUrl.isNotEmpty()) {
@@ -501,13 +810,13 @@ fun ExploreItemCard(product: ProductModel, onClick: () -> Unit) {
                         .padding(8.dp)
                         .size(28.dp)
                         .background(Color.White.copy(alpha = 0.7f), CircleShape)
-                        .clickable { /* Handle favorite */ },
+                        .clickable { onFavoriteClick() },
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        imageVector = Icons.Default.FavoriteBorder,
+                        imageVector = if (isSaved) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
                         contentDescription = "Favorite",
-                        tint = Color.Gray,
+                        tint = if (isSaved) Color.Red else Color.Gray,
                         modifier = Modifier.size(16.dp)
                     )
                 }

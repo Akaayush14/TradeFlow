@@ -3,6 +3,7 @@ package com.example.tradeflow.repository
 import android.content.Context
 import android.net.Uri
 import com.example.tradeflow.model.ProductModel
+import com.google.android.gms.maps.model.LatLng
 
 interface ProductRepo {
 
@@ -46,4 +47,5 @@ interface ProductRepo {
     )
 
     suspend fun uploadImages(context: Context, uris: List<Uri?>): List<String>
+    fun getLatLngFromAddress(context: Context, address: String): LatLng?
 }
