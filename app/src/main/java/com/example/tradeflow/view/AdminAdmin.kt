@@ -2,6 +2,7 @@ package com.example.tradeflow.view
 
 import android.app.DatePickerDialog
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.widget.DatePicker
 import android.widget.Toast
@@ -9,8 +10,10 @@ import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -42,6 +45,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.border
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.animation.core.rememberInfiniteTransition
@@ -58,6 +62,7 @@ import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import kotlin.math.abs
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.launch
@@ -71,7 +76,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -79,6 +86,9 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import com.example.tradeflow.R
 import com.example.tradeflow.model.AdminModel
 import com.example.tradeflow.repository.AdminRepoImpl
@@ -283,6 +293,15 @@ fun RegisterAdminContent() {
     var dob by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
+    
+    // Image selection state
+    var imageUri by remember { mutableStateOf<Uri?>(null) }
+    
+    val launcher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        imageUri = uri
+    }
 
     // Date Picker Dialog
     val calendar = Calendar.getInstance()
@@ -310,10 +329,13 @@ fun RegisterAdminContent() {
         }
         return
     }
+    
+    // Make content scrollable to fit everything including the image picker
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = 16.dp),
+            .padding(horizontal = 16.dp)
+            .verticalScroll(rememberScrollState()),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Top
     ) {
@@ -323,6 +345,39 @@ fun RegisterAdminContent() {
             fontWeight = FontWeight.Bold,
             color = DarkGreen,
             modifier = Modifier.padding(bottom = 24.dp)
+        )
+        
+        // Image Picker
+        Box(
+            modifier = Modifier
+                .size(120.dp)
+                .clip(CircleShape)
+                .background(Color.LightGray)
+                .clickable { launcher.launch("image/*") }
+                .border(2.dp, Greenish, CircleShape),
+            contentAlignment = Alignment.Center
+        ) {
+            if (imageUri != null) {
+                AsyncImage(
+                    model = imageUri,
+                    contentDescription = "Selected Admin Image",
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
+            } else {
+                Icon(
+                    painter = painterResource(id = R.drawable.ic_user), // Use user icon as fallback for camera
+                    contentDescription = "Select Image",
+                    tint = Color.Gray,
+                    modifier = Modifier.size(40.dp)
+                )
+            }
+        }
+        Text(
+            text = "Tap to add photo",
+            fontSize = 12.sp,
+            color = Color.Gray,
+            modifier = Modifier.padding(top = 8.dp, bottom = 24.dp)
         )
 
         OutlinedTextField(
@@ -364,15 +419,12 @@ fun RegisterAdminContent() {
                 readOnly = true,
                 trailingIcon = {
                     Icon(
-                        painter = painterResource(id = R.drawable.ic_calender), // Assuming you have a calendar icon, otherwise use default
+                        painter = painterResource(id = R.drawable.ic_calender), 
                         contentDescription = "Select Date",
                         modifier = Modifier.clickable { datePickerDialog.show() }
                     )
                 }
             )
-            // Overlay to capture clicks for the whole field if desired, 
-            // but trailing icon click is standard. 
-            // For better UX, let's make the whole field clickable.
             Box(
                 modifier = Modifier
                     .matchParentSize()
@@ -413,30 +465,35 @@ fun RegisterAdminContent() {
                 } else if (password.length < 6) {
                     Toast.makeText(context, "Password must be at least 6 characters", Toast.LENGTH_SHORT).show()
                 } else {
-                    viewModel.register(email, password, phone) { success, msg, userId ->
-                        if (success) {
-                            val newAdmin = AdminModel(
-                                userId = userId,
-                                name = name,
-                                email = email,
-                                phone = phone,
-                                dateOfBirth = dob,
-                                isBlocked = false,
-                                isRestricted = false
-                            )
-                            viewModel.addAdminToDatabase(userId, newAdmin) { dbSuccess, dbMsg ->
-                                Toast.makeText(context, dbMsg, Toast.LENGTH_SHORT).show()
-                                if (dbSuccess) {
+                    // Upload image first if selected
+                    if (imageUri != null) {
+                        Toast.makeText(context, "Uploading image...", Toast.LENGTH_SHORT).show()
+                        viewModel.uploadImage(context, imageUri!!) { imageUrl ->
+                            if (imageUrl != null) {
+                                registerAdmin(context, viewModel, name, email, phone, dob, password, imageUrl) {
+                                    // Reset fields on success
                                     name = ""
                                     email = ""
                                     phone = ""
                                     dob = ""
                                     password = ""
                                     confirmPassword = ""
+                                    imageUri = null
                                 }
+                            } else {
+                                Toast.makeText(context, "Image upload failed", Toast.LENGTH_SHORT).show()
                             }
-                        } else {
-                            Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+                        }
+                    } else {
+                        registerAdmin(context, viewModel, name, email, phone, dob, password, "") {
+                            // Reset fields on success
+                            name = ""
+                            email = ""
+                            phone = ""
+                            dob = ""
+                            password = ""
+                            confirmPassword = ""
+                            imageUri = null
                         }
                     }
                 }
@@ -447,6 +504,42 @@ fun RegisterAdminContent() {
             colors = ButtonDefaults.buttonColors(containerColor = Greenish)
         ) {
             Text("Register Admin", fontSize = 18.sp, color = Color.White)
+        }
+        Spacer(modifier = Modifier.height(24.dp))
+    }
+}
+
+fun registerAdmin(
+    context: android.content.Context,
+    viewModel: AdminViewModel,
+    name: String,
+    email: String,
+    phone: String,
+    dob: String,
+    password: String,
+    imageUrl: String,
+    onSuccess: () -> Unit
+) {
+    viewModel.register(email, password, phone) { success, msg, userId ->
+        if (success) {
+            val newAdmin = AdminModel(
+                userId = userId,
+                name = name,
+                email = email,
+                phone = phone,
+                dateOfBirth = dob,
+                imageUrl = imageUrl,
+                isBlocked = false,
+                isRestricted = false
+            )
+            viewModel.addAdminToDatabase(userId, newAdmin) { dbSuccess, dbMsg ->
+                Toast.makeText(context, dbMsg, Toast.LENGTH_SHORT).show()
+                if (dbSuccess) {
+                    onSuccess()
+                }
+            }
+        } else {
+            Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
         }
     }
 }
@@ -481,29 +574,67 @@ fun AdminCard(
                 .fillMaxWidth()
                 .padding(16.dp)
         ) {
-            Text(
-                text = admin.name,
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.Black
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = "Email: ${admin.email}",
-                fontSize = 14.sp,
-                color = Color.Gray
-            )
-            Text(
-                text = "Phone: ${admin.phone}",
-                fontSize = 14.sp,
-                color = Color.Gray
-            )
-            if (admin.dateOfBirth.isNotEmpty()) {
-                Text(
-                    text = "DOB: ${admin.dateOfBirth}",
-                    fontSize = 14.sp,
-                    color = Color.Gray
-                )
+            Row(
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Admin Image
+                if (admin.imageUrl.isNotEmpty()) {
+                    AsyncImage(
+                        model = admin.imageUrl,
+                        contentDescription = "Admin Image",
+                        modifier = Modifier
+                            .size(60.dp)
+                            .clip(CircleShape)
+                            .border(1.dp, Greenish, CircleShape),
+                        contentScale = ContentScale.Crop
+                    )
+                    Spacer(modifier = Modifier.size(16.dp))
+                } else {
+                    // Placeholder if no image
+                    Box(
+                        modifier = Modifier
+                            .size(60.dp)
+                            .clip(CircleShape)
+                            .background(Color.LightGray)
+                            .border(1.dp, Greenish, CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_user),
+                            contentDescription = "Default Admin Image",
+                            tint = Color.White,
+                            modifier = Modifier.size(30.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.size(16.dp))
+                }
+
+                Column {
+                    Text(
+                        text = admin.name,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.Black
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "Email: ${admin.email}",
+                        fontSize = 14.sp,
+                        color = Color.Gray
+                    )
+                    Text(
+                        text = "Phone: ${admin.phone}",
+                        fontSize = 14.sp,
+                        color = Color.Gray
+                    )
+                    if (admin.dateOfBirth.isNotEmpty()) {
+                        Text(
+                            text = "DOB: ${admin.dateOfBirth}",
+                            fontSize = 14.sp,
+                            color = Color.Gray
+                        )
+                    }
+                }
             }
             
             Spacer(modifier = Modifier.height(12.dp))

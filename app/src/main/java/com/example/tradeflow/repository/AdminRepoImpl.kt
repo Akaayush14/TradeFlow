@@ -1,5 +1,13 @@
 package com.example.tradeflow.repository
 
+import android.content.Context
+import android.database.Cursor
+import android.net.Uri
+import android.os.Handler
+import android.os.Looper
+import android.provider.OpenableColumns
+import com.cloudinary.Cloudinary
+import com.cloudinary.utils.ObjectUtils
 import com.example.tradeflow.model.AdminModel
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
@@ -8,11 +16,21 @@ import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
+import java.io.InputStream
+import java.util.concurrent.Executors
 
 class AdminRepoImpl : AdminRepo {
     val auth: FirebaseAuth = FirebaseAuth.getInstance()
     val database: FirebaseDatabase = FirebaseDatabase.getInstance()
     val ref: DatabaseReference = database.getReference("Admins")
+    
+    private val cloudinary = Cloudinary(
+        mapOf(
+            "cloud_name" to "dpi7b9iam",
+            "api_key" to "561879326562495",
+            "api_secret" to "iteXJaLRqFgpuMwmVcw0gw9fjgE"
+        )
+    )
 
     override fun login(
         email: String,
@@ -115,6 +133,7 @@ class AdminRepoImpl : AdminRepo {
                                     admin.email = data.child("email").getValue(String::class.java) ?: ""
                                     admin.phone = data.child("phone").getValue(String::class.java) ?: ""
                                     admin.dateOfBirth = data.child("dateOfBirth").getValue(String::class.java) ?: ""
+                                    admin.imageUrl = data.child("imageUrl").getValue(String::class.java) ?: ""
                                     
                                     if (data.hasChild("isBlocked")) {
                                         val isBlockedValue = data.child("isBlocked").getValue(Boolean::class.java)
@@ -183,5 +202,51 @@ class AdminRepoImpl : AdminRepo {
                 callback(false, "${it.exception?.message}")
             }
         }
+    }
+
+    override fun uploadImage(context: Context, imageUri: Uri, callback: (String?) -> Unit) {
+        val executor = Executors.newSingleThreadExecutor()
+        executor.execute {
+            try {
+                val inputStream: InputStream? = context.contentResolver.openInputStream(imageUri)
+                var fileName = getFileNameFromUri(context, imageUri)
+
+                fileName = fileName?.substringBeforeLast(".") ?: "admin_image"
+
+                val response = cloudinary.uploader().upload(
+                    inputStream, ObjectUtils.asMap(
+                        "public_id", "admin_images/$fileName", // Use a separate folder for admin images
+                        "resource_type", "image"
+                    )
+                )
+
+                var imageUrl = response["url"] as String?
+                imageUrl = imageUrl?.replace("http://", "https://")
+
+                Handler(Looper.getMainLooper()).post {
+                    callback(imageUrl)
+                }
+
+            } catch (e: Exception) {
+                e.printStackTrace()
+                Handler(Looper.getMainLooper()).post {
+                    callback(null)
+                }
+            }
+        }
+    }
+
+    override fun getFileNameFromUri(context: Context, uri: Uri): String? {
+        var fileName: String? = null
+        val cursor: Cursor? = context.contentResolver.query(uri, null, null, null, null)
+        cursor?.use {
+            if (it.moveToFirst()) {
+                val nameIndex = it.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                if (nameIndex != -1) {
+                    fileName = it.getString(nameIndex)
+                }
+            }
+        }
+        return fileName
     }
 }

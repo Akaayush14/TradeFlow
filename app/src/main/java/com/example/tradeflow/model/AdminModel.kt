@@ -6,6 +6,7 @@ data class AdminModel(
     var email: String = "",
     var phone: String = "",
     var dateOfBirth: String = "",
+    var imageUrl: String = "",
     var isBlocked: Boolean = false,
     var isRestricted: Boolean = false
 ) {
@@ -16,6 +17,7 @@ data class AdminModel(
             "email" to email,
             "phone" to phone,
             "dateOfBirth" to dateOfBirth,
+            "imageUrl" to imageUrl,
             "isBlocked" to isBlocked,
             "isRestricted" to isRestricted
         )
