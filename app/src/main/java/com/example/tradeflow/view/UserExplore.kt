@@ -373,77 +373,58 @@ fun UserExploreScreen() {
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            // Fixed Filter Tabs Section
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 8.dp)
-            ) {
-                ExploreTabs(
-                    selectedTab = selectedTab,
-                    onTabSelected = {
-                        selectedTab = it
-                        showAllRecommended = false
-                    }
-                )
+            // Fixed Filter Tabs Section (Only visible when not searching)
+            if (searchQuery.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 8.dp)
+                ) {
+                    ExploreTabs(
+                        selectedTab = selectedTab,
+                        onTabSelected = {
+                            selectedTab = it
+                            showAllRecommended = false
+                        }
+                    )
+                }
             }
 
-            if (searchQuery.isNotEmpty() && searchedUsers.isNotEmpty()) {
+            if (searchQuery.isNotEmpty()) {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    // Tabs removed from here
-
-                    // Recommendations
-                    if (recommendedRowProducts.isNotEmpty()) {
+                    // Users Section
+                    if (searchedUsers.isNotEmpty()) {
                         item {
-                            RecommendationHeader(
-                                onSeeAllClick = { showAllRecommended = true }
+                            Text(
+                                text = "Users (${searchedUsers.size})",
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(bottom = 8.dp)
                             )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            CompactRecommendationSection(
-                                products = recommendedRowProducts,
-                                onProductClick = { product ->
-                                    val intent = Intent(context, UserItemDetails::class.java)
-                                    intent.putExtra("productId", product.productId)
+                        }
+
+                        items(searchedUsers) { user ->
+                            UserSearchCard(
+                                user = user,
+                                onClick = {
+                                    val intent = Intent(context, UserProfileActivity::class.java)
+                                    intent.putExtra("userId", user.userId)
                                     context.startActivity(intent)
                                 }
                             )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Divider(
-                                color = Color(0xFFCCCCCC),
-                                thickness = 5.dp,
-                                modifier = Modifier.fillMaxWidth()
-                            )
-                            Spacer(modifier = Modifier.height(16.dp))
                         }
                     }
 
-                    item {
-                        Text(
-                            text = "Users (${searchedUsers.size})",
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(bottom = 8.dp)
-                        )
-                    }
-
-                    items(searchedUsers) { user ->
-                        UserSearchCard(
-                            user = user,
-                            onClick = {
-                                val intent = Intent(context, UserProfileActivity::class.java)
-                                intent.putExtra("userId", user.userId)
-                                context.startActivity(intent)
-                            }
-                        )
-                    }
-
+                    // Items Section
                     if (filteredProducts.isNotEmpty()) {
                         item {
-                            Spacer(modifier = Modifier.height(16.dp))
+                            if (searchedUsers.isNotEmpty()) {
+                                Spacer(modifier = Modifier.height(16.dp))
+                            }
                             Text(
                                 text = "Items (${filteredProducts.size})",
                                 fontSize = 16.sp,
@@ -461,6 +442,16 @@ fun UserExploreScreen() {
                                     Box(modifier = Modifier.weight(1f)) {
                                         ExploreItemCard(
                                             product = product,
+                                            isSaved = savedProductIds.contains(product.productId),
+                                            onFavoriteClick = {
+                                                if (userId.isNotEmpty()) {
+                                                    if (savedProductIds.contains(product.productId)) {
+                                                        savedItemViewModel.unsaveItem(userId, product.productId)
+                                                    } else {
+                                                        savedItemViewModel.saveItem(userId, product.productId)
+                                                    }
+                                                }
+                                            },
                                             onClick = {
                                                 val intent = Intent(context, UserItemDetails::class.java)
                                                 intent.putExtra("productId", product.productId)
@@ -472,6 +463,24 @@ fun UserExploreScreen() {
                                 if (rowProducts.size == 1) {
                                     Spacer(modifier = Modifier.weight(1f))
                                 }
+                            }
+                        }
+                    }
+
+                    // No Results Found
+                    if (searchedUsers.isEmpty() && filteredProducts.isEmpty()) {
+                        item {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 32.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "No results found",
+                                    fontSize = 16.sp,
+                                    color = Color.Gray
+                                )
                             }
                         }
                     }
