@@ -44,6 +44,9 @@ import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Person
+import com.example.tradeflow.model.ProductModel
+import com.example.tradeflow.repository.ProductRepoImpl
+import com.example.tradeflow.viewmodel.ProductViewModel
 
 class AdminUserDetailActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -62,7 +65,9 @@ fun AdminUserDetailScreen() {
     val userId = activity?.intent?.getStringExtra("userId") ?: ""
 
     val viewModel = remember { UserViewModel(UserRepoImpl()) }
+    val productViewModel = remember { ProductViewModel(ProductRepoImpl()) }
     val user by viewModel.users.collectAsState()
+    val userProducts by productViewModel.allProducts.collectAsState()
 
     // Editing states
     var isEditing by remember { mutableStateOf(false) }
@@ -75,6 +80,7 @@ fun AdminUserDetailScreen() {
     LaunchedEffect(userId) {
         if (userId.isNotEmpty()) {
             viewModel.getUserById(userId) { _, _, _ -> }
+            productViewModel.getProductsByOwner(userId)
         }
     }
 
@@ -307,6 +313,60 @@ fun AdminUserDetailScreen() {
                     DetailItem(label = "Status", value = if (user!!.isBlocked) "Blocked" else "Active", color = if (user!!.isBlocked) Color.Red else Greenish)
                     DetailItem(label = "Restrictions", value = if (user!!.isRestricted) "Restricted" else "None", color = if (user!!.isRestricted) Color(0xFFFFA500) else Greenish)
                     
+                    Spacer(modifier = Modifier.height(32.dp))
+
+                    // User Listings Section
+                    Text(
+                        text = "User Listings",
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.Black,
+                        modifier = Modifier.align(Alignment.Start)
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    if (userProducts.isEmpty()) {
+                        Text(
+                            text = "No listings found for this user.",
+                            color = Color.Gray,
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        )
+                    } else {
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(16.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            userProducts.forEach { product ->
+                                ItemCardItem(
+                                    product = product,
+                                    onListClick = {
+                                        productViewModel.listProduct(product.productId, true) { success: Boolean, _: String ->
+                                            if (success) {
+                                                Toast.makeText(context, "Item Listed", Toast.LENGTH_SHORT).show()
+                                                productViewModel.getProductsByOwner(userId)
+                                            }
+                                        }
+                                    },
+                                    onUnlistClick = {
+                                        productViewModel.listProduct(product.productId, false) { success: Boolean, _: String ->
+                                            if (success) {
+                                                Toast.makeText(context, "Item Unlisted", Toast.LENGTH_SHORT).show()
+                                                productViewModel.getProductsByOwner(userId)
+                                            }
+                                        }
+                                    },
+                                    onDeleteClick = {
+                                        productViewModel.deleteProduct(product.productId) { success: Boolean, _: String ->
+                                            if (success) {
+                                                Toast.makeText(context, "Item Deleted", Toast.LENGTH_SHORT).show()
+                                                productViewModel.getProductsByOwner(userId)
+                                            }
+                                        }
+                                    }
+                                )
+                            }
+                        }
+                    }
                     Spacer(modifier = Modifier.height(32.dp))
                     
                 }
