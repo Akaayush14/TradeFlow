@@ -1,3 +1,5 @@
+import java.util.Properties
+import java.io.FileInputStream
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -5,11 +7,14 @@ plugins {
     alias(libs.plugins.google.gms.google.services)
 }
 
+val localProperties = Properties()
+val localPropertiesFile = rootProject.file("local.properties")
+if (localPropertiesFile.exists()) {
+    localPropertiesFile.inputStream().use { localProperties.load(it) }
+}
 android {
     namespace = "com.example.tradeflow"
-    compileSdk {
-        version = release(36)
-    }
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.example.tradeflow"
@@ -19,6 +24,16 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        val apiKey = localProperties.getProperty("GEMINI_API_KEY") ?: ""
+        buildConfigField("String", "GEMINI_API_KEY", "\"$apiKey\"")
+
+        val apiKey1 = localProperties.getProperty("GEMINI_API_KEY_1") ?: ""
+        val apiKey2 = localProperties.getProperty("GEMINI_API_KEY_2") ?: ""
+        val apiKey3 = localProperties.getProperty("GEMINI_API_KEY_3") ?: ""
+        val apiKey4 = localProperties.getProperty("GEMINI_API_KEY_4") ?: ""
+
+        buildConfigField("String[]", "GEMINI_API_KEYS", "new String[]{\"${apiKey1}\", \"${apiKey2}\", \"${apiKey3}\", \"${apiKey4}\"}")
     }
 
     buildTypes {
@@ -39,6 +54,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
@@ -96,5 +112,9 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.test.manifest)
 
     implementation("androidx.lifecycle:lifecycle-livedata-ktx:2.6.2")
-    implementation("androidx.compose.runtime:runtime-livedata:1.5.4")
+    implementation("androidx.compose.runtime:runtime-livedata:1.6.8")
+
+    // gemenai
+    implementation("com.google.ai.client.generativeai:generativeai:0.9.0")
+
 }

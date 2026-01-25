@@ -63,14 +63,13 @@ fun EditAdminProfileScreen(onBackClick: () -> Unit = {}) {
     var location by remember { mutableStateOf("") }
     var gender by remember { mutableStateOf("Gender") }
     var age by remember { mutableStateOf(0) }
-    var agreedToTerms by remember { mutableStateOf(false) }
     var showGenderMenu by remember { mutableStateOf(false) }
     var showDiscardDialog by remember { mutableStateOf(false) }
     var pendingNavigation by remember { mutableStateOf<String?>(null) }
 
     // Check if any field has been modified
     val hasChanges = name.isNotEmpty() || dateOfBirth.isNotEmpty() ||
-            location.isNotEmpty() || gender != "Gender" || agreedToTerms
+            location.isNotEmpty() || gender != "Gender"
 
     // Handle back button press
     BackHandler {
@@ -432,13 +431,7 @@ fun EditAdminProfileScreen(onBackClick: () -> Unit = {}) {
             // Confirm Button
             Button(
                 onClick = {
-                    if (!agreedToTerms) {
-                        Toast.makeText(
-                            context,
-                            "Please agree to the Terms and Conditions and Privacy Policy",
-                            Toast.LENGTH_LONG
-                        ).show()
-                    } else if (name.isEmpty() || dateOfBirth.isEmpty() || location.isEmpty()) {
+                    if (name.isEmpty() || dateOfBirth.isEmpty() || location.isEmpty()) {
                         Toast.makeText(
                             context,
                             "Please fill all fields",
@@ -463,7 +456,7 @@ fun EditAdminProfileScreen(onBackClick: () -> Unit = {}) {
                     .fillMaxWidth()
                     .height(56.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFF007AFF)
+                    containerColor = Greenish
                 ),
                 shape = RoundedCornerShape(28.dp)
             ) {
@@ -472,64 +465,6 @@ fun EditAdminProfileScreen(onBackClick: () -> Unit = {}) {
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color.White
-                )
-            }
-
-            // Terms and Conditions Checkbox
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { agreedToTerms = !agreedToTerms },
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Checkbox(
-                    checked = agreedToTerms,
-                    onCheckedChange = { agreedToTerms = it },
-                    colors = CheckboxDefaults.colors(
-                        checkedColor = DarkGreen,
-                        uncheckedColor = Color.Gray
-                    )
-                )
-
-                val annotatedText = buildAnnotatedString {
-                    append("I've read and agree with the ")
-
-                    pushStringAnnotation(tag = "terms", annotation = "terms")
-                    withStyle(style = SpanStyle(color = Color(0xFF007AFF), fontWeight = FontWeight.Normal)) {
-                        append("Terms and Conditions")
-                    }
-                    pop()
-
-                    append(" and the ")
-
-                    pushStringAnnotation(tag = "privacy", annotation = "privacy")
-                    withStyle(style = SpanStyle(color = Color(0xFF007AFF), fontWeight = FontWeight.Normal)) {
-                        append("Privacy Policy")
-                    }
-                    pop()
-
-                    append(".")
-                }
-
-                ClickableText(
-                    text = annotatedText,
-                    style = MaterialTheme.typography.bodyMedium.copy(
-                        fontSize = 13.sp,
-                        color = Color.Gray
-                    ),
-                    onClick = { offset ->
-                        annotatedText.getStringAnnotations(tag = "terms", start = offset, end = offset)
-                            .firstOrNull()?.let {
-                                val intent = Intent(context, AdminTermsAndCondition::class.java)
-                                context.startActivity(intent)
-                            }
-
-                        annotatedText.getStringAnnotations(tag = "privacy", start = offset, end = offset)
-                            .firstOrNull()?.let {
-                                val intent = Intent(context, AdminPrivacyPolicy::class.java)
-                                context.startActivity(intent)
-                            }
-                    }
                 )
             }
 

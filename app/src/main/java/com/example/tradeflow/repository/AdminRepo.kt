@@ -1,5 +1,7 @@
 package com.example.tradeflow.repository
 
+import android.content.Context
+import android.net.Uri
 import com.example.tradeflow.model.AdminModel
 import com.google.firebase.auth.FirebaseUser
 
@@ -48,4 +50,13 @@ interface AdminRepo {
         isRestricted: Boolean,
         callback: (Boolean, String) -> Unit
     )
+
+    fun updateAdmin(
+        userId: String,
+        data: Map<String, Any>,
+        callback: (Boolean, String) -> Unit
+    )
+
+    fun uploadImage(context: Context, imageUri: Uri, callback: (String?) -> Unit)
+    fun getFileNameFromUri(context: Context, uri: Uri): String?
 }
