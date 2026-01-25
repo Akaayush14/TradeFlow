@@ -92,11 +92,16 @@ import androidx.compose.foundation.lazy.grid.GridItemSpan
 
 import com.example.tradeflow.repository.SavedItemRepoImpl
 import com.example.tradeflow.viewmodel.SavedItemViewModel
+import com.example.tradeflow.repository.SearchHistoryRepoImpl
+import com.example.tradeflow.viewmodel.SearchHistoryViewModel
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Badge
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.ImeAction
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -112,6 +117,7 @@ fun UserExploreScreen() {
     val productViewModel: ProductViewModel = remember { ProductViewModel(ProductRepoImpl()) }
     val userViewModel: UserViewModel = remember { UserViewModel(UserRepoImpl()) }
     val savedItemViewModel: SavedItemViewModel = remember { SavedItemViewModel(SavedItemRepoImpl()) }
+    val searchHistoryViewModel: SearchHistoryViewModel = remember { SearchHistoryViewModel(SearchHistoryRepoImpl()) }
 
     val currentUser = FirebaseAuth.getInstance().currentUser
     val userId = currentUser?.uid ?: ""
@@ -124,12 +130,14 @@ fun UserExploreScreen() {
                 // User data loaded
             }
             savedItemViewModel.getSavedItems(userId)
+            searchHistoryViewModel.getSearchHistory(userId)
         }
     }
 
     val allProducts by productViewModel.allProducts.collectAsState()
     val savedItems by savedItemViewModel.savedItems.collectAsState()
     val savedProductIds by savedItemViewModel.savedProductIds.collectAsState()
+    val searchHistory by searchHistoryViewModel.searchHistory.collectAsState()
     val userData by userViewModel.users.collectAsState()
     val allUsers by userViewModel.allUsers.collectAsState()
     val userPoints = userData?.points ?: 0L
@@ -164,7 +172,25 @@ fun UserExploreScreen() {
     val recommendedAllProducts = if (searchQuery.isNotEmpty()) {
         filteredProducts
     } else {
-        availableProducts.sortedByDescending { it.createdAt }
+        if (searchHistory.isNotEmpty()) {
+            val keywords = searchHistory.map { it.query.lowercase() }.distinct()
+            availableProducts.sortedWith(
+                compareByDescending<ProductModel> { product ->
+                    var score = 0
+                    val title = product.name.lowercase()
+                    val desc = product.description.lowercase()
+                    val cat = product.category.lowercase()
+                    keywords.forEach { keyword ->
+                        if (title.contains(keyword)) score += 3
+                        if (desc.contains(keyword)) score += 1
+                        if (cat.contains(keyword)) score += 2
+                    }
+                    score
+                }.thenByDescending { it.createdAt }
+            )
+        } else {
+            availableProducts.sortedByDescending { it.createdAt }
+        }
     }
 
     val recommendedRowProducts = recommendedAllProducts.take(10)
@@ -315,7 +341,16 @@ fun UserExploreScreen() {
                                 fontSize = 16.sp
                             ),
                             shape = RoundedCornerShape(24.dp),
-                            singleLine = true)
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                            keyboardActions = KeyboardActions(
+                                onSearch = {
+                                    if (searchQuery.isNotBlank() && userId.isNotEmpty()) {
+                                        searchHistoryViewModel.saveSearch(userId, searchQuery)
+                                    }
+                                }
+                            )
+                        )
                     },
                     actions = {
                         IconButton(onClick = {
