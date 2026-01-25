@@ -147,7 +147,7 @@ fun UserExploreScreen() {
     }
 
     val availableProducts = allProducts.filter { product ->
-        !product.isDeleted && product.status == "Available" && product.ownerId != userId
+        !product.isDeleted && product.status == "Available" && product.isListed
     }
 
     val filteredProducts = availableProducts.filter { product ->
