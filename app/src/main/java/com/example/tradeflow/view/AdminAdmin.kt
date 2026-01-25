@@ -236,12 +236,19 @@ fun AdminListContent() {
     val listState = rememberLazyListState()
     var isRefreshing by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
+    
+    // Get current logged-in admin's ID
+    val currentAdminId = viewModel.getCurrentUser()?.uid
 
     LaunchedEffect(Unit) {
         viewModel.getAllAdmins()
     }
 
     val hasInternet = isInternetAvailableAdmin(context)
+    
+    // Filter out the current admin from the list
+    val filteredAdmins = admins?.filter { it.userId != currentAdminId }
+
     PullToRefreshLayout(
         isRefreshing = isRefreshing,
         onRefresh = {
@@ -263,7 +270,7 @@ fun AdminListContent() {
                     contentDescription = null
                 )
             }
-        } else if (admins == null || admins!!.isEmpty()) {
+        } else if (filteredAdmins == null || filteredAdmins.isEmpty()) {
             Box(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
@@ -278,7 +285,7 @@ fun AdminListContent() {
                 state = listState,
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                items(admins!!) { admin ->
+                items(filteredAdmins) { admin ->
                     AdminCard(
                         admin = admin,
                         viewModel = viewModel
