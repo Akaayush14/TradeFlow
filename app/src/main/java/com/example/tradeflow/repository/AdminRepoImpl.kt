@@ -105,6 +105,19 @@ class AdminRepoImpl : AdminRepo {
                 if (snapshot.exists()) {
                     val admin = snapshot.getValue(AdminModel::class.java)
                     if (admin != null){
+                        // Explicitly fetch boolean status flags
+                        if (snapshot.hasChild("isBlocked")) {
+                            admin.isBlocked = snapshot.child("isBlocked").getValue(Boolean::class.java) ?: false
+                        } else {
+                            admin.isBlocked = false
+                        }
+                        
+                        if (snapshot.hasChild("isRestricted")) {
+                            admin.isRestricted = snapshot.child("isRestricted").getValue(Boolean::class.java) ?: false
+                        } else {
+                            admin.isRestricted = false
+                        }
+                        
                         callback(true, "Profile Fetched ", admin)
                     }
                 }

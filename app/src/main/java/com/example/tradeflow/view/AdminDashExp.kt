@@ -289,6 +289,16 @@ fun AdminExploreScreen(
     var showPasswordDialog by remember { mutableStateOf(false) }
     var passwordInput by remember { mutableStateOf("") }
 
+    val adminViewModel = remember { AdminViewModel(AdminRepoImpl()) }
+    val currentAdmin by adminViewModel.admin.collectAsState()
+
+    LaunchedEffect(Unit) {
+        val currentUser = adminViewModel.getCurrentUser()
+        if (currentUser != null) {
+            adminViewModel.getAdminById(currentUser.uid)
+        }
+    }
+
     Scaffold(
         contentWindowInsets = WindowInsets.systemBars.only(WindowInsetsSides.Horizontal),
         topBar = {
@@ -356,7 +366,13 @@ fun AdminExploreScreen(
         },
         floatingActionButton = {
             FloatingActionButton(
-                onClick = { showPasswordDialog = true },
+                onClick = { 
+                    if (currentAdmin?.isRestricted == true) {
+                        Toast.makeText(context, "you don't have the permissions to access the super admin", Toast.LENGTH_SHORT).show()
+                    } else {
+                        showPasswordDialog = true 
+                    }
+                },
                 containerColor = Greenish,
                 contentColor = Color.White
             ) {
