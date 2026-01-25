@@ -310,31 +310,21 @@ fun ListedItemsContent() {
                     onClick = {
                         productViewModel.listProduct(product.productId, false) { success, message ->
                             if (success) {
-                                // Create notification
-                                val notification = NotificationModel(
-                                    message = "Item '${product.name}' has been unlisted successfully",
-                                    type = "item_unlisted",
-                                    itemId = product.productId
-                                )
-                                notificationViewModel.addNotification(notification) { _, _ -> }
-
-                                // Notify User
-                                val displayImage = if (product.imageUrl.isNotEmpty()) product.imageUrl else product.imageUrls.firstOrNull() ?: ""
-                                val userNotification = UserNotificationModel(
-                                    type = "MESSAGE",
-                                    requestType = "System",
-                                    title = "Product Unlisted",
-                                    message = "Your product '${product.name}' has been unlisted by Admin.",
-                                    receiverId = product.ownerId,
-                                    productId = product.productId,
-                                    productName = product.name,
-                                    productImage = displayImage,
-                                    senderName = "Admin",
-                                    senderId = "ADMIN"
-                                )
-                                userNotificationRepo.createNotification(userNotification) { _, _ -> }
-
-                                Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+                                // Create notification for user
+                                 val notification = UserNotificationModel(
+                                     type = "ADMIN_UPDATE",
+                                     title = "Product Unlisted by Admin",
+                                     message = "Your product '${product.name}' has been unlisted by an admin.",
+                                     senderName = "Admin",
+                                     receiverId = product.ownerId,
+                                     productId = product.productId,
+                                     productName = product.name,
+                                     productImage = product.imageUrl,
+                                     isRead = false,
+                                     createdAt = System.currentTimeMillis()
+                                 )
+                                 userNotificationRepo.createNotification(notification) { _, _ -> }
+                                Toast.makeText(context, "Item Unlisted", Toast.LENGTH_SHORT).show()
                                 showUnlistDialog = null
                             } else {
                                 Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
@@ -371,14 +361,21 @@ fun ListedItemsContent() {
                     onClick = {
                         productViewModel.deleteProduct(product.productId) { success, message ->
                             if (success) {
-                                // Create notification
-                                val notification = NotificationModel(
-                                    message = "Item '${product.name}' has been deleted successfully",
-                                    type = "item_deleted",
-                                    itemId = product.productId
-                                )
-                                notificationViewModel.addNotification(notification) { _, _ -> }
-                                Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+                                // Create notification for user
+                                 val notification = UserNotificationModel(
+                                     type = "ADMIN_UPDATE",
+                                     title = "Product Deleted by Admin",
+                                     message = "Your product '${product.name}' has been deleted by an admin.",
+                                     senderName = "Admin",
+                                     receiverId = product.ownerId,
+                                     productId = product.productId,
+                                     productName = product.name,
+                                     productImage = product.imageUrl,
+                                     isRead = false,
+                                     createdAt = System.currentTimeMillis()
+                                 )
+                                 userNotificationRepo.createNotification(notification) { _, _ -> }
+                                Toast.makeText(context, "Item Deleted", Toast.LENGTH_SHORT).show()
                                 productViewModel.getAllProduct()
                             } else {
                                 Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
@@ -489,31 +486,21 @@ fun UnlistedItemsContent() {
                     onClick = {
                         productViewModel.listProduct(product.productId, true) { success, message ->
                             if (success) {
-                                // Create notification
-                                val notification = NotificationModel(
-                                    message = "Item '${product.name}' has been listed successfully",
-                                    type = "item_listed",
-                                    itemId = product.productId
-                                )
-                                notificationViewModel.addNotification(notification) { _, _ -> }
-
-                                // Notify User
-                                val displayImage = if (product.imageUrl.isNotEmpty()) product.imageUrl else product.imageUrls.firstOrNull() ?: ""
-                                val userNotification = UserNotificationModel(
-                                    type = "MESSAGE",
-                                    requestType = "System",
-                                    title = "Product Listed",
-                                    message = "Your product '${product.name}' is now listed.",
-                                    receiverId = product.ownerId,
-                                    productId = product.productId,
-                                    productName = product.name,
-                                    productImage = displayImage,
-                                    senderName = "Admin",
-                                    senderId = "ADMIN"
-                                )
-                                userNotificationRepo.createNotification(userNotification) { _, _ -> }
-
-                                Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+                                // Create notification for user
+                                 val notification = UserNotificationModel(
+                                     type = "ADMIN_UPDATE",
+                                     title = "Product Listed by Admin",
+                                     message = "Your product '${product.name}' has been listed by an admin.",
+                                     senderName = "Admin",
+                                     receiverId = product.ownerId,
+                                     productId = product.productId,
+                                     productName = product.name,
+                                     productImage = product.imageUrl,
+                                     isRead = false,
+                                     createdAt = System.currentTimeMillis()
+                                 )
+                                 userNotificationRepo.createNotification(notification) { _, _ -> }
+                                Toast.makeText(context, "Item Listed", Toast.LENGTH_SHORT).show()
                                 showListDialog = null
                             } else {
                                 Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
@@ -550,14 +537,21 @@ fun UnlistedItemsContent() {
                     onClick = {
                         productViewModel.deleteProduct(product.productId) { success, message ->
                             if (success) {
-                                // Create notification
-                                val notification = NotificationModel(
-                                    message = "Item '${product.name}' has been deleted successfully",
-                                    type = "item_deleted",
-                                    itemId = product.productId
-                                )
-                                notificationViewModel.addNotification(notification) { _, _ -> }
-                                Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+                                // Create notification for user
+                                 val notification = UserNotificationModel(
+                                     type = "ADMIN_UPDATE",
+                                     title = "Product Deleted by Admin",
+                                     message = "Your product '${product.name}' has been deleted by an admin.",
+                                     senderName = "Admin",
+                                     receiverId = product.ownerId,
+                                     productId = product.productId,
+                                     productName = product.name,
+                                     productImage = product.imageUrl,
+                                     isRead = false,
+                                     createdAt = System.currentTimeMillis()
+                                 )
+                                 userNotificationRepo.createNotification(notification) { _, _ -> }
+                                Toast.makeText(context, "Item Deleted", Toast.LENGTH_SHORT).show()
                                 productViewModel.getAllProduct()
                             } else {
                                 Toast.makeText(context, message, Toast.LENGTH_SHORT).show()

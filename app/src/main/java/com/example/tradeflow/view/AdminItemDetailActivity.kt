@@ -44,17 +44,17 @@ import com.example.tradeflow.model.UserModel
 import com.example.tradeflow.repository.ProductRepoImpl
 import com.example.tradeflow.repository.ReviewRepoImpl
 import com.example.tradeflow.repository.UserRepoImpl
-import com.example.tradeflow.repository.UserNotificationRepoImpl
 import com.example.tradeflow.ui.theme.Greenish
 import com.example.tradeflow.ui.theme.White
 import com.example.tradeflow.viewmodel.ProductViewModel
 import com.example.tradeflow.viewmodel.ReviewViewModel
 import com.example.tradeflow.viewmodel.UserViewModel
-import com.example.tradeflow.viewmodel.UserNotificationViewModel
-import com.example.tradeflow.model.UserNotificationModel
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
 import android.content.Intent
+
+import com.example.tradeflow.model.UserNotificationModel
+import com.example.tradeflow.repository.UserNotificationRepoImpl
 
 class AdminItemDetailActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -147,24 +147,22 @@ fun AdminItemDetailsScreen() {
                             if (updatedProduct != null) {
                                 productViewModel.updateProduct(updatedProduct) { success, message ->
                                     if (success) {
-                                        Toast.makeText(context, "Product Updated Successfully", Toast.LENGTH_SHORT).show()
-                                        
                                         // Notify User
-                                        val displayImage = if (updatedProduct.imageUrl.isNotEmpty()) updatedProduct.imageUrl else updatedProduct.imageUrls.firstOrNull() ?: ""
                                         val notification = UserNotificationModel(
-                                            type = "MESSAGE",
-                                            requestType = "System",
+                                            type = "ADMIN_UPDATE",
                                             title = "Product Updated by Admin",
-                                            message = "Admin has updated details for your product '${updatedProduct.name}'.",
+                                            message = "Your product '${updatedProduct.name}' details have been updated by an admin.",
+                                            senderName = "Admin",
                                             receiverId = updatedProduct.ownerId,
                                             productId = updatedProduct.productId,
                                             productName = updatedProduct.name,
-                                            productImage = displayImage,
-                                            senderName = "Admin",
-                                            senderId = "ADMIN"
+                                            productImage = updatedProduct.imageUrl,
+                                            isRead = false,
+                                            createdAt = System.currentTimeMillis()
                                         )
                                         userNotificationRepo.createNotification(notification) { _, _ -> }
 
+                                        Toast.makeText(context, "Product Updated Successfully", Toast.LENGTH_SHORT).show()
                                         isEditing = false
                                         // Refresh product data
                                         productViewModel.getProductById(productId)

@@ -45,10 +45,10 @@ import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Person
 import com.example.tradeflow.model.ProductModel
-import com.example.tradeflow.model.UserNotificationModel
 import com.example.tradeflow.repository.ProductRepoImpl
-import com.example.tradeflow.repository.UserNotificationRepoImpl
 import com.example.tradeflow.viewmodel.ProductViewModel
+import com.example.tradeflow.model.UserNotificationModel
+import com.example.tradeflow.repository.UserNotificationRepoImpl
 
 class AdminUserDetailActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -345,22 +345,20 @@ fun AdminUserDetailScreen() {
                                     onListClick = {
                                         productViewModel.listProduct(product.productId, true) { success: Boolean, _: String ->
                                             if (success) {
-                                                // Notify User
-                                                val displayImage = if (product.imageUrl.isNotEmpty()) product.imageUrl else product.imageUrls.firstOrNull() ?: ""
+                                                // Create notification for user
                                                 val notification = UserNotificationModel(
-                                                    type = "MESSAGE",
-                                                    requestType = "System",
-                                                    title = "Product Listed",
-                                                    message = "Your product '${product.name}' is now listed.",
+                                                    type = "ADMIN_UPDATE",
+                                                    title = "Product Listed by Admin",
+                                                    message = "Your product '${product.name}' has been listed by an admin.",
+                                                    senderName = "Admin",
                                                     receiverId = product.ownerId,
                                                     productId = product.productId,
                                                     productName = product.name,
-                                                    productImage = displayImage,
-                                                    senderName = "Admin",
-                                                    senderId = "ADMIN"
+                                                    productImage = product.imageUrl,
+                                                    isRead = false,
+                                                    createdAt = System.currentTimeMillis()
                                                 )
                                                 userNotificationRepo.createNotification(notification) { _, _ -> }
-
                                                 Toast.makeText(context, "Item Listed", Toast.LENGTH_SHORT).show()
                                                 productViewModel.getProductsByOwner(userId)
                                             }
@@ -369,22 +367,20 @@ fun AdminUserDetailScreen() {
                                     onUnlistClick = {
                                         productViewModel.listProduct(product.productId, false) { success: Boolean, _: String ->
                                             if (success) {
-                                                // Notify User
-                                                val displayImage = if (product.imageUrl.isNotEmpty()) product.imageUrl else product.imageUrls.firstOrNull() ?: ""
+                                                // Create notification for user
                                                 val notification = UserNotificationModel(
-                                                    type = "MESSAGE",
-                                                    requestType = "System",
-                                                    title = "Product Unlisted",
-                                                    message = "Your product '${product.name}' has been unlisted by Admin.",
+                                                    type = "ADMIN_UPDATE",
+                                                    title = "Product Unlisted by Admin",
+                                                    message = "Your product '${product.name}' has been unlisted by an admin.",
+                                                    senderName = "Admin",
                                                     receiverId = product.ownerId,
                                                     productId = product.productId,
                                                     productName = product.name,
-                                                    productImage = displayImage,
-                                                    senderName = "Admin",
-                                                    senderId = "ADMIN"
+                                                    productImage = product.imageUrl,
+                                                    isRead = false,
+                                                    createdAt = System.currentTimeMillis()
                                                 )
                                                 userNotificationRepo.createNotification(notification) { _, _ -> }
-
                                                 Toast.makeText(context, "Item Unlisted", Toast.LENGTH_SHORT).show()
                                                 productViewModel.getProductsByOwner(userId)
                                             }
@@ -393,6 +389,20 @@ fun AdminUserDetailScreen() {
                                     onDeleteClick = {
                                         productViewModel.deleteProduct(product.productId) { success: Boolean, _: String ->
                                             if (success) {
+                                                // Create notification for user
+                                                val notification = UserNotificationModel(
+                                                    type = "ADMIN_UPDATE",
+                                                    title = "Product Deleted by Admin",
+                                                    message = "Your product '${product.name}' has been deleted by an admin.",
+                                                    senderName = "Admin",
+                                                    receiverId = product.ownerId,
+                                                    productId = product.productId,
+                                                    productName = product.name,
+                                                    productImage = product.imageUrl,
+                                                    isRead = false,
+                                                    createdAt = System.currentTimeMillis()
+                                                )
+                                                userNotificationRepo.createNotification(notification) { _, _ -> }
                                                 Toast.makeText(context, "Item Deleted", Toast.LENGTH_SHORT).show()
                                                 productViewModel.getProductsByOwner(userId)
                                             }

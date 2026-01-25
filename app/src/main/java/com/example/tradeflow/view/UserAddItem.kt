@@ -63,7 +63,6 @@ fun UserAddItemScreen(
     val context = LocalContext.current
     val viewModel = remember { ProductViewModel(ProductRepoImpl()) }
     val userViewModel = remember { UserViewModel(UserRepoImpl()) }
-    val user by userViewModel.users.collectAsState()
 
     // Form fields
     var name by remember { mutableStateOf(initialProduct?.name ?: "") }
@@ -126,13 +125,6 @@ fun UserAddItemScreen(
         }
     }
 
-    // Load User Data
-    LaunchedEffect(ownerId) {
-        if (ownerId.isNotEmpty()) {
-            userViewModel.getUserById(ownerId) { _, _, _ -> }
-        }
-    }
-
     fun validateForm(): Boolean {
         return name.isNotBlank() &&
                 price.isNotBlank() &&
@@ -160,14 +152,6 @@ fun UserAddItemScreen(
 
     fun saveProduct() {
         Log.d("TF_SAVE_FLOW", "Save initiated mode=$mode")
-
-        // Check if user is restricted
-        if (user?.isRestricted == true) {
-            errorMessage = "Your account is restricted. You cannot add or edit items."
-            showErrorDialog = true
-            Log.e("TF_SAVE_FLOW", "User is restricted")
-            return
-        }
 
         if (!validateForm()) {
             errorMessage = "Please fill all fields and agree to terms"
