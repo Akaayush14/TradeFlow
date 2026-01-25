@@ -679,8 +679,8 @@ fun ItemCardItem(
                         Button(
                             onClick = onUnlistClick,
                             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFC107)),
-                            modifier = Modifier.height(40.dp),
-                            contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp)
+                            modifier = Modifier.height(40.dp).weight(1f),
+                            contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 4.dp)
                         ) {
                             Icon(
                                 painter = painterResource(R.drawable.baseline_visibility_off_24),
@@ -688,11 +688,12 @@ fun ItemCardItem(
                                 tint = Color.Black,
                                 modifier = Modifier.size(18.dp)
                             )
-                            Spacer(modifier = Modifier.width(8.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
                             Text(
                                 text = "Unlist",
                                 fontSize = 14.sp,
-                                color = Color.Black
+                                color = Color.Black,
+                                maxLines = 1
                             )
                         }
                     } else {
@@ -700,8 +701,8 @@ fun ItemCardItem(
                         Button(
                             onClick = onListClick,
                             colors = ButtonDefaults.buttonColors(containerColor = DarkGreen),
-                            modifier = Modifier.height(40.dp),
-                            contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp)
+                            modifier = Modifier.height(40.dp).weight(1f),
+                            contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 4.dp)
                         ) {
                             Icon(
                                 painter = painterResource(R.drawable.baseline_visibility_24),
@@ -709,11 +710,12 @@ fun ItemCardItem(
                                 tint = Color.White,
                                 modifier = Modifier.size(18.dp)
                             )
-                            Spacer(modifier = Modifier.width(8.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
                             Text(
                                 text = "List",
                                 fontSize = 14.sp,
-                                color = Color.White
+                                color = Color.White,
+                                maxLines = 1
                             )
                         }
                     }
@@ -722,8 +724,8 @@ fun ItemCardItem(
                     Button(
                         onClick = onDeleteClick,
                         colors = ButtonDefaults.buttonColors(containerColor = Color.Red),
-                        modifier = Modifier.height(40.dp),
-                        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp)
+                        modifier = Modifier.height(40.dp).weight(1f),
+                        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 4.dp)
                     ) {
                         Icon(
                             imageVector = Icons.Filled.Delete,
@@ -731,11 +733,12 @@ fun ItemCardItem(
                             tint = Color.White,
                             modifier = Modifier.size(18.dp)
                         )
-                        Spacer(modifier = Modifier.width(8.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
                         Text(
                             text = "Delete",
                             fontSize = 14.sp,
-                            color = Color.White
+                            color = Color.White,
+                            maxLines = 1
                         )
                     }
                 }
