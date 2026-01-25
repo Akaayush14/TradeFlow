@@ -231,10 +231,17 @@ fun AdminExp() {
                         BadgedNotificationIconExp(
                             unreadCount = unreadCount,
                             iconPainter = painterResource(R.drawable.notification_filled),
-                            contentDescription = "notification"
+                            contentDescription = "Alerts"
                         )
                     },
-                    label = { Text("notification", color = Color.White) }
+                    label = { 
+                        Text(
+                            "Alerts", 
+                            color = Color.White,
+                            maxLines = 1,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                        ) 
+                    }
                 )
 
                 NavigationBarItem(
