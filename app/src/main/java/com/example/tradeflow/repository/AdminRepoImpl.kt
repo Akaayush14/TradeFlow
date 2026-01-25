@@ -19,6 +19,9 @@ import com.google.firebase.database.ValueEventListener
 import java.io.InputStream
 import java.util.concurrent.Executors
 
+import com.google.firebase.FirebaseApp
+import com.google.firebase.FirebaseOptions
+
 class AdminRepoImpl : AdminRepo {
     val auth: FirebaseAuth = FirebaseAuth.getInstance()
     val database: FirebaseDatabase = FirebaseDatabase.getInstance()
@@ -48,16 +51,29 @@ class AdminRepoImpl : AdminRepo {
     }
 
     override fun register(
+        context: Context,
         email: String,
         password: String,
         phone: String,
         callback: (Boolean, String, String) -> Unit
     ) {
-        auth.createUserWithEmailAndPassword(email, password)
+        // Use a secondary Firebase App to avoid signing out the current user
+        val appName = "SecondaryApp"
+        val secondaryApp = try {
+            FirebaseApp.getInstance(appName)
+        } catch (e: IllegalStateException) {
+            val options = FirebaseApp.getInstance().options
+            FirebaseApp.initializeApp(context, options, appName)
+        }
+
+        val secondaryAuth = FirebaseAuth.getInstance(secondaryApp)
+
+        secondaryAuth.createUserWithEmailAndPassword(email, password)
             .addOnCompleteListener {
                 if (it.isSuccessful){
-                    callback(true, "Registration success",
-                        "${auth.currentUser?.uid}")
+                    val newUserId = secondaryAuth.currentUser?.uid ?: ""
+                    secondaryAuth.signOut() // Sign out from secondary app
+                    callback(true, "Registration success", newUserId)
                 }else{
                     callback(false, "${it.exception?.message}", "")
                 }

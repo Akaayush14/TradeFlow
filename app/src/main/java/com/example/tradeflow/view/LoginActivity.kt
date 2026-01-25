@@ -80,26 +80,60 @@ fun LoginScreen() {
 
                         adminsRef.addListenerForSingleValueEvent(object : ValueEventListener {
                             override fun onDataChange(snapshot: DataSnapshot) {
-                                val intent = if (snapshot.exists()) {
-                                    // User exists in Admins collection → Admin Dashboard
-                                    Intent(context, AdminDashExp::class.java)
+                                if (snapshot.exists()) {
+                                    // Check if admin is blocked
+                                    val isBlocked = snapshot.child("isBlocked").getValue(Boolean::class.java) ?: false
+                                    if (isBlocked) {
+                                        auth.signOut()
+                                        errorMessage = "Your account has been blocked. Please contact support."
+                                    } else {
+                                        // User exists in Admins collection → Admin Dashboard
+                                        val intent = Intent(context, AdminDashExp::class.java)
+                                        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                                        context.startActivity(intent)
+                                        (context as? ComponentActivity)?.finish()
+                                    }
                                 } else {
-                                    // User not in Admins collection → Regular User Dashboard
-                                    Intent(context, UserDashboard::class.java)
-                                }
+                                    // User not in Admins collection, check Users collection
+                                    val usersRef = database.getReference("Users").child(userId)
+                                    usersRef.addListenerForSingleValueEvent(object : ValueEventListener {
+                                        override fun onDataChange(userSnapshot: DataSnapshot) {
+                                            if (userSnapshot.exists()) {
+                                                // Check if user is blocked
+                                                val isBlocked = userSnapshot.child("isBlocked").getValue(Boolean::class.java) ?: false
+                                                if (isBlocked) {
+                                                    auth.signOut()
+                                                    errorMessage = "Your account has been blocked. Please contact support."
+                                                } else {
+                                                    // Regular User Dashboard
+                                                    val intent = Intent(context, UserDashboard::class.java)
+                                                    intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                                                    context.startActivity(intent)
+                                                    (context as? ComponentActivity)?.finish()
+                                                }
+                                            } else {
+                                                // User Auth exists but no DB record found (Edge case)
+                                                // Proceed to User Dashboard or show error? 
+                                                // Defaulting to UserDashboard to handle profile creation if needed
+                                                val intent = Intent(context, UserDashboard::class.java)
+                                                intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                                                context.startActivity(intent)
+                                                (context as? ComponentActivity)?.finish()
+                                            }
+                                        }
 
-                                intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-                                context.startActivity(intent)
-                                (context as? ComponentActivity)?.finish()
+                                        override fun onCancelled(error: DatabaseError) {
+                                            errorMessage = "Database error: ${error.message}"
+                                            auth.signOut()
+                                        }
+                                    })
+                                }
                             }
 
                             override fun onCancelled(error: DatabaseError) {
                                 // If we can't check, default to user dashboard
-                                errorMessage = "Network error, logging in as user"
-                                val intent = Intent(context, UserDashboard::class.java)
-                                intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-                                context.startActivity(intent)
-                                (context as? ComponentActivity)?.finish()
+                                errorMessage = "Network error: ${error.message}"
+                                auth.signOut()
                             }
                         })
                     }

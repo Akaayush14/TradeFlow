@@ -570,7 +570,7 @@ fun registerAdmin(
     imageUrl: String,
     onSuccess: () -> Unit
 ) {
-    viewModel.register(email, password, phone) { success, msg, userId ->
+    viewModel.register(context, email, password, phone) { success, msg, userId ->
         if (success) {
             val newAdmin = AdminModel(
                 userId = userId,
