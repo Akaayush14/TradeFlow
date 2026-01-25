@@ -419,7 +419,17 @@ fun AdminItemDetailsScreen() {
                             Spacer(modifier = Modifier.height(8.dp))
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.fillMaxWidth()
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        product?.ownerId?.let { ownerId ->
+                                            if (ownerId.isNotEmpty()) {
+                                                val intent = Intent(context, AdminUserDetailActivity::class.java)
+                                                intent.putExtra("userId", ownerId)
+                                                context.startActivity(intent)
+                                            }
+                                        }
+                                    }
                             ) {
                                 Image(
                                     painter = painterResource(id = R.drawable.ic_launcher_foreground),
