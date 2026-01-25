@@ -2,6 +2,7 @@ package com.example.tradeflow.view
 
 import android.content.Intent
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -12,14 +13,21 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.*
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.*
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.*
 import androidx.compose.ui.window.Dialog
@@ -29,11 +37,11 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.Outline
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.navigation.compose.NavHost
+import coil.compose.AsyncImage
 import com.example.tradeflow.R
 import com.example.tradeflow.UserSettingAboutUsScreen
 import com.example.tradeflow.repository.UserRepoImpl
@@ -60,8 +68,6 @@ fun AppNav() {
         composable("aboutus") { UserSettingAboutUsScreen(navController) }
     }
 }
-
-
 
 class CurvedBottomShape: Shape {
     override fun createOutline(
@@ -100,7 +106,7 @@ fun UserSettingsScreen(navController: NavController) {
     val userViewModel = remember { UserViewModel(UserRepoImpl()) }
     val userData by userViewModel.users.collectAsState()
 
-// Load user data
+    // Load user data
     LaunchedEffect(userId) {
         if (userId.isNotEmpty()) {
             userViewModel.getUserById(userId) { success, message, user ->
@@ -109,6 +115,13 @@ fun UserSettingsScreen(navController: NavController) {
                 }
             }
         }
+    }
+
+    // Debug logging for profile image URL
+    LaunchedEffect(userData) {
+        println("SettingsScreen - User data loaded: ${userData?.name}")
+        println("SettingsScreen - Profile image URL: ${userData?.profileImageUrl}")
+        println("SettingsScreen - Has profileImageUrl: ${userData?.profileImageUrl?.isNotEmpty()}")
     }
 
     // Determine what to display
@@ -122,6 +135,10 @@ fun UserSettingsScreen(navController: NavController) {
         userData?.email?.ifEmpty {
             userEmailFromAuth
         } ?: "Loading..."
+    }
+
+    val profileImageUrl = remember(userData) {
+        userData?.profileImageUrl ?: ""
     }
 
     Column(modifier = Modifier.fillMaxSize()) {
@@ -142,7 +159,28 @@ fun UserSettingsScreen(navController: NavController) {
                         )
                     )
             ) {
-                // ... decorative circles
+                // Decorative circles in background
+                Box(
+                    modifier = Modifier
+                        .size(100.dp)
+                        .offset(x = (-30).dp, y = 30.dp)
+                        .clip(CircleShape)
+                        .background(Color.White.copy(alpha = 0.1f))
+                )
+                Box(
+                    modifier = Modifier
+                        .size(80.dp)
+                        .offset(x = 300.dp, y = 60.dp)
+                        .clip(CircleShape)
+                        .background(Color.White.copy(alpha = 0.08f))
+                )
+                Box(
+                    modifier = Modifier
+                        .size(120.dp)
+                        .offset(x = 250.dp, y = (-40).dp)
+                        .clip(CircleShape)
+                        .background(Color.White.copy(alpha = 0.05f))
+                )
             }
 
             Column(
@@ -151,18 +189,35 @@ fun UserSettingsScreen(navController: NavController) {
                     .padding(top = 130.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Profile picture
+                // Profile picture - UPDATED to use AsyncImage
                 Box(
                     modifier = Modifier
                         .size(150.dp)
                         .clip(CircleShape)
                         .background(Color.LightGray)
+                        .border(
+                            width = 4.dp,
+                            color = Color.White,
+                            shape = CircleShape
+                        )
                 ) {
-                    Image(
-                        painter = painterResource(R.drawable.house_rent_logo),
-                        contentDescription = "Profile Picture",
-                        modifier = Modifier.fillMaxSize()
-                    )
+                    if (profileImageUrl.isNotEmpty()) {
+                        AsyncImage(
+                            model = profileImageUrl,
+                            contentDescription = "Profile Picture",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop,
+                            placeholder = painterResource(R.drawable.placeholderimage),
+                            error = painterResource(R.drawable.house_rent_logo)
+                        )
+                    } else {
+                        Image(
+                            painter = painterResource(R.drawable.house_rent_logo),
+                            contentDescription = "Profile Picture",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(10.dp))
@@ -171,7 +226,8 @@ fun UserSettingsScreen(navController: NavController) {
                 Text(
                     text = displayName,
                     fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Black
                 )
 
                 // Display ACTUAL user email
@@ -184,20 +240,37 @@ fun UserSettingsScreen(navController: NavController) {
         }
 
         Spacer(modifier = Modifier.height(32.dp))
-        SettingsItem("Edit Profile", R.drawable.profile_filled) {
-            navController.navigate("edit_profile")
-        }
-        SettingsItemWithValue("Language", selectedLanguage, R.drawable.language) {
-            showLanguageDialog = true
-        }
-        SettingsItem("Privacy & Security", R.drawable.privacy) {
-            navController.navigate("privacy")
-        }
-        SettingsItem("About us", R.drawable.aboutus) {
-            navController.navigate("aboutus")
-        }
-        SettingsItem("Logout", R.drawable.signout) {
-            showLogoutDialog = true
+
+        // Settings Items
+        LazyColumn(
+            modifier = Modifier.fillMaxWidth(),
+            contentPadding = PaddingValues(bottom = 16.dp)
+        ) {
+            item {
+                SettingsItem("Edit Profile", R.drawable.profile_filled) {
+                    navController.navigate("edit_profile")
+                }
+            }
+            item {
+                SettingsItemWithValue("Language", selectedLanguage, R.drawable.language) {
+                    showLanguageDialog = true
+                }
+            }
+            item {
+                SettingsItem("Privacy & Security", R.drawable.privacy) {
+                    navController.navigate("privacy")
+                }
+            }
+            item {
+                SettingsItem("About us", R.drawable.aboutus) {
+                    navController.navigate("aboutus")
+                }
+            }
+            item {
+                SettingsItem("Logout", R.drawable.signout) {
+                    showLogoutDialog = true
+                }
+            }
         }
     }
 
@@ -234,7 +307,7 @@ fun SettingsItem(title: String, iconRes: Int? = null, onClick: () -> Unit = {}) 
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onClick() }
-            .padding(16.dp),
+            .padding(vertical = 12.dp, horizontal = 16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         if (iconRes != null) {
@@ -245,10 +318,22 @@ fun SettingsItem(title: String, iconRes: Int? = null, onClick: () -> Unit = {}) 
             )
             Spacer(modifier = Modifier.width(16.dp))
         }
-        Text(title, modifier = Modifier.weight(1f))
-        Icon(Icons.Default.KeyboardArrowRight, contentDescription = null, tint = Color.Gray)
+        Text(
+            text = title,
+            modifier = Modifier.weight(1f),
+            fontSize = 16.sp
+        )
+        Icon(
+            Icons.Default.KeyboardArrowRight,
+            contentDescription = null,
+            tint = Color.Gray,
+            modifier = Modifier.size(20.dp)
+        )
     }
-    Divider()
+    Divider(
+        color = Color.LightGray.copy(alpha = 0.3f),
+        thickness = 0.5.dp
+    )
 }
 
 @Composable
@@ -257,7 +342,7 @@ fun SettingsItemWithValue(title: String, value: String, iconRes: Int? = null, on
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onClick() }
-            .padding(16.dp),
+            .padding(vertical = 12.dp, horizontal = 16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         if (iconRes != null) {
@@ -268,18 +353,49 @@ fun SettingsItemWithValue(title: String, value: String, iconRes: Int? = null, on
             )
             Spacer(modifier = Modifier.width(16.dp))
         }
-        Text(title, modifier = Modifier.weight(1f))
-        Text(value, color = Color.Gray)
+        Text(
+            text = title,
+            modifier = Modifier.weight(1f),
+            fontSize = 16.sp
+        )
+        Text(
+            text = value,
+            color = Color.Gray,
+            fontSize = 14.sp
+        )
         Spacer(modifier = Modifier.width(6.dp))
-        Icon(Icons.Default.KeyboardArrowRight, contentDescription = null, tint = Color.Gray)
+        Icon(
+            Icons.Default.KeyboardArrowRight,
+            contentDescription = null,
+            tint = Color.Gray,
+            modifier = Modifier.size(20.dp)
+        )
     }
-    Divider()
+    Divider(
+        color = Color.LightGray.copy(alpha = 0.3f),
+        thickness = 0.5.dp
+    )
 }
 
 /* ---------------- PRIVACY & SECURITY SCREEN ---------------- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun UserSettingPrivacyScreen(navController: NavController) {
+    val context = LocalContext.current
+    val userViewModel = remember { UserViewModel(UserRepoImpl()) }
+    val currentUser = FirebaseAuth.getInstance().currentUser
+
+    // State for Change Password Dialog
+    var showChangePasswordDialog by remember { mutableStateOf(false) }
+    var currentPassword by remember { mutableStateOf("") }
+    var newPassword by remember { mutableStateOf("") }
+    var confirmPassword by remember { mutableStateOf("") }
+    var showCurrentPassword by remember { mutableStateOf(false) }
+    var showNewPassword by remember { mutableStateOf(false) }
+    var showConfirmPassword by remember { mutableStateOf(false) }
+    var isLoading by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf("") }
+
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
@@ -292,30 +408,239 @@ fun UserSettingPrivacyScreen(navController: NavController) {
             )
         }
     ) { padding ->
-        LazyColumn(modifier = Modifier.padding(padding)) {
-            item { Section("Account") }
-            item { PrivacyItem("Change Password") }
-            item { PrivacyItem("Change Email") }
-            item { PrivacyItem("Two-Factor Authentication") }
-            item { Section("Privacy") }
-            item { PrivacyItem("Blocked Users") }
-            item { PrivacyItem("Who can see my items") }
+        Column(
+            modifier = Modifier
+                .padding(padding)
+                .fillMaxSize()
+        ) {
+            Section("Account Security")
+
+            // Only Change Password option
+            PrivacyItem("Change Password") {
+                showChangePasswordDialog = true
+                // Reset form when opening dialog
+                currentPassword = ""
+                newPassword = ""
+                confirmPassword = ""
+                errorMessage = ""
+            }
         }
+    }
+
+    // Change Password Dialog
+    if (showChangePasswordDialog) {
+        AlertDialog(
+            onDismissRequest = { showChangePasswordDialog = false },
+            title = {
+                Text(
+                    "Change Password",
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+            },
+            text = {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    // Current Password Field
+                    OutlinedTextField(
+                        value = currentPassword,
+                        onValueChange = {
+                            currentPassword = it
+                            errorMessage = ""
+                        },
+                        label = { Text("Current Password") },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(8.dp),
+                        visualTransformation = if (showCurrentPassword) VisualTransformation.None
+                        else PasswordVisualTransformation(),
+                        trailingIcon = {
+                            IconButton(
+                                onClick = { showCurrentPassword = !showCurrentPassword },
+                                modifier = Modifier.size(20.dp)
+                            ) {
+                                Icon(
+                                    imageVector = if (showCurrentPassword) Icons.Default.Visibility
+                                    else Icons.Default.VisibilityOff,
+                                    contentDescription = if (showCurrentPassword) "Hide password"
+                                    else "Show password",
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        }
+                    )
+
+                    // New Password Field
+                    OutlinedTextField(
+                        value = newPassword,
+                        onValueChange = {
+                            newPassword = it
+                            errorMessage = ""
+                        },
+                        label = { Text("New Password") },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(8.dp),
+                        visualTransformation = if (showNewPassword) VisualTransformation.None
+                        else PasswordVisualTransformation(),
+                        trailingIcon = {
+                            IconButton(
+                                onClick = { showNewPassword = !showNewPassword },
+                                modifier = Modifier.size(20.dp)
+                            ) {
+                                Icon(
+                                    imageVector = if (showNewPassword) Icons.Default.Visibility
+                                    else Icons.Default.VisibilityOff,
+                                    contentDescription = if (showNewPassword) "Hide password"
+                                    else "Show password",
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        }
+                    )
+
+                    // Confirm Password Field
+                    OutlinedTextField(
+                        value = confirmPassword,
+                        onValueChange = {
+                            confirmPassword = it
+                            errorMessage = ""
+                        },
+                        label = { Text("Confirm New Password") },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(8.dp),
+                        visualTransformation = if (showConfirmPassword) VisualTransformation.None
+                        else PasswordVisualTransformation(),
+                        trailingIcon = {
+                            IconButton(
+                                onClick = { showConfirmPassword = !showConfirmPassword },
+                                modifier = Modifier.size(20.dp)
+                            ) {
+                                Icon(
+                                    imageVector = if (showConfirmPassword) Icons.Default.Visibility
+                                    else Icons.Default.VisibilityOff,
+                                    contentDescription = if (showConfirmPassword) "Hide password"
+                                    else "Show password",
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        }
+                    )
+
+                    // Error message
+                    if (errorMessage.isNotEmpty()) {
+                        Text(
+                            text = errorMessage,
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.labelSmall
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    TextButton(
+                        onClick = { showChangePasswordDialog = false },
+                        enabled = !isLoading
+                    ) {
+                        Text("Cancel")
+                    }
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    Button(
+                        onClick = {
+                            // Validation
+                            if (currentPassword.isEmpty()) {
+                                errorMessage = "Please enter current password"
+                                return@Button
+                            }
+
+                            if (newPassword.isEmpty()) {
+                                errorMessage = "Please enter new password"
+                                return@Button
+                            }
+
+                            if (newPassword.length < 6) {
+                                errorMessage = "New password must be at least 6 characters"
+                                return@Button
+                            }
+
+                            if (confirmPassword.isEmpty()) {
+                                errorMessage = "Please confirm new password"
+                                return@Button
+                            }
+
+                            if (newPassword != confirmPassword) {
+                                errorMessage = "Passwords don't match"
+                                return@Button
+                            }
+
+                            if (newPassword == currentPassword) {
+                                errorMessage = "New password must be different"
+                                return@Button
+                            }
+
+                            // Call change password
+                            isLoading = true
+                            userViewModel.changePassword(currentPassword, newPassword) { success, message ->
+                                isLoading = false
+
+                                if (success) {
+                                    Toast.makeText(context, "Password changed successfully!", Toast.LENGTH_SHORT).show()
+                                    showChangePasswordDialog = false
+                                } else {
+                                    errorMessage = message
+                                }
+                            }
+                        },
+                        enabled = !isLoading
+                    ) {
+                        if (isLoading) {
+                            CircularProgressIndicator(
+                                color = MaterialTheme.colorScheme.onPrimary,
+                                modifier = Modifier.size(16.dp),
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            Text("Change Password")
+                        }
+                    }
+                }
+            }
+        )
     }
 }
 
 @Composable
-fun PrivacyItem(title: String) {
+fun PrivacyItem(title: String, onClick: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { }
-            .padding(16.dp)
+            .clickable { onClick() }
+            .padding(vertical = 12.dp, horizontal = 16.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(title, modifier = Modifier.weight(1f))
-        Icon(Icons.Default.KeyboardArrowRight, contentDescription = null, tint = Color.Gray)
+        Text(
+            text = title,
+            modifier = Modifier.weight(1f),
+            fontSize = 16.sp
+        )
+        Icon(
+            Icons.Default.KeyboardArrowRight,
+            contentDescription = null,
+            tint = Color.Gray,
+            modifier = Modifier.size(20.dp)
+        )
     }
-    Divider()
+    Divider(
+        color = Color.LightGray.copy(alpha = 0.3f),
+        thickness = 0.5.dp
+    )
 }
 
 @Composable
@@ -324,9 +649,14 @@ fun Section(title: String) {
         modifier = Modifier
             .fillMaxWidth()
             .background(Color(0xFF1E88E5).copy(alpha = 0.1f))
-            .padding(12.dp)
+            .padding(horizontal = 16.dp, vertical = 12.dp)
     ) {
-        Text(title, color = Color(0xFF1E88E5), fontWeight = FontWeight.Bold)
+        Text(
+            text = title,
+            color = Color(0xFF1E88E5),
+            fontWeight = FontWeight.Bold,
+            fontSize = 14.sp
+        )
     }
 }
 
@@ -338,6 +668,7 @@ fun IOSStyleLogoutDialog(onCancel: () -> Unit, onConfirm: () -> Unit) {
             modifier = Modifier
                 .padding(16.dp)
                 .fillMaxWidth(),
+            shape = RoundedCornerShape(20.dp),
             colors = CardDefaults.cardColors(containerColor = Color.White)
         ) {
             Column(
@@ -406,6 +737,7 @@ fun IOSStyleLogoutDialog(onCancel: () -> Unit, onConfirm: () -> Unit) {
         }
     }
 }
+
 /* ---------------- LANGUAGE DIALOG ---------------- */
 @Composable
 fun LanguageDialog(
@@ -414,23 +746,46 @@ fun LanguageDialog(
     onLanguageSelected: (String) -> Unit
 ) {
     val languages = listOf("English", "Nepali", "Hindi", "Chinese")
-
     Dialog(onDismissRequest = onDismiss) {
-        Card(shape = RoundedCornerShape(16.dp)) {
+        Card(
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White)
+        ) {
             Column(modifier = Modifier.padding(16.dp)) {
-                Text("Select Language", fontWeight = FontWeight.Bold)
+                Text(
+                    text = "Select Language",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 18.sp
+                )
                 Spacer(modifier = Modifier.height(12.dp))
                 languages.forEach { lang ->
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clickable { onLanguageSelected(lang) }
-                            .padding(vertical = 10.dp)
+                            .padding(vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(lang, modifier = Modifier.weight(1f))
+                        Text(
+                            text = lang,
+                            modifier = Modifier.weight(1f),
+                            fontSize = 16.sp
+                        )
                         if (lang == selectedLanguage) {
-                            Text("✓", color = Color(0xFF1E88E5))
+                            // FIXED: Using Icons.Default.CheckCircle instead of drawable resource
+                            Icon(
+                                Icons.Default.CheckCircle,
+                                contentDescription = "Selected",
+                                tint = Color(0xFF1E88E5),
+                                modifier = Modifier.size(20.dp)
+                            )
                         }
+                    }
+                    if (lang != languages.last()) {
+                        Divider(
+                            color = Color.LightGray.copy(alpha = 0.3f),
+                            thickness = 0.5.dp
+                        )
                     }
                 }
             }
