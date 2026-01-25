@@ -91,8 +91,10 @@ import androidx.compose.foundation.layout.systemBars
 import com.example.tradeflow.R
 import com.example.tradeflow.model.NotificationModel
 import com.example.tradeflow.model.ProductModel
+import com.example.tradeflow.model.UserNotificationModel
 import com.example.tradeflow.repository.NotificationRepoImpl
 import com.example.tradeflow.repository.ProductRepoImpl
+import com.example.tradeflow.repository.UserNotificationRepoImpl
 import com.example.tradeflow.ui.theme.DarkGreen
 import com.example.tradeflow.ui.theme.Greenish
 import com.example.tradeflow.ui.theme.White
@@ -227,6 +229,7 @@ fun ListedItemsContent() {
     val context = LocalContext.current
     val productViewModel = remember { ProductViewModel(ProductRepoImpl()) }
     val notificationViewModel = remember { NotificationViewModel(NotificationRepoImpl()) }
+    val userNotificationRepo = remember { UserNotificationRepoImpl() }
     val allProducts by productViewModel.allProducts.collectAsState()
 
     var showUnlistDialog by remember { mutableStateOf<ProductModel?>(null) }
@@ -314,6 +317,23 @@ fun ListedItemsContent() {
                                     itemId = product.productId
                                 )
                                 notificationViewModel.addNotification(notification) { _, _ -> }
+
+                                // Notify User
+                                val displayImage = if (product.imageUrl.isNotEmpty()) product.imageUrl else product.imageUrls.firstOrNull() ?: ""
+                                val userNotification = UserNotificationModel(
+                                    type = "MESSAGE",
+                                    requestType = "System",
+                                    title = "Product Unlisted",
+                                    message = "Your product '${product.name}' has been unlisted by Admin.",
+                                    receiverId = product.ownerId,
+                                    productId = product.productId,
+                                    productName = product.name,
+                                    productImage = displayImage,
+                                    senderName = "Admin",
+                                    senderId = "ADMIN"
+                                )
+                                userNotificationRepo.createNotification(userNotification) { _, _ -> }
+
                                 Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
                                 showUnlistDialog = null
                             } else {
@@ -388,6 +408,7 @@ fun UnlistedItemsContent() {
     val context = LocalContext.current
     val productViewModel = remember { ProductViewModel(ProductRepoImpl()) }
     val notificationViewModel = remember { NotificationViewModel(NotificationRepoImpl()) }
+    val userNotificationRepo = remember { UserNotificationRepoImpl() }
     val allProducts by productViewModel.allProducts.collectAsState()
 
     var showListDialog by remember { mutableStateOf<ProductModel?>(null) }
@@ -475,6 +496,23 @@ fun UnlistedItemsContent() {
                                     itemId = product.productId
                                 )
                                 notificationViewModel.addNotification(notification) { _, _ -> }
+
+                                // Notify User
+                                val displayImage = if (product.imageUrl.isNotEmpty()) product.imageUrl else product.imageUrls.firstOrNull() ?: ""
+                                val userNotification = UserNotificationModel(
+                                    type = "MESSAGE",
+                                    requestType = "System",
+                                    title = "Product Listed",
+                                    message = "Your product '${product.name}' is now listed.",
+                                    receiverId = product.ownerId,
+                                    productId = product.productId,
+                                    productName = product.name,
+                                    productImage = displayImage,
+                                    senderName = "Admin",
+                                    senderId = "ADMIN"
+                                )
+                                userNotificationRepo.createNotification(userNotification) { _, _ -> }
+
                                 Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
                                 showListDialog = null
                             } else {
