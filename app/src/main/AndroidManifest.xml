@@ -1,13 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
+
     <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />"
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 
     <application
+        android:name=".TradeFlowApp"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
@@ -16,8 +18,18 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.TradeFlow"
-        android:name=".TradeFlowApp"
         tools:replace="android:fullBackupContent">
+        <activity
+            android:name=".view.LocationPickerActivity"
+            android:exported="true"
+            android:label="@string/title_activity_location_picker"
+            android:theme="@style/Theme.TradeFlow">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
         <activity
             android:name=".view.MapActivity"
             android:exported="true"
@@ -25,6 +37,7 @@
             android:theme="@style/Theme.TradeFlow">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
+
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
@@ -85,7 +98,6 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-
         <activity
             android:name=".view.UserDashboard"
             android:exported="true"
@@ -110,7 +122,6 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-
         <activity
             android:name=".view.UserSetting"
             android:exported="true"
@@ -141,7 +152,6 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-
         <activity
             android:name=".view.AdminDashUser"
             android:exported="true"
@@ -152,7 +162,6 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-
         <activity
             android:name=".view.AdminProfile"
             android:exported="true"
@@ -164,7 +173,6 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-
         <activity
             android:name=".view.AdminNotification"
             android:exported="true"
@@ -179,17 +187,14 @@
             android:name=".view.AdminUserMetric"
             android:exported="true"
             android:theme="@style/Theme.TradeFlow" />
-
         <activity
             android:name=".view.AdminAdminMetric"
             android:exported="true"
             android:theme="@style/Theme.TradeFlow" />
-
         <activity
             android:name=".view.AdminProductMetric"
             android:exported="true"
             android:theme="@style/Theme.TradeFlow" />
-
         <activity
             android:name=".view.AdminProductPriceMetric"
             android:exported="true"
@@ -198,7 +203,6 @@
             android:name=".view.AdminAdmin"
             android:exported="false"
             android:theme="@style/Theme.TradeFlow" />
-
         <activity
             android:name=".view.AdminSettings"
             android:exported="true"

@@ -216,8 +216,9 @@ fun LoginScreen() {
                     )
                     Text(
                         text = "Remember me",
+                        color = BlueButton,
                         fontSize = 14.sp,
-                        color = Color.Gray
+                        fontWeight = FontWeight.SemiBold
                     )
                 }
 
