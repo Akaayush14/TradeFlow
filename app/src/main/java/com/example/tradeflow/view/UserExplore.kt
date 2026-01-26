@@ -231,7 +231,7 @@ fun UserExploreScreen() {
 
                             Spacer(modifier = Modifier.width(8.dp))
 
-                            // 🗺 Map Button
+                            //  Map Button
                             Box(
                                 modifier = Modifier
                                     .height(48.dp)
@@ -241,8 +241,6 @@ fun UserExploreScreen() {
                                         val intent = Intent(context, MapActivity::class.java)
                                         context.startActivity(intent)
 
-                                        // TODO: Navigate to Map Screen
-                                        // startActivity(Intent(context, MapActivity::class.java))
                                     }
                                     .padding(horizontal = 16.dp),
                                 contentAlignment = Alignment.Center
