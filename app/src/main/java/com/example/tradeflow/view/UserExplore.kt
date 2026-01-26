@@ -160,8 +160,8 @@ fun UserExploreScreen() {
 
     val filteredProducts = availableProducts.filter { product ->
         val matchesTab = when (selectedTab) {
-            "Rent" -> product.type == "Rent"
-            "Trade" -> product.type == "Barter"
+            "Rent" -> product.type == "Rent" || product.type == "Both"
+            "Barter" -> product.type == "Barter" || product.type == "Both"
             else -> true
         }
         val matchesSearch = product.name.contains(searchQuery, ignoreCase = true) ||
