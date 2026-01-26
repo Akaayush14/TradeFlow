@@ -11,6 +11,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -25,6 +26,11 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import android.app.Activity
+import android.content.Intent
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -111,6 +117,20 @@ fun UserAddItemScreen(
             Log.e("TF_IMAGE_SELECT", "No URI returned for index=$activeImageIndex")
         }
     }
+    val locationPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val selectedAddress = result.data?.getStringExtra(
+                LocationPickerActivity.EXTRA_SELECTED_ADDRESS
+            )
+            if (!selectedAddress.isNullOrEmpty()) {
+                location = selectedAddress
+                Log.d("TF_LOCATION_PICKER", "Selected address: $selectedAddress")
+            }
+        }
+    }
+
 
     // Load initial product data in EDIT mode
     LaunchedEffect(initialProduct?.productId, mode) {
@@ -410,7 +430,7 @@ fun UserAddItemScreen(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    // Location
+                    // Location with Map Picker
                     Box(modifier = Modifier.weight(1f)) {
                         OutlinedTextField(
                             value = location,
@@ -419,6 +439,22 @@ fun UserAddItemScreen(
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true,
                             textStyle = TextStyle(fontSize = 14.sp),
+                            trailingIcon = {
+                                IconButton(
+                                    onClick = {
+                                        val intent = Intent(context, LocationPickerActivity::class.java).apply {
+                                            putExtra(LocationPickerActivity.EXTRA_INITIAL_ADDRESS, location)
+                                        }
+                                        locationPickerLauncher.launch(intent)
+                                    }
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.LocationOn,
+                                        contentDescription = "Pick Location",
+                                        tint = Greenish
+                                    )
+                                }
+                            },
                             keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Next),
                             colors = TextFieldDefaults.colors(
                                 focusedContainerColor = White,
