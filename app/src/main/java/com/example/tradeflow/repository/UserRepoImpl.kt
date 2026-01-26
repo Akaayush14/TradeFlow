@@ -216,7 +216,7 @@ class UserRepoImpl: UserRepo{
             }
         }
     }
-    // for user points delas
+    // for user points deals
     override fun updateUserPoints(
         userId: String,
         newPoints: Long,
