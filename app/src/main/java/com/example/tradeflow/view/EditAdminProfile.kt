@@ -2,36 +2,53 @@ package com.example.tradeflow.view
 
 import android.app.DatePickerDialog
 import android.content.Intent
+import android.net.Uri as AndroidUri
 import android.os.Bundle
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.ClickableText
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import coil.compose.AsyncImage
 import com.example.tradeflow.R
+import com.example.tradeflow.countries
+import com.example.tradeflow.repository.AdminRepoImpl
 import com.example.tradeflow.ui.theme.DarkGreen
 import com.example.tradeflow.ui.theme.Greenish
+import com.example.tradeflow.ui.theme.White
+import com.example.tradeflow.viewmodel.AdminViewModel
+import com.google.firebase.auth.FirebaseAuth
 import java.util.*
 
 class EditAdminProfile : ComponentActivity() {
@@ -50,154 +67,113 @@ class EditAdminProfile : ComponentActivity() {
     }
 }
 
-@Preview
-@Composable
 @OptIn(ExperimentalMaterial3Api::class)
+@Composable
 fun EditAdminProfileScreen(onBackClick: () -> Unit = {}) {
     val context = LocalContext.current
-    val scrollState = rememberScrollState()
+    val viewModel = remember { AdminViewModel(AdminRepoImpl()) }
+    val currentUser = FirebaseAuth.getInstance().currentUser
+    val userId = currentUser?.uid ?: ""
+    val admin by viewModel.admin.collectAsState()
 
-    // Form states
+    // Form fields
     var name by remember { mutableStateOf("") }
-    var dateOfBirth by remember { mutableStateOf("") }
+    var phoneNumber by remember { mutableStateOf("") }
     var location by remember { mutableStateOf("") }
-    var gender by remember { mutableStateOf("Gender") }
-    var age by remember { mutableStateOf(0) }
+    var gender by remember { mutableStateOf("") }
+    var dob by remember { mutableStateOf("") }
+    val genderOptions = listOf("Male", "Female", "Other")
     var showGenderMenu by remember { mutableStateOf(false) }
-    var showDiscardDialog by remember { mutableStateOf(false) }
-    var pendingNavigation by remember { mutableStateOf<String?>(null) }
+    var selectedCountry by remember { mutableStateOf(countries.first { it.name == "Nepal" }) }
+    var showCountryDialog by remember { mutableStateOf(false) }
 
-    // Check if any field has been modified
-    val hasChanges = name.isNotEmpty() || dateOfBirth.isNotEmpty() ||
-            location.isNotEmpty() || gender != "Gender"
+    // UI state
+    var isLoading by remember { mutableStateOf(false) }
+    var showSuccessDialog by remember { mutableStateOf(false) }
+    var showErrorDialog by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf("") }
 
-    // Handle back button press
-    BackHandler {
-        if (hasChanges) {
-            showDiscardDialog = true
-        } else {
-            val intent = Intent(context, AdminSettings::class.java)
-            context.startActivity(intent)
-            if (context is ComponentActivity) {
-                context.finish()
-            }
-        }
-    }
+    // Image state
+    var profileImageUrl by remember { mutableStateOf("") }
+    var isUploadingImage by remember { mutableStateOf(false) }
 
-    // Discard Changes Dialog
-    if (showDiscardDialog) {
-        AlertDialog(
-            onDismissRequest = {
-                showDiscardDialog = false
-                pendingNavigation = null
-            },
-            containerColor = Color.White,
-            title = {
-                Text(
-                    text = "Discard Changes",
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.Black
-                )
-            },
-            text = {
-                Text(
-                    text = "Do you want to discard changes?",
-                    fontSize = 16.sp,
-                    color = Color.Gray
-                )
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        showDiscardDialog = false
-                        when (pendingNavigation) {
-                            "terms" -> {
-                                val intent = Intent(context, AdminTermsAndCondition::class.java)
-                                context.startActivity(intent)
-                            }
-                            "privacy" -> {
-                                val intent = Intent(context, AdminPrivacyPolicy::class.java)
-                                context.startActivity(intent)
-                            }
-                            else -> {
-                                val intent = Intent(context, AdminSettings::class.java)
-                                context.startActivity(intent)
-                                if (context is ComponentActivity) {
-                                    context.finish()
-                                }
-                            }
+    // Image picker launcher
+    val imagePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: AndroidUri? ->
+        if (uri != null) {
+            Log.d("ADMIN_PROFILE_IMAGE", "Image selected: $uri")
+            isUploadingImage = true
+
+            viewModel.uploadImage(context, uri) { cloudinaryUrl ->
+                isUploadingImage = false
+
+                if (cloudinaryUrl != null) {
+                    Log.d("ADMIN_PROFILE_IMAGE", "Cloudinary upload successful: $cloudinaryUrl")
+
+                    val updates = mapOf("imageUrl" to cloudinaryUrl)
+                    viewModel.updateAdmin(userId, updates) { success, message ->
+                        if (success) {
+                            profileImageUrl = cloudinaryUrl
+                            viewModel.getAdminById(userId)
+                            Toast.makeText(context, "Profile photo updated!", Toast.LENGTH_SHORT).show()
+                        } else {
+                            Toast.makeText(context, "Uploaded but failed to save: $message", Toast.LENGTH_SHORT).show()
                         }
-                        pendingNavigation = null
-                    },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color.Red
-                    ),
-                    shape = RoundedCornerShape(8.dp)
-                ) {
-                    Text(
-                        text = "Yes",
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            },
-            dismissButton = {
-                Button(
-                    onClick = {
-                        showDiscardDialog = false
-                        pendingNavigation = null
-                    },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF007AFF)
-                    ),
-                    shape = RoundedCornerShape(8.dp)
-                ) {
-                    Text(
-                        text = "No",
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold
-                    )
+                    }
+                } else {
+                    Log.e("ADMIN_PROFILE_IMAGE", "Cloudinary upload failed")
+                    Toast.makeText(context, "Failed to upload photo", Toast.LENGTH_SHORT).show()
                 }
             }
-        )
+        }
     }
 
-    // Calculate age from date of birth
-    fun calculateAge(dob: String): Int {
-        if (dob.isEmpty()) return 0
-
-        try {
-            val parts = dob.split(" ")
-            if (parts.size != 3) return 0
-
-            val day = parts[0].toInt()
-            val monthStr = parts[1]
-            val year = parts[2].toInt()
-
-            val monthMap = mapOf(
-                "January" to 0, "February" to 1, "March" to 2, "April" to 3,
-                "May" to 4, "June" to 5, "July" to 6, "August" to 7,
-                "September" to 8, "October" to 9, "November" to 10, "December" to 11
-            )
-
-            val month = monthMap[monthStr] ?: 0
-
-            val birthCalendar = Calendar.getInstance().apply {
-                set(year, month, day)
-            }
-
-            val today = Calendar.getInstance()
-            var calculatedAge = today.get(Calendar.YEAR) - birthCalendar.get(Calendar.YEAR)
-
-            if (today.get(Calendar.DAY_OF_YEAR) < birthCalendar.get(Calendar.DAY_OF_YEAR)) {
-                calculatedAge--
-            }
-
-            return calculatedAge
-        } catch (e: Exception) {
-            return 0
+    // Load admin data
+    LaunchedEffect(userId) {
+        if (userId.isNotEmpty()) {
+            viewModel.getAdminById(userId)
         }
+    }
+
+    // Update form fields when admin data changes
+    LaunchedEffect(admin) {
+        admin?.let { adminData ->
+            name = adminData.name
+
+            // Parse phone number (assuming format like "+9779841234567")
+            if (adminData.phone.isNotEmpty()) {
+                val phone = adminData.phone
+                // Simple parsing - you might want to enhance this
+                if (phone.startsWith("+")) {
+                    // Try to find country code
+                    for (country in countries) {
+                        if (phone.startsWith(country.code)) {
+                            selectedCountry = country
+                            phoneNumber = phone.substring(country.code.length)
+                            break
+                        }
+                    }
+                } else {
+                    selectedCountry = countries.first { it.name == "Nepal" }
+                    phoneNumber = phone
+                }
+            } else {
+                selectedCountry = countries.first { it.name == "Nepal" }
+                phoneNumber = ""
+            }
+
+            location = adminData.location ?: ""
+            gender = adminData.gender ?: ""
+            dob = adminData.dateOfBirth ?: ""
+            profileImageUrl = adminData.imageUrl ?: ""
+            Log.d("ADMIN_PROFILE", "Loaded profile image URL: $profileImageUrl")
+        }
+    }
+
+    // Handle back button
+    BackHandler {
+        onBackClick()
     }
 
     Scaffold(
@@ -205,26 +181,15 @@ fun EditAdminProfileScreen(onBackClick: () -> Unit = {}) {
             TopAppBar(
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = Greenish,
-                    titleContentColor = DarkGreen,
-                    navigationIconContentColor = DarkGreen
+                    titleContentColor = White,
+                    navigationIconContentColor = White
                 ),
                 navigationIcon = {
-                    IconButton(onClick = {
-                        if (hasChanges) {
-                            pendingNavigation = "back"
-                            showDiscardDialog = true
-                        } else {
-                            val intent = Intent(context, AdminSettings::class.java)
-                            context.startActivity(intent)
-                            if (context is ComponentActivity) {
-                                context.finish()
-                            }
-                        }
-                    }) {
+                    IconButton(onClick = onBackClick) {
                         Icon(
                             painter = painterResource(id = R.drawable.ic_back),
                             contentDescription = "Back",
-                            tint = Color.White
+                            tint = White
                         )
                     }
                 },
@@ -237,238 +202,565 @@ fun EditAdminProfileScreen(onBackClick: () -> Unit = {}) {
                     ) {
                         Text(
                             text = "Edit Profile",
-                            color = DarkGreen,
+                            color = White,
                             style = MaterialTheme.typography.titleLarge
                         )
                     }
                 }
             )
         }
-    ) { padding ->
+    ) { paddingValues ->
         Column(
             modifier = Modifier
-                .padding(padding)
                 .fillMaxSize()
+                .padding(paddingValues)
+                .verticalScroll(rememberScrollState())
                 .background(Color.White)
-                .verticalScroll(scrollState)
-                .padding(24.dp),
-            verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
-            Spacer(modifier = Modifier.height(40.dp))
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(160.dp)
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                Greenish,
+                                Greenish.copy(alpha = 0.8f),
+                                Greenish.copy(alpha = 0.3f)
+                            )
+                        )
+                    ),
+                contentAlignment = Alignment.BottomCenter
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(140.dp)
+                        .offset(y = 60.dp)
+                ) {
+                    // Profile image container
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clip(CircleShape)
+                            .background(Color.LightGray)
+                            .border(
+                                width = 5.dp,
+                                color = Color.White,
+                                shape = CircleShape
+                            )
+                            .clickable {
+                                if (!isUploadingImage) {
+                                    imagePickerLauncher.launch("image/*")
+                                }
+                            },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (isUploadingImage) {
+                            // Show loading indicator while uploading
+                            CircularProgressIndicator(
+                                modifier = Modifier.align(Alignment.Center),
+                                color = Greenish
+                            )
+                        } else if (profileImageUrl.isNotEmpty()) {
+                            // Show Cloudinary image
+                            AsyncImage(
+                                model = profileImageUrl,
+                                contentDescription = "Profile Picture",
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop,
+                                placeholder = painterResource(R.drawable.placeholderimage),
+                                error = painterResource(R.drawable.ic_user)
+                            )
+                        } else {
+                            // Show default/placeholder
+                            Icon(
+                                painter = painterResource(R.drawable.ic_user),
+                                contentDescription = "Profile Picture",
+                                modifier = Modifier.size(80.dp),
+                                tint = Color.Gray
+                            )
+                        }
+                    }
 
-            // Name Field
-            Column {
-                Text(
-                    text = "Name",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = DarkGreen,
-                    modifier = Modifier.padding(bottom = 8.dp)
-                )
+                    // Edit icon overlay
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .background(DarkGreen)
+                            .align(Alignment.BottomEnd)
+                            .border(
+                                width = 3.dp,
+                                color = Color.White,
+                                shape = CircleShape
+                            )
+                            .clickable {
+                                if (!isUploadingImage) {
+                                    imagePickerLauncher.launch("image/*")
+                                }
+                            },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            Icons.Filled.Edit,
+                            null,
+                            tint = White,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
+            }
 
+            // More spacing between profile picture and form
+            Spacer(modifier = Modifier.height(70.dp))
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp),
+                verticalArrangement = Arrangement.spacedBy(18.dp)
+            ) {
+                // Name field
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(56.dp),
-                    placeholder = { Text("Name...", color = Color.Gray) },
+                    label = { Text("Name") },
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !isLoading,
+                    shape = RoundedCornerShape(12.dp),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = DarkGreen,
-                        unfocusedBorderColor = Color.Gray.copy(alpha = 0.5f),
-                        cursorColor = DarkGreen
-                    ),
-                    shape = RoundedCornerShape(8.dp)
-                )
-            }
-
-            // Date of Birth Field
-            Column {
-                Text(
-                    text = "Date of Birth",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = DarkGreen,
-                    modifier = Modifier.padding(bottom = 8.dp)
+                        focusedBorderColor = Greenish,
+                        focusedLabelColor = Greenish
+                    )
                 )
 
-                OutlinedTextField(
-                    value = dateOfBirth,
-                    onValueChange = { },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(56.dp)
-                        .clickable {
-                            val calendar = Calendar.getInstance()
-                            val year = calendar.get(Calendar.YEAR)
-                            val month = calendar.get(Calendar.MONTH)
-                            val day = calendar.get(Calendar.DAY_OF_MONTH)
-
-                            DatePickerDialog(
-                                context,
-                                { _, selectedYear, selectedMonth, selectedDay ->
-                                    val monthNames = arrayOf(
-                                        "January", "February", "March", "April", "May", "June",
-                                        "July", "August", "September", "October", "November", "December"
-                                    )
-                                    dateOfBirth = "$selectedDay ${monthNames[selectedMonth]} $selectedYear"
-                                    age = calculateAge(dateOfBirth)
-                                },
-                                year,
-                                month,
-                                day
-                            ).apply {
-                                datePicker.maxDate = System.currentTimeMillis()
-                            }.show()
-                        },
-                    readOnly = true,
-                    placeholder = { Text("24 December 1999", color = Color.Gray) },
-                    trailingIcon = {
-                        Icon(
-                            painter = painterResource(id = android.R.drawable.arrow_down_float),
-                            contentDescription = "Select Date",
-                            tint = DarkGreen
-                        )
-                    },
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = DarkGreen,
-                        unfocusedBorderColor = Color.Gray.copy(alpha = 0.5f),
-                        disabledBorderColor = Color.Gray.copy(alpha = 0.5f),
-                        disabledTextColor = Color.Black
-                    ),
-                    shape = RoundedCornerShape(8.dp),
-                    enabled = false
-                )
-            }
-
-            // Location and Gender Row
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                // Location Field
-                Column(modifier = Modifier.weight(1f)) {
+                Column {
                     Text(
-                        text = "Location",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = DarkGreen,
-                        modifier = Modifier.padding(bottom = 8.dp)
+                        text = "Phone Number",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = Color.Gray
                     )
+                    Spacer(modifier = Modifier.height(8.dp))
 
-                    OutlinedTextField(
-                        value = location,
-                        onValueChange = { location = it },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(56.dp),
-                        placeholder = { Text("Location...", color = Color.Gray) },
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = DarkGreen,
-                            unfocusedBorderColor = Color.Gray.copy(alpha = 0.5f),
-                            cursorColor = DarkGreen
-                        ),
-                        shape = RoundedCornerShape(8.dp)
-                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .width(100.dp)
+                                .height(56.dp)
+                                .background(
+                                    color = Color.LightGray,
+                                    shape = RoundedCornerShape(10.dp)
+                                )
+                                .clickable(enabled = !isLoading) {
+                                    showCountryDialog = true
+                                },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "${selectedCountry.flag} ${selectedCountry.code}",
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = Color.DarkGray
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.width(12.dp))
+
+                        // Phone Number Input
+                        OutlinedTextField(
+                            value = phoneNumber,
+                            onValueChange = { phoneNumber = it },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(10.dp),
+                            placeholder = { Text("Enter phone number") },
+                            enabled = !isLoading,
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = Greenish,
+                                focusedLabelColor = Greenish
+                            )
+                        )
+                    }
                 }
 
-                // Gender Field
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "Gender",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = DarkGreen,
-                        modifier = Modifier.padding(bottom = 8.dp)
+                OutlinedTextField(
+                    value = location,
+                    onValueChange = { location = it },
+                    label = { Text("Location") },
+                    modifier = Modifier.fillMaxWidth(),
+                    placeholder = { Text("Enter your location") },
+                    enabled = !isLoading,
+                    shape = RoundedCornerShape(12.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Greenish,
+                        focusedLabelColor = Greenish
                     )
+                )
 
-                    Box {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(modifier = Modifier.weight(0.8f)) {
+                        Text(
+                            text = "Gender",
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = Color.Gray
+                        )
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Box {
+                            OutlinedTextField(
+                                value = gender,
+                                onValueChange = {},
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable(enabled = !isLoading) {
+                                        showGenderMenu = true
+                                    },
+                                readOnly = true,
+                                placeholder = {
+                                    Text(
+                                        "Select Gender",
+                                        color = Color.Gray
+                                    )
+                                },
+                                trailingIcon = {
+                                    Icon(
+                                        painter = painterResource(id = android.R.drawable.arrow_down_float),
+                                        contentDescription = "Select Gender",
+                                        tint = if (isLoading) Color.Gray else Greenish
+                                    )
+                                },
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = Greenish,
+                                    unfocusedBorderColor = Color.Gray,
+                                    disabledBorderColor = Color.Gray,
+                                    disabledTextColor = Color.Black,
+                                    disabledPlaceholderColor = Color.Gray
+                                ),
+                                enabled = false,
+                                shape = RoundedCornerShape(12.dp)
+                            )
+
+                            DropdownMenu(
+                                expanded = showGenderMenu,
+                                onDismissRequest = { showGenderMenu = false }
+                            ) {
+                                genderOptions.forEach { option ->
+                                    DropdownMenuItem(
+                                        text = {
+                                            Text(
+                                                option,
+                                                color = Color.Black
+                                            )
+                                        },
+                                        onClick = {
+                                            gender = option
+                                            showGenderMenu = false
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    // Date of Birth Field
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Date of Birth",
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = Color.Gray
+                        )
+                        Spacer(modifier = Modifier.height(6.dp))
                         OutlinedTextField(
-                            value = gender,
-                            onValueChange = { },
+                            value = dob,
+                            onValueChange = {},
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(56.dp)
-                                .clickable { showGenderMenu = true },
+                                .clickable(enabled = !isLoading) {
+                                    val calendar = Calendar.getInstance()
+                                    val year = calendar.get(Calendar.YEAR)
+                                    val month = calendar.get(Calendar.MONTH)
+                                    val day = calendar.get(Calendar.DAY_OF_MONTH)
+
+                                    DatePickerDialog(
+                                        context,
+                                        { _, selectedYear, selectedMonth, selectedDay ->
+                                            dob = "$selectedDay/${selectedMonth + 1}/$selectedYear"
+                                        },
+                                        year,
+                                        month,
+                                        day
+                                    ).apply {
+                                        datePicker.maxDate = System.currentTimeMillis()
+                                    }.show()
+                                },
                             readOnly = true,
-                            leadingIcon = {
+                            placeholder = {
+                                Text(
+                                    "DD/MM/YYYY",
+                                    color = Color.Gray
+                                )
+                            },
+                            trailingIcon = {
                                 Icon(
-                                    painter = painterResource(id = android.R.drawable.checkbox_on_background),
-                                    contentDescription = "Selected",
-                                    tint = DarkGreen
+                                    painter = painterResource(id = android.R.drawable.arrow_down_float),
+                                    contentDescription = "Select Date",
+                                    tint = if (isLoading) Color.Gray else Greenish
                                 )
                             },
                             colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = DarkGreen,
-                                unfocusedBorderColor = Color.Gray.copy(alpha = 0.5f),
-                                disabledBorderColor = Color.Gray.copy(alpha = 0.5f),
-                                disabledTextColor = Color.Black
+                                focusedBorderColor = Greenish,
+                                unfocusedBorderColor = Color.Gray,
+                                disabledBorderColor = Color.Gray,
+                                disabledTextColor = Color.Black,
+                                disabledPlaceholderColor = Color.Gray
                             ),
-                            shape = RoundedCornerShape(8.dp),
-                            enabled = false
+                            enabled = false,
+                            shape = RoundedCornerShape(12.dp)
                         )
+                    }
+                }
 
-                        DropdownMenu(
-                            expanded = showGenderMenu,
-                            onDismissRequest = { showGenderMenu = false }
-                        ) {
-                            listOf("Male", "Female").forEach { option ->
-                                DropdownMenuItem(
-                                    text = { Text(option) },
-                                    onClick = {
-                                        gender = option
-                                        showGenderMenu = false
+                Spacer(modifier = Modifier.height(15.dp))
+
+                // Save Button
+                Button(
+                    onClick = {
+                        // Validation
+                        when {
+                            name.isBlank() -> {
+                                errorMessage = "Name is required"
+                                showErrorDialog = true
+                            }
+                            phoneNumber.isBlank() -> {
+                                errorMessage = "Phone number is required"
+                                showErrorDialog = true
+                            }
+                            !phoneNumber.all { it.isDigit() } -> {
+                                errorMessage = "Phone number should contain only digits"
+                                showErrorDialog = true
+                            }
+                            phoneNumber.length < 7 -> {
+                                errorMessage = "Phone number must be at least 7 digits"
+                                showErrorDialog = true
+                            }
+                            else -> {
+                                // Save logic
+                                isLoading = true
+                                val updates = mutableMapOf<String, Any>()
+
+                                // Name
+                                if (admin?.name != name) {
+                                    updates["name"] = name.trim()
+                                }
+
+                                // Phone
+                                val newFullPhone = "${selectedCountry.code}${phoneNumber.trim()}"
+                                if (admin?.phone != newFullPhone) {
+                                    updates["phone"] = newFullPhone
+                                }
+
+                                // Location
+                                if (admin?.location != location) {
+                                    updates["location"] = location.trim()
+                                }
+
+                                // Gender
+                                if (admin?.gender != gender) {
+                                    updates["gender"] = gender
+                                }
+
+                                // Date of Birth
+                                if (admin?.dateOfBirth != dob) {
+                                    updates["dateOfBirth"] = dob
+                                }
+
+                                // Profile Image
+                                if (profileImageUrl.isNotEmpty() && admin?.imageUrl != profileImageUrl) {
+                                    updates["imageUrl"] = profileImageUrl
+                                }
+
+                                if (updates.isNotEmpty()) {
+                                    viewModel.updateAdmin(userId, updates) { success, message ->
+                                        isLoading = false
+                                        if (success) {
+                                            showSuccessDialog = true
+                                            viewModel.getAdminById(userId)
+                                        } else {
+                                            errorMessage = message
+                                            showErrorDialog = true
+                                        }
                                     }
+                                } else {
+                                    isLoading = false
+                                    showSuccessDialog = true
+                                }
+                            }
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(58.dp),
+                    shape = RoundedCornerShape(14.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Greenish
+                    ),
+                    enabled = !isLoading
+                ) {
+                    if (isLoading) {
+                        Text(
+                            "Saving...",
+                            color = White,
+                            fontSize = 17.sp
+                        )
+                    } else {
+                        Text(
+                            "Save Changes",
+                            color = White,
+                            fontSize = 17.sp
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+            }
+        }
+    }
+
+    // Country Dialog
+    if (showCountryDialog) {
+        Dialog(onDismissRequest = { showCountryDialog = false }) {
+            Card(
+                shape = RoundedCornerShape(16.dp),
+                modifier = Modifier.fillMaxWidth(0.9f),
+                colors = CardDefaults.cardColors(
+                    containerColor = Color.White
+                )
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp)
+                ) {
+                    Text(
+                        text = "Select Country Code",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(bottom = 16.dp),
+                        color = Color.Black
+                    )
+
+                    LazyColumn(
+                        modifier = Modifier.height(300.dp)
+                    ) {
+                        items(countries) { country ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        selectedCountry = country
+                                        showCountryDialog = false
+                                    }
+                                    .padding(vertical = 12.dp, horizontal = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(country.flag, fontSize = 20.sp)
+                                Spacer(modifier = Modifier.width(16.dp))
+                                Text(
+                                    country.name,
+                                    modifier = Modifier.weight(1f),
+                                    fontSize = 16.sp,
+                                    color = Color.Black
+                                )
+                                Text(
+                                    country.code,
+                                    fontSize = 16.sp,
+                                    color = Color.Black
                                 )
                             }
                         }
                     }
                 }
             }
-
-            Spacer(modifier = Modifier.height(40.dp))
-
-            // Confirm Button
-            Button(
-                onClick = {
-                    if (name.isEmpty() || dateOfBirth.isEmpty() || location.isEmpty()) {
-                        Toast.makeText(
-                            context,
-                            "Please fill all fields",
-                            Toast.LENGTH_SHORT
-                        ).show()
-                    } else {
-                        // TODO: Save profile data to database
-                        Toast.makeText(
-                            context,
-                            "Profile updated successfully",
-                            Toast.LENGTH_SHORT
-                        ).show()
-
-                        val intent = Intent(context, AdminSettings::class.java)
-                        context.startActivity(intent)
-                        if (context is ComponentActivity) {
-                            context.finish()
-                        }
-                    }
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Greenish
-                ),
-                shape = RoundedCornerShape(28.dp)
-            ) {
-                Text(
-                    text = "Confirm",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White
-                )
-            }
-
-            Spacer(modifier = Modifier.height(20.dp))
         }
     }
+
+    // Success Dialog
+    if (showSuccessDialog) {
+        AlertDialog(
+            onDismissRequest = { showSuccessDialog = false },
+            title = {
+                Text(
+                    "Success",
+                    fontWeight = FontWeight.Bold,
+                    color = Greenish
+                )
+            },
+            text = {
+                Text(
+                    "Profile updated successfully!",
+                    color = Color.Black
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showSuccessDialog = false
+                        onBackClick()
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Greenish
+                    )
+                ) {
+                    Text(
+                        "OK",
+                        color = White
+                    )
+                }
+            }
+        )
+    }
+
+    // Error Dialog
+    if (showErrorDialog) {
+        AlertDialog(
+            onDismissRequest = { showErrorDialog = false },
+            title = {
+                Text(
+                    "Error",
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Red
+                )
+            },
+            text = {
+                Text(
+                    errorMessage,
+                    color = Color.Black
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = { showErrorDialog = false },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Greenish
+                    )
+                ) {
+                    Text(
+                        "OK",
+                        color = White
+                    )
+                }
+            }
+        )
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun EditAdminProfilePreview() {
+    EditAdminProfileScreen()
 }

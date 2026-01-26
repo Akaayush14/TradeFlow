@@ -106,4 +106,12 @@ class AdminViewModel(val repo: AdminRepo): ViewModel(){
     fun uploadImage(context: Context, imageUri: Uri, callback: (String?) -> Unit) {
         repo.uploadImage(context, imageUri, callback)
     }
+
+    fun changePassword(
+        currentPassword: String,
+        newPassword: String,
+        callback: (Boolean, String) -> Unit
+    ) {
+        repo.changePassword(currentPassword, newPassword, callback)
+    }
 }
