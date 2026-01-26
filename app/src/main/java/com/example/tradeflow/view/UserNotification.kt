@@ -5,6 +5,8 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -68,16 +70,12 @@ fun UserNotificationScreen(
     }
 
     val filteredNotifications = when (selectedFilter) {
-        "Barter" -> notifications.filter { it.requestType == "BARTER" }
-        "Rent" -> notifications.filter { it.requestType == "RENT" }
         "My Requests" -> emptyList()
         else -> notifications
     }
 
     val filteredMyRequests = when (selectedFilter) {
-        "Barter" -> myRequests.filter { it.productType == "BARTER" }
-        "Rent" -> myRequests.filter { it.productType == "RENT" }
-        "My Requests" -> myRequests
+        "Incoming Request" -> emptyList()
         else -> myRequests
     }
 
@@ -129,23 +127,36 @@ fun UserNotificationScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            val filters = listOf("All", "Barter", "Rent", "My Requests")
+            val filters = listOf("All", "Incoming Request", "My Requests")
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(White)
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    .padding(horizontal = 16.dp, vertical = 12.dp)
+                    .horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 filters.forEach { filter ->
+                    val isSelected = selectedFilter == filter
                     FilterChip(
-                        selected = selectedFilter == filter,
+                        selected = isSelected,
                         onClick = { selectedFilter = filter },
-                        label = { Text(filter, fontSize = 14.sp) },
-                        modifier = Modifier.weight(1f),
+                        label = {
+                            Text(
+                                text = filter,
+                                fontSize = 14.sp,
+                                fontWeight = if (isSelected) FontWeight.Medium else FontWeight.Normal
+                            )
+                        },
+                        shape = RoundedCornerShape(50),
                         colors = FilterChipDefaults.filterChipColors(
                             selectedContainerColor = Color(0xFF2196F3),
-                            selectedLabelColor = White
+                            selectedLabelColor = White,
+                            containerColor = White,
+                            labelColor = Color.Black
+                        ),
+                        border = FilterChipDefaults.filterChipBorder(
+                            borderColor = Color(0xFFE0E0E0)
                         )
                     )
                 }
