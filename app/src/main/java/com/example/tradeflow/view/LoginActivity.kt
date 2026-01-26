@@ -46,6 +46,8 @@ import com.example.tradeflow.RegisterActivity
 import com.example.tradeflow.repository.UserRepoImpl
 import com.example.tradeflow.ui.theme.Greenish
 import androidx.compose.material3.Checkbox
+import android.content.Context
+import androidx.compose.runtime.LaunchedEffect
 
 class LoginActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -63,7 +65,7 @@ fun LoginScreen() {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var showPassword by remember { mutableStateOf(false) }
-    var rememberMe by remember { mutableStateOf(false) }
+
 
     val BlueButton = Color(0xFF006CFF)
     val Teal = Color(0xFF00897B)
@@ -73,6 +75,17 @@ fun LoginScreen() {
 
     //For navigating a var is declared
     val context = LocalContext.current
+    val sharedPrefs = context.getSharedPreferences("login_prefs", Context.MODE_PRIVATE)
+    var rememberMe by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        rememberMe = sharedPrefs.getBoolean("remember", false)
+
+        if (rememberMe) {
+            email = sharedPrefs.getString("email", "") ?: ""
+            password = sharedPrefs.getString("password", "") ?: ""
+        }
+    }
+
     val userViewModel = remember { UserViewModel(UserRepoImpl()) }
 
     fun handleLogin() {
@@ -87,6 +100,15 @@ fun LoginScreen() {
         userViewModel.login(email.trim(), password) { success, message ->
             isLoading = false
             if (success) {
+                if (rememberMe) {
+                    sharedPrefs.edit()
+                        .putString("email", email)
+                        .putString("password", password)
+                        .putBoolean("remember", true)
+                        .apply()
+                } else {
+                    sharedPrefs.edit().clear().apply()
+                }
                 // Navigate to DashboardPage on successful login
                 val intent = Intent(context, UserDashboard::class.java)
                 intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
