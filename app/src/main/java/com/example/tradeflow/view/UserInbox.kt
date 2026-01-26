@@ -26,6 +26,7 @@ import com.example.tradeflow.model.UserModel
 import com.example.tradeflow.ui.theme.Greenish
 import com.example.tradeflow.ui.theme.White
 import com.example.tradeflow.viewmodel.UserViewModel
+import com.example.tradeflow.viewmodel.ChatViewModel
 import kotlinx.coroutines.launch
 
 import com.example.tradeflow.viewmodel.ViewModelFactory
@@ -38,23 +39,32 @@ fun UserInboxScreen(
 ) {
     var searchQuery by remember { mutableStateOf("") }
     val userViewModel: UserViewModel = viewModel(factory = ViewModelFactory())
+    val chatViewModel: ChatViewModel = viewModel(factory = ViewModelFactory())
     val allUsers by userViewModel.allUsers.collectAsState()
+    val chatPartners by chatViewModel.chatPartners.collectAsState()
     val currentUser = userViewModel.getCurrentUser()
 
-    val filteredUsers = remember(searchQuery, allUsers) {
+    val filteredUsers = remember(searchQuery, allUsers, chatPartners) {
         if (searchQuery.isEmpty()) {
-            allUsers?.filter { it.userId != currentUser?.uid } ?: emptyList()
+            allUsers
+                ?.filter { it.userId != currentUser?.uid }
+                ?.filter { chatPartners.contains(it.userId) }
+                ?: emptyList()
         } else {
-            allUsers?.filter {
-                it.userId != currentUser?.uid &&
-                        (it.name.contains(searchQuery, ignoreCase = true) ||
-                                it.email.contains(searchQuery, ignoreCase = true))
-            } ?: emptyList()
+            allUsers
+                ?.filter {
+                    it.userId != currentUser?.uid &&
+                            (it.name.contains(searchQuery, ignoreCase = true) ||
+                                    it.email.contains(searchQuery, ignoreCase = true))
+                }
+                ?.filter { chatPartners.contains(it.userId) }
+                ?: emptyList()
         }
     }
 
     LaunchedEffect(Unit) {
         userViewModel.getAllUser()
+        chatViewModel.loadChatPartners()
     }
 
     Scaffold(

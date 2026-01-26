@@ -24,6 +24,8 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.tradeflow.model.MessageModel
 import com.example.tradeflow.model.UserModel
+import android.widget.Toast
+import androidx.compose.ui.platform.LocalContext
 import com.example.tradeflow.ui.theme.Greenish
 import com.example.tradeflow.ui.theme.White
 import com.example.tradeflow.viewmodel.ChatViewModel
@@ -47,6 +49,7 @@ fun ChatScreen(
 
     val messages by chatViewModel.messages.collectAsState()
     val receiverUser by userViewModel.users.collectAsState()
+    val context = LocalContext.current
 
     var messageText by remember { mutableStateOf("") }
     val lazyListState = rememberLazyListState()
@@ -124,9 +127,14 @@ fun ChatScreen(
 
                 IconButton(
                     onClick = {
-                        if (messageText.isNotBlank()) {
-                            chatViewModel.sendTextMessage(receiverId, messageText) { success, _ ->
-                                if (success) messageText = ""
+                        val text = messageText.trim()
+                        if (text.isNotEmpty()) {
+                            chatViewModel.sendTextMessage(receiverId, text) { success, errorMsg ->
+                                if (success) {
+                                    messageText = ""
+                                } else {
+                                    Toast.makeText(context, errorMsg, Toast.LENGTH_SHORT).show()
+                                }
                             }
                         }
                     },

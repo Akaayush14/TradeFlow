@@ -13,6 +13,8 @@ class ChatViewModel(val repo: ChatRepo) : ViewModel() {
 
     private val _messages = MutableStateFlow<List<MessageModel>>(emptyList())
     val messages: StateFlow<List<MessageModel>> = _messages.asStateFlow()
+    private val _chatPartners = MutableStateFlow<List<String>>(emptyList())
+    val chatPartners: StateFlow<List<String>> = _chatPartners.asStateFlow()
     fun sendTextMessage(
         receiverId: String,
         text: String,
@@ -42,6 +44,14 @@ class ChatViewModel(val repo: ChatRepo) : ViewModel() {
                     // Handle callback if needed
                 }
             )
+        }
+    }
+
+    fun loadChatPartners() {
+        viewModelScope.launch {
+            repo.getChatPartners { success, message, data ->
+                _chatPartners.value = if (success) (data ?: emptyList()) else emptyList()
+            }
         }
     }
 

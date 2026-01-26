@@ -16,6 +16,10 @@ interface ChatRepo {
         callback: (Boolean, String) -> Unit
     )
 
+    fun getChatPartners(
+        callback: (Boolean, String, List<String>?) -> Unit
+    )
+
     fun getCurrentUser(): FirebaseUser?
 
     fun removeListeners()

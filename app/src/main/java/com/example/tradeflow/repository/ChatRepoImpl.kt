@@ -36,7 +36,7 @@ class ChatRepoImpl : ChatRepo {
         )
 
         messagesRef.child(chatId).child(messageId)
-            .setValue(msg.toMap())
+            .setValue(msg)
             .addOnSuccessListener {
                 callback(true, "Message sent")
             }
@@ -81,6 +81,33 @@ class ChatRepoImpl : ChatRepo {
         messageListeners[receiverId] = listener
         messageListenerRefs[receiverId] = chatRef
         callback(true, "Listening to messages")
+    }
+
+    override fun getChatPartners(
+        callback: (Boolean, String, List<String>?) -> Unit
+    ) {
+        val user = getCurrentUser() ?: return callback(false, "Not logged in", null)
+        messagesRef.addListenerForSingleValueEvent(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val partners = mutableSetOf<String>()
+                snapshot.children.forEach { chatSnapshot ->
+                    val chatId = chatSnapshot.key ?: return@forEach
+                    val parts = chatId.split("_")
+                    if (parts.size == 2) {
+                        if (parts[0] == user.uid) {
+                            partners.add(parts[1])
+                        } else if (parts[1] == user.uid) {
+                            partners.add(parts[0])
+                        }
+                    }
+                }
+                callback(true, "Chat partners fetched", partners.toList())
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                callback(false, error.message, null)
+            }
+        })
     }
 
     override fun getCurrentUser(): FirebaseUser? = auth.currentUser

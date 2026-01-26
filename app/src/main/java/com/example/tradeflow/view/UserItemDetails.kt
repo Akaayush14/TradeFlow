@@ -33,6 +33,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.example.tradeflow.R
+import android.content.Intent
 import com.example.tradeflow.repository.ProductRepoImpl
 import com.example.tradeflow.repository.ReviewRepoImpl
 import com.example.tradeflow.repository.UserRepoImpl
@@ -335,7 +336,17 @@ fun ItemDetailsScreen() {
                         ) {
                             Button(
                                 onClick = {
-                                    Toast.makeText(context, "Opening Chat...", Toast.LENGTH_SHORT).show()
+                                    val ownerId = owner?.userId ?: ""
+                                    if (ownerId.isNotEmpty()) {
+                                        val intent = Intent(context, UserDashboard::class.java).apply {
+                                            putExtra("openChat", true)
+                                            putExtra("chatUserId", ownerId)
+                                        }
+                                        context.startActivity(intent)
+                                        activity?.finish()
+                                    } else {
+                                        Toast.makeText(context, "Owner not available", Toast.LENGTH_SHORT).show()
+                                    }
                                 },
                                 modifier = Modifier
                                     .weight(1f)

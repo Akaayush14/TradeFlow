@@ -83,6 +83,18 @@ fun DashboardPageBody() {
     var editingProduct by remember { mutableStateOf<ProductModel?>(null) }
     var showEditSuccess by remember { mutableStateOf(false) }
     var chatUserId by remember { mutableStateOf("") }
+    var initApplied by remember { mutableStateOf(false) }
+
+    val openChat = activity.intent?.getBooleanExtra("openChat", false) ?: false
+    val initialChatUserId = activity.intent?.getStringExtra("chatUserId") ?: ""
+
+    androidx.compose.runtime.LaunchedEffect(openChat, initialChatUserId, initApplied) {
+        if (openChat && initialChatUserId.isNotEmpty() && !initApplied) {
+            chatUserId = initialChatUserId
+            selectedIndex = 5
+            initApplied = true
+        }
+    }
 
     val listItem = listOf(
         NavItem(label = "Explore", R.drawable.explore, R.drawable.explore_filled),
