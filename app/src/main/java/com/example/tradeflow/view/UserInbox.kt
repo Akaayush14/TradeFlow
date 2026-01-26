@@ -23,6 +23,7 @@ import androidx.compose.material3.Badge
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -39,10 +40,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.tradeflow.ui.theme.Greenish
-import com.example.tradeflow.ui.theme.White
 
-// Data model for messages
 data class MessagePreview(
     val id: Int,
     val senderName: String,
@@ -64,18 +62,24 @@ fun UserInboxScreen(onBackClick: () -> Unit = {}) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background)
                 .padding(innerPadding)
         ) {
 
             OutlinedTextField(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
-                placeholder = { Text("Search", color = Color.Gray) },
+                placeholder = {
+                    Text(
+                        "Search",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                },
                 leadingIcon = {
                     Icon(
                         Icons.Default.Search,
                         contentDescription = "Search Icon",
-                        tint = Color.Gray
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 },
                 trailingIcon = {
@@ -84,7 +88,7 @@ fun UserInboxScreen(onBackClick: () -> Unit = {}) {
                             Icon(
                                 imageVector = Icons.Default.Close,
                                 contentDescription = "Clear Search",
-                                tint = Color.Gray
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
@@ -93,19 +97,22 @@ fun UserInboxScreen(onBackClick: () -> Unit = {}) {
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 12.dp),
                 colors = TextFieldDefaults.colors(
-                    focusedContainerColor = Color(0xFFF0F0F0),
-                    unfocusedContainerColor = Color(0xFFF0F0F0),
-                    disabledContainerColor = Color(0xFFF0F0F0),
+                    focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                    disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
                     focusedIndicatorColor = Color.Transparent,
                     unfocusedIndicatorColor = Color.Transparent,
-                    cursorColor = Greenish
+                    cursorColor = MaterialTheme.colorScheme.primary,
+                    focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                    unfocusedTextColor = MaterialTheme.colorScheme.onSurface
                 ),
                 shape = RoundedCornerShape(50.dp)
             )
 
-
             LazyColumn(
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(MaterialTheme.colorScheme.background)
             ) {
                 items(messages) { message ->
                     MessageItem(message = message, onClick = {  })
@@ -118,12 +125,11 @@ fun UserInboxScreen(onBackClick: () -> Unit = {}) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun InboxTopAppBar(onBackClick: () -> Unit = {}) {
-    // Use TradeFlowTopBar for consistent styling
     TradeFlowTopBar(
         title = {
             Text(
                 "Inbox",
-                color = White
+                color = MaterialTheme.colorScheme.onPrimary
             )
         },
         onBackClick = onBackClick
@@ -137,7 +143,8 @@ fun MessageItem(message: MessagePreview, onClick: () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(16.dp),
+            .padding(16.dp)
+            .background(MaterialTheme.colorScheme.background),
         verticalAlignment = Alignment.CenterVertically
     ) {
 
@@ -145,13 +152,13 @@ fun MessageItem(message: MessagePreview, onClick: () -> Unit) {
             modifier = Modifier
                 .size(50.dp)
                 .clip(CircleShape)
-                .background(Color(0xFFE0F2FE))
+                .background(MaterialTheme.colorScheme.primaryContainer)
         ) {
             Icon(
                 Icons.Default.Person,
                 contentDescription = "Avatar",
                 modifier = Modifier.align(Alignment.Center),
-                tint = Color(0xFF0288D1)
+                tint = MaterialTheme.colorScheme.onPrimaryContainer
             )
         }
 
@@ -162,25 +169,24 @@ fun MessageItem(message: MessagePreview, onClick: () -> Unit) {
                 text = message.senderName,
                 fontWeight = FontWeight.Bold,
                 fontSize = 16.sp,
-                color = Color.Black
+                color = MaterialTheme.colorScheme.onSurface
             )
             Text(
                 text = message.lastMessage,
                 fontSize = 14.sp,
-                color = Color.Gray,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
             )
         }
 
         if (message.unreadCount > 0) {
             Spacer(modifier = Modifier.width(8.dp))
-            // The blue circle badge exactly as in the image
             Badge(
-                containerColor = Color(0xFF3B82F6)
+                containerColor = MaterialTheme.colorScheme.primary
             ) {
                 Text(
                     text = message.unreadCount.toString(),
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.onPrimary,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(4.dp)
@@ -189,7 +195,6 @@ fun MessageItem(message: MessagePreview, onClick: () -> Unit) {
         }
     }
 }
-
 
 fun getMockMessages(): List<MessagePreview> {
     return listOf(

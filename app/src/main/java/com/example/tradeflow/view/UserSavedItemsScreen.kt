@@ -34,7 +34,7 @@ fun UserSavedItemsScreen(
                 title = {
                     Text(
                         text = "Saved Items",
-                        color = White
+                        color = MaterialTheme.colorScheme.onPrimary // Changed from White
                     )
                 },
                 onBackClick = onBackClick
@@ -45,12 +45,13 @@ fun UserSavedItemsScreen(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(paddingValues),
+                    .padding(paddingValues)
+                    .background(MaterialTheme.colorScheme.background), // Added background
                 contentAlignment = Alignment.Center
             ) {
                 Text(
                     text = "No saved items yet",
-                    color = Color.Gray,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant, // Changed from Color.Gray
                     fontSize = 16.sp
                 )
             }
@@ -59,7 +60,8 @@ fun UserSavedItemsScreen(
                 columns = GridCells.Fixed(2),
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(paddingValues),
+                    .padding(paddingValues)
+                    .background(MaterialTheme.colorScheme.background), // Added background
                 contentPadding = PaddingValues(16.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
