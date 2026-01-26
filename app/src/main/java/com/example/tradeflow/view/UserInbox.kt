@@ -1,5 +1,6 @@
 package com.example.tradeflow.view
 
+import android.content.Intent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -19,15 +20,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.Badge
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -36,11 +29,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.tradeflow.R
 
+// Data model for messages
 data class MessagePreview(
     val id: Int,
     val senderName: String,
@@ -51,21 +47,40 @@ data class MessagePreview(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun UserInboxScreen(onBackClick: () -> Unit = {}) {
+    val context = LocalContext.current
     var searchQuery by remember { mutableStateOf("") }
     val messages = remember { getMockMessages() }
 
     Scaffold(
         topBar = {
             InboxTopAppBar(onBackClick = onBackClick)
+        },
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = {
+                    // Open Chat Bot
+                    val intent = Intent(context, ChatActivity::class.java)
+                    intent.putExtra("receiverId", "chat_bot")
+                    intent.putExtra("receiverName", "TradeFlow Assistant")
+                    context.startActivity(intent)
+                },
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary
+            ) {
+                Icon(
+                    painter = painterResource(id = R.drawable.ic_chatbot),
+                    contentDescription = "Chat Bot",
+                    modifier = Modifier.size(24.dp)
+                )
+            }
         }
     ) { innerPadding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(MaterialTheme.colorScheme.background)
                 .padding(innerPadding)
+                .background(MaterialTheme.colorScheme.background)
         ) {
-
             OutlinedTextField(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
@@ -100,8 +115,8 @@ fun UserInboxScreen(onBackClick: () -> Unit = {}) {
                     focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
                     unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
                     disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                    focusedIndicatorColor = Color.Transparent,
-                    unfocusedIndicatorColor = Color.Transparent,
+                    focusedIndicatorColor = MaterialTheme.colorScheme.primary,
+                    unfocusedIndicatorColor = MaterialTheme.colorScheme.outline,
                     cursorColor = MaterialTheme.colorScheme.primary,
                     focusedTextColor = MaterialTheme.colorScheme.onSurface,
                     unfocusedTextColor = MaterialTheme.colorScheme.onSurface
@@ -110,9 +125,7 @@ fun UserInboxScreen(onBackClick: () -> Unit = {}) {
             )
 
             LazyColumn(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(MaterialTheme.colorScheme.background)
+                modifier = Modifier.fillMaxWidth()
             ) {
                 items(messages) { message ->
                     MessageItem(message = message, onClick = {  })
@@ -125,6 +138,7 @@ fun UserInboxScreen(onBackClick: () -> Unit = {}) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun InboxTopAppBar(onBackClick: () -> Unit = {}) {
+    // Use TradeFlowTopBar for consistent styling
     TradeFlowTopBar(
         title = {
             Text(
@@ -143,11 +157,9 @@ fun MessageItem(message: MessagePreview, onClick: () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(16.dp)
-            .background(MaterialTheme.colorScheme.background),
+            .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-
         Box(
             modifier = Modifier
                 .size(50.dp)

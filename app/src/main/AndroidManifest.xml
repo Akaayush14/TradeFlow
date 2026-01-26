@@ -206,6 +206,14 @@
             android:exported="false"
             android:theme="@style/Theme.TradeFlow" />
         <activity
+            android:name=".view.AdminItemDetailActivity"
+            android:exported="false"
+            android:theme="@style/Theme.TradeFlow" />
+        <activity
+            android:name=".view.AdminDetailActivity"
+            android:exported="false"
+            android:theme="@style/Theme.TradeFlow" />
+        <activity
             android:name=".view.UserPointsActivity"
             android:exported="false"
             android:theme="@style/Theme.TradeFlow" />
@@ -225,6 +233,14 @@
             android:name=".view.RentalRequestActivity"
             android:exported="false"
             android:theme="@style/Theme.TradeFlow" />
+
+        <!-- ChatActivity - FIXED: Changed to exported="true" -->
+        <activity
+            android:name=".view.ChatActivity"
+            android:exported="true"
+            android:theme="@style/Theme.TradeFlow"
+            android:windowSoftInputMode="adjustResize">
+        </activity>
     </application>
 
 </manifest>
