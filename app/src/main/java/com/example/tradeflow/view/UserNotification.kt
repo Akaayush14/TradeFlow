@@ -13,6 +13,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.outlined.Notifications
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -834,24 +836,48 @@ fun EmptyNotificationState() {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            Icon(
-                painter = painterResource(R.drawable.placeholderimage),
-                contentDescription = "No notifications",
-                modifier = Modifier.size(80.dp),
-                tint = Color(0xFFBDBDBD)
-            )
+            Box(
+                contentAlignment = Alignment.TopEnd
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.Notifications,
+                    contentDescription = "No notifications",
+                    modifier = Modifier
+                        .size(100.dp)
+                        .padding(8.dp),
+                    tint = Greenish
+                )
+
+                Box(
+                    modifier = Modifier
+                        .size(32.dp)
+                        .background(Greenish, CircleShape)
+                        .border(2.dp, White, CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Check,
+                        contentDescription = null,
+                        tint = White,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
+
             Spacer(modifier = Modifier.height(16.dp))
             Text(
                 text = "No notifications yet",
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Medium,
-                color = Color.Gray
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.Black
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = "When you get notifications, they'll show up here",
-                fontSize = 13.sp,
-                color = Color(0xFF9E9E9E)
+                fontSize = 14.sp,
+                color = Color.Gray,
+                modifier = Modifier.padding(horizontal = 32.dp),
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center
             )
         }
     }
