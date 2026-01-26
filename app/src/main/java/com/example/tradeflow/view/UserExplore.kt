@@ -238,6 +238,9 @@ fun UserExploreScreen() {
                                     .clip(RoundedCornerShape(24.dp))
                                     .background(Color.White.copy(alpha = 0.2f))
                                     .clickable {
+                                        val intent = Intent(context, MapActivity::class.java)
+                                        context.startActivity(intent)
+
                                         // TODO: Navigate to Map Screen
                                         // startActivity(Intent(context, MapActivity::class.java))
                                     }
