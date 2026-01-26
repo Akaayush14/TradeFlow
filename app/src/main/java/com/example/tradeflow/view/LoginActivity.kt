@@ -45,6 +45,7 @@ import com.example.tradeflow.R
 import com.example.tradeflow.RegisterActivity
 import com.example.tradeflow.repository.UserRepoImpl
 import com.example.tradeflow.ui.theme.Greenish
+import androidx.compose.material3.Checkbox
 
 class LoginActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -62,6 +63,7 @@ fun LoginScreen() {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var showPassword by remember { mutableStateOf(false) }
+    var rememberMe by remember { mutableStateOf(false) }
 
     val BlueButton = Color(0xFF006CFF)
     val Teal = Color(0xFF00897B)
@@ -176,16 +178,40 @@ fun LoginScreen() {
             Spacer(modifier = Modifier.height(10.dp))
 
             // FORGOT PASSWORD
-            Text(
-                text = "Forgot password?",
-                color = BlueButton,
-                modifier = Modifier.clickable{
-                    context.startActivity(
-                        Intent(context, ForgetPasswordActivity::class.java)
-                    )},
-                fontSize = 14.sp,
-                fontWeight = FontWeight.SemiBold
-            )
+            Spacer(modifier = Modifier.height(10.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+
+                //  Remember Me
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Checkbox(
+                        checked = rememberMe,
+                        onCheckedChange = { rememberMe = it }
+                    )
+                    Text(
+                        text = "Remember me",
+                        fontSize = 14.sp,
+                        color = Color.Gray
+                    )
+                }
+
+                //  Forgot Password
+                Text(
+                    text = "Forgot password?",
+                    color = BlueButton,
+                    modifier = Modifier.clickable{
+                        context.startActivity(
+                            Intent(context, ForgetPasswordActivity::class.java)
+                        )},
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+
 
             Spacer(modifier = Modifier.height(10.dp))
 
