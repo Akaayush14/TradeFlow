@@ -3,6 +3,11 @@ package com.example.tradeflow.view
 import android.app.Activity
 import android.content.Intent
 import android.util.Log
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -17,10 +22,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
@@ -45,8 +52,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import com.example.tradeflow.ui.theme.Greenish
-import com.example.tradeflow.ui.theme.White
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.sp
 import androidx.compose.runtime.LaunchedEffect
@@ -58,15 +63,14 @@ import com.example.tradeflow.viewmodel.ProductViewModel
 import com.example.tradeflow.viewmodel.UserViewModel
 import com.example.tradeflow.model.UserModel
 import com.google.firebase.auth.FirebaseAuth
-
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Card
@@ -78,7 +82,15 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import coil.compose.AsyncImage
 import com.example.tradeflow.R
-
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import com.example.tradeflow.repository.SavedItemRepoImpl
+import com.example.tradeflow.viewmodel.SavedItemViewModel
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.FloatingActionButtonDefaults
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material3.BadgedBox
+import androidx.compose.material3.Badge
+import androidx.compose.ui.graphics.ColorFilter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -88,29 +100,33 @@ fun UserExploreScreen() {
 
     var selectedTab by remember { mutableStateOf("All") }
     var searchQuery by remember { mutableStateOf("") }
+    var showAllRecommended by remember { mutableStateOf(false) }
+    var showSavedScreen by remember { mutableStateOf(false) }
 
     val productViewModel: ProductViewModel = remember { ProductViewModel(ProductRepoImpl()) }
     val userViewModel: UserViewModel = remember { UserViewModel(UserRepoImpl()) }
+    val savedItemViewModel: SavedItemViewModel = remember { SavedItemViewModel(SavedItemRepoImpl()) }
 
     val currentUser = FirebaseAuth.getInstance().currentUser
     val userId = currentUser?.uid ?: ""
 
     LaunchedEffect(Unit) {
         productViewModel.getAllProduct()
-        userViewModel.getAllUser() // Fetch all users
+        userViewModel.getAllUser()
         if (userId.isNotEmpty()) {
             userViewModel.getUserById(userId) { success, _, user ->
-                // User data loaded
             }
+            savedItemViewModel.getSavedItems(userId)
         }
     }
 
     val allProducts by productViewModel.allProducts.collectAsState()
+    val savedItems by savedItemViewModel.savedItems.collectAsState()
+    val savedProductIds by savedItemViewModel.savedProductIds.collectAsState()
     val userData by userViewModel.users.collectAsState()
     val allUsers by userViewModel.allUsers.collectAsState()
     val userPoints = userData?.points ?: 0L
 
-    // Search for users when query is not empty
     val searchedUsers = if (searchQuery.isNotEmpty()) {
         allUsers?.filter { user ->
             (user.name.contains(searchQuery, ignoreCase = true) ||
@@ -122,7 +138,11 @@ fun UserExploreScreen() {
         emptyList()
     }
 
-    val filteredProducts = allProducts.filter { product ->
+    val availableProducts = allProducts.filter { product ->
+        !product.isDeleted && product.status == "Available" && product.ownerId != userId
+    }
+
+    val filteredProducts = availableProducts.filter { product ->
         val matchesTab = when (selectedTab) {
             "Rent" -> product.type == "Rent"
             "Trade" -> product.type == "Barter"
@@ -130,17 +150,77 @@ fun UserExploreScreen() {
         }
         val matchesSearch = product.name.contains(searchQuery, ignoreCase = true) ||
                 product.description.contains(searchQuery, ignoreCase = true)
-        matchesTab && matchesSearch && !product.isDeleted
+        matchesTab && matchesSearch
+    }
+
+    val recommendedAllProducts = if (searchQuery.isNotEmpty()) {
+        filteredProducts
+    } else {
+        availableProducts.sortedByDescending { it.createdAt }
+    }
+
+    val recommendedRowProducts = recommendedAllProducts.take(10)
+    val gridProducts = if (showAllRecommended && recommendedAllProducts.isNotEmpty()) {
+        recommendedAllProducts
+    } else {
+        filteredProducts
+    }
+
+    if (showSavedScreen) {
+        val savedProductsList = allProducts.filter { savedProductIds.contains(it.productId) }
+        UserSavedItemsScreen(
+            savedProducts = savedProductsList,
+            onBackClick = { showSavedScreen = false },
+            onProductClick = { product ->
+                val intent = Intent(context, UserItemDetails::class.java)
+                intent.putExtra("productId", product.productId)
+                context.startActivity(intent)
+            },
+            onUnsaveClick = { product ->
+                if (userId.isNotEmpty()) {
+                    savedItemViewModel.unsaveItem(userId, product.productId)
+                }
+            }
+        )
+        return
     }
 
     Scaffold(
+        floatingActionButton = {
+            AnimatedVisibility(
+                visible = savedItems.isNotEmpty(),
+                enter = fadeIn() + scaleIn(),
+                exit = fadeOut() + scaleOut()
+            ) {
+                Box {
+                    FloatingActionButton(
+                        onClick = { showSavedScreen = true },
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary,
+                        shape = CircleShape
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Favorite,
+                            contentDescription = "Saved Items"
+                        )
+                    }
+                    Badge(
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(top = 0.dp, end = 0.dp)
+                            .offset(x = 4.dp, y = (-4).dp)
+                    ) {
+                        Text(savedItems.size.toString())
+                    }
+                }
+            }
+        },
         topBar = {
             Column {
-                // Points display row
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(Greenish)
+                        .background(MaterialTheme.colorScheme.primary)
                         .padding(horizontal = 16.dp, vertical = 8.dp),
                     horizontalArrangement = Arrangement.End,
                     verticalAlignment = Alignment.CenterVertically
@@ -148,7 +228,7 @@ fun UserExploreScreen() {
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(8.dp))
-                            .background(Color.White.copy(alpha = 0.2f))
+                            .background(MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.2f))
                             .clickable {
                                 val intent = Intent(activity, UserPointsActivity::class.java)
                                 activity.startActivity(intent)
@@ -161,29 +241,31 @@ fun UserExploreScreen() {
                         ) {
                             Text(
                                 text = "$userPoints Points",
-                                color = White,
+                                color = MaterialTheme.colorScheme.onPrimary,
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.Bold
                             )
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(
                                 text = "Use >",
-                                color = White,
+                                color = MaterialTheme.colorScheme.onPrimary,
                                 fontSize = 12.sp
                             )
                         }
                     }
                 }
-                // Search bar
                 TradeFlowTopBar(
                     title = {
                         TextField(
                             value = searchQuery,
-                            onValueChange = { searchQuery = it },
+                            onValueChange = {
+                                searchQuery = it
+                                showAllRecommended = false
+                            },
                             placeholder = {
                                 Text(
                                     "Search items or users...",
-                                    color = Color.White.copy(alpha = 0.7f),
+                                    color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f),
                                     fontSize = 16.sp
                                 )
                             },
@@ -191,7 +273,7 @@ fun UserExploreScreen() {
                                 Icon(
                                     imageVector = Icons.Default.Search,
                                     contentDescription = "Search Icon",
-                                    tint = White
+                                    tint = MaterialTheme.colorScheme.onPrimary
                                 )
                             },
                             trailingIcon = {
@@ -200,7 +282,7 @@ fun UserExploreScreen() {
                                         Icon(
                                             imageVector = Icons.Default.Close,
                                             contentDescription = "Clear Search",
-                                            tint = White
+                                            tint = MaterialTheme.colorScheme.onPrimary
                                         )
                                     }
                                 }
@@ -209,17 +291,17 @@ fun UserExploreScreen() {
                                 .fillMaxWidth()
                                 .padding(end = 8.dp),
                             colors = TextFieldDefaults.colors(
-                                focusedContainerColor = Color.White.copy(alpha = 0.2f),
-                                unfocusedContainerColor = Color.White.copy(alpha = 0.15f),
-                                disabledContainerColor = Color.White.copy(alpha = 0.15f),
+                                focusedContainerColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.2f),
+                                unfocusedContainerColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.15f),
+                                disabledContainerColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.15f),
                                 focusedIndicatorColor = Color.Transparent,
                                 unfocusedIndicatorColor = Color.Transparent,
-                                cursorColor = White,
-                                focusedTextColor = White,
-                                unfocusedTextColor = White
+                                cursorColor = MaterialTheme.colorScheme.onPrimary,
+                                focusedTextColor = MaterialTheme.colorScheme.onPrimary,
+                                unfocusedTextColor = MaterialTheme.colorScheme.onPrimary
                             ),
                             textStyle = TextStyle(
-                                color = White,
+                                color = MaterialTheme.colorScheme.onPrimary,
                                 fontSize = 16.sp
                             ),
                             shape = RoundedCornerShape(24.dp),
@@ -232,7 +314,8 @@ fun UserExploreScreen() {
                         }) {
                             Icon(
                                 imageVector = Icons.Default.Settings,
-                                contentDescription = null
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onPrimary
                             )
                         }
                     }
@@ -244,54 +327,60 @@ fun UserExploreScreen() {
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background)
                 .padding(paddingValues)
-                .background(color = White)
         ) {
-
-            Row(
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .border(
-                        width = 1.dp,
-                        color = Color.LightGray,
-                        shape = RoundedCornerShape(12.dp)
-                    ),
-                verticalAlignment = Alignment.CenterVertically
+                    .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 8.dp)
             ) {
-                val tabs = listOf("All","Rent","Barter")
-                tabs.forEach { tabName ->
-                    val isSelected = selectedTab == tabName
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(48.dp)
-                            .background(if (isSelected) White else Color(0xFFF0F0F0))
-                            .clickable { selectedTab = tabName },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = tabName,
-                            color = if (isSelected) Color.Black else Color.Gray
-                        )
+                ExploreTabs(
+                    selectedTab = selectedTab,
+                    onTabSelected = {
+                        selectedTab = it
+                        showAllRecommended = false
                     }
-                }
+                )
             }
 
-            // Show users if search query exists and users are found
             if (searchQuery.isNotEmpty() && searchedUsers.isNotEmpty()) {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    // User results section
+                    // Recommendations
+                    if (recommendedRowProducts.isNotEmpty()) {
+                        item {
+                            RecommendationHeader(
+                                onSeeAllClick = { showAllRecommended = true }
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            CompactRecommendationSection(
+                                products = recommendedRowProducts,
+                                onProductClick = { product ->
+                                    val intent = Intent(context, UserItemDetails::class.java)
+                                    intent.putExtra("productId", product.productId)
+                                    context.startActivity(intent)
+                                }
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Divider(
+                                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+                                thickness = 5.dp,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                        }
+                    }
+
                     item {
                         Text(
                             text = "Users (${searchedUsers.size})",
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface,
                             modifier = Modifier.padding(bottom = 8.dp)
                         )
                     }
@@ -307,7 +396,6 @@ fun UserExploreScreen() {
                         )
                     }
 
-                    // Products section if there are matching products
                     if (filteredProducts.isNotEmpty()) {
                         item {
                             Spacer(modifier = Modifier.height(16.dp))
@@ -315,11 +403,11 @@ fun UserExploreScreen() {
                                 text = "Items (${filteredProducts.size})",
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface,
                                 modifier = Modifier.padding(bottom = 8.dp)
                             )
                         }
 
-                        // Show products in grid within the LazyColumn
                         items(filteredProducts.chunked(2)) { rowProducts ->
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
@@ -337,7 +425,6 @@ fun UserExploreScreen() {
                                         )
                                     }
                                 }
-                                // Add empty box if odd number of products in last row
                                 if (rowProducts.size == 1) {
                                     Spacer(modifier = Modifier.weight(1f))
                                 }
@@ -346,7 +433,6 @@ fun UserExploreScreen() {
                     }
                 }
             } else {
-                // Show products grid when no user search
                 LazyVerticalGrid(
                     columns = GridCells.Fixed(2),
                     modifier = Modifier.fillMaxSize(),
@@ -354,9 +440,46 @@ fun UserExploreScreen() {
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    items(filteredProducts) { product ->
+                    if (recommendedRowProducts.isNotEmpty()) {
+                        item(span = { GridItemSpan(maxLineSpan) }) {
+                            Column {
+                                Spacer(modifier = Modifier.height(16.dp))
+                                RecommendationHeader(
+                                    onSeeAllClick = { showAllRecommended = true }
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                CompactRecommendationSection(
+                                    products = recommendedRowProducts,
+                                    onProductClick = { product ->
+                                        val intent = Intent(context, UserItemDetails::class.java)
+                                        intent.putExtra("productId", product.productId)
+                                        context.startActivity(intent)
+                                    }
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Divider(
+                                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+                                    thickness = 5.dp,
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                                Spacer(modifier = Modifier.height(16.dp))
+                            }
+                        }
+                    }
+
+                    items(gridProducts) { product ->
                         ExploreItemCard(
                             product = product,
+                            isSaved = savedProductIds.contains(product.productId),
+                            onFavoriteClick = {
+                                if (userId.isNotEmpty()) {
+                                    if (savedProductIds.contains(product.productId)) {
+                                        savedItemViewModel.unsaveItem(userId, product.productId)
+                                    } else {
+                                        savedItemViewModel.saveItem(userId, product.productId)
+                                    }
+                                }
+                            },
                             onClick = {
                                 val intent = Intent(context, UserItemDetails::class.java)
                                 intent.putExtra("productId", product.productId)
@@ -371,14 +494,185 @@ fun UserExploreScreen() {
 }
 
 @Composable
+fun ExploreTabs(selectedTab: String, onTabSelected: (String) -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .border(
+                width = 1.dp,
+                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
+                shape = RoundedCornerShape(12.dp)
+            ),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        val tabs = listOf("All", "Rent", "Barter")
+        tabs.forEach { tabName ->
+            val isSelected = selectedTab == tabName
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .height(48.dp)
+                    .background(
+                        if (isSelected) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.surfaceVariant
+                    )
+                    .clickable { onTabSelected(tabName) },
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = tabName,
+                    color = if (isSelected) MaterialTheme.colorScheme.onPrimary
+                    else MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun RecommendationHeader(onSeeAllClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Image(
+                painter = painterResource(id = R.drawable.shines),
+                contentDescription = null,
+                modifier = Modifier.size(18.dp),
+                colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.primary)
+            )
+            Spacer(modifier = Modifier.width(6.dp))
+            Text(
+                text = "Recommended for you",
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+        }
+        Text(
+            text = "See All >",
+            fontSize = 14.sp,
+            color = MaterialTheme.colorScheme.primary,
+            fontWeight = FontWeight.Medium,
+            modifier = Modifier.clickable { onSeeAllClick() }
+        )
+    }
+}
+
+@Composable
+fun CompactRecommendationSection(
+    products: List<ProductModel>,
+    onProductClick: (ProductModel) -> Unit
+) {
+    val configuration = androidx.compose.ui.platform.LocalConfiguration.current
+    val screenWidth = configuration.screenWidthDp.dp
+    val cardWidth = (screenWidth - 56.dp) / 4
+
+    LazyRow(
+        modifier = Modifier.fillMaxWidth(),
+        contentPadding = PaddingValues(horizontal = 16.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        items(products) { product ->
+            CompactRecommendationCard(
+                product = product,
+                width = cardWidth,
+                onClick = { onProductClick(product) }
+            )
+        }
+    }
+}
+
+@Composable
+fun CompactRecommendationCard(
+    product: ProductModel,
+    width: androidx.compose.ui.unit.Dp,
+    onClick: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .width(width)
+            .clickable(onClick = onClick),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Card(
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface
+            ),
+            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+            modifier = Modifier
+                .size(width)
+        ) {
+            Box(modifier = Modifier.fillMaxSize()) {
+                val displayImage = if (product.imageUrl.isNotEmpty()) {
+                    product.imageUrl
+                } else if (product.imageUrls.isNotEmpty()) {
+                    product.imageUrls.first()
+                } else {
+                    ""
+                }
+
+                if (displayImage.isNotEmpty()) {
+                    AsyncImage(
+                        model = displayImage,
+                        contentDescription = product.name,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop,
+                        placeholder = painterResource(R.drawable.placeholderimage)
+                    )
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(MaterialTheme.colorScheme.surfaceVariant),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        // Fallback icon if no image
+                        Icon(
+                            imageVector = Icons.Default.Star, // Generic icon
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.outline,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(4.dp))
+
+        // Short title
+        Text(
+            text = product.name,
+            fontSize = 10.sp,
+            fontWeight = FontWeight.Medium,
+            color = MaterialTheme.colorScheme.onSurface,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.fillMaxWidth(),
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+        )
+    }
+}
+
+@Composable
 fun UserSearchCard(user: UserModel, onClick: () -> Unit) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onClick() },
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Row(
             modifier = Modifier
@@ -391,13 +685,13 @@ fun UserSearchCard(user: UserModel, onClick: () -> Unit) {
                 modifier = Modifier
                     .size(56.dp)
                     .clip(CircleShape)
-                    .background(Greenish.copy(alpha = 0.2f)),
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = Icons.Default.Person,
                     contentDescription = "Default Profile",
-                    tint = Greenish,
+                    tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(32.dp)
                 )
             }
@@ -412,6 +706,7 @@ fun UserSearchCard(user: UserModel, onClick: () -> Unit) {
                     text = user.name.ifEmpty { "Unknown User" },
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -420,7 +715,7 @@ fun UserSearchCard(user: UserModel, onClick: () -> Unit) {
                     Text(
                         text = user.email,
                         fontSize = 14.sp,
-                        color = Color.Gray,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -430,7 +725,7 @@ fun UserSearchCard(user: UserModel, onClick: () -> Unit) {
                     Text(
                         text = user.phone,
                         fontSize = 12.sp,
-                        color = Color.Gray,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -441,7 +736,7 @@ fun UserSearchCard(user: UserModel, onClick: () -> Unit) {
             Icon(
                 imageVector = Icons.Default.Person,
                 contentDescription = "View Profile",
-                tint = Greenish,
+                tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(24.dp)
             )
         }
@@ -449,14 +744,22 @@ fun UserSearchCard(user: UserModel, onClick: () -> Unit) {
 }
 
 @Composable
-fun ExploreItemCard(product: ProductModel, onClick: () -> Unit) {
+fun ExploreItemCard(
+    product: ProductModel,
+    compact: Boolean = false,
+    isSaved: Boolean = false,
+    onFavoriteClick: () -> Unit = {},
+    onClick: () -> Unit
+) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onClick() },
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Column(
             modifier = Modifier.fillMaxWidth()
@@ -465,8 +768,8 @@ fun ExploreItemCard(product: ProductModel, onClick: () -> Unit) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(140.dp)
-                    .background(Color.LightGray)
+                    .height(if (compact) 120.dp else 140.dp)
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
             ) {
                 val displayImage = if (product.imageUrl.isNotEmpty()) {
                     product.imageUrl
@@ -490,7 +793,8 @@ fun ExploreItemCard(product: ProductModel, onClick: () -> Unit) {
                         painter = painterResource(R.drawable.placeholderimage),
                         contentDescription = null,
                         modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
+                        contentScale = ContentScale.Crop,
+                        colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.outline)
                     )
                 }
 
@@ -500,14 +804,17 @@ fun ExploreItemCard(product: ProductModel, onClick: () -> Unit) {
                         .align(Alignment.TopEnd)
                         .padding(8.dp)
                         .size(28.dp)
-                        .background(Color.White.copy(alpha = 0.7f), CircleShape)
-                        .clickable { /* Handle favorite */ },
+                        .background(
+                            MaterialTheme.colorScheme.surface.copy(alpha = 0.7f),
+                            CircleShape
+                        )
+                        .clickable { onFavoriteClick() },
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        imageVector = Icons.Default.FavoriteBorder,
+                        imageVector = if (isSaved) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
                         contentDescription = "Favorite",
-                        tint = Color.Gray,
+                        tint = if (isSaved) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.outline,
                         modifier = Modifier.size(16.dp)
                     )
                 }
@@ -519,7 +826,6 @@ fun ExploreItemCard(product: ProductModel, onClick: () -> Unit) {
                     .fillMaxWidth()
                     .padding(8.dp)
             ) {
-                // Status Row: Type (Left) and Status Badge (Right)
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -528,15 +834,15 @@ fun ExploreItemCard(product: ProductModel, onClick: () -> Unit) {
                     Text(
                         text = product.type,
                         fontSize = 12.sp,
-                        color = Greenish,
+                        color = MaterialTheme.colorScheme.primary,
                         fontWeight = FontWeight.Bold
                     )
 
                     val statusColor = when (product.status) {
-                        "Available" -> Greenish
-                        "Completed" -> Color(0xFF2196F3)
-                        "Pending" -> Color(0xFFFF9800)
-                        else -> Color.Gray
+                        "Available" -> MaterialTheme.colorScheme.primary
+                        "Completed" -> MaterialTheme.colorScheme.tertiary
+                        "Pending" -> MaterialTheme.colorScheme.secondary
+                        else -> MaterialTheme.colorScheme.outline
                     }
 
                     Box(
@@ -548,7 +854,7 @@ fun ExploreItemCard(product: ProductModel, onClick: () -> Unit) {
                         Text(
                             text = product.status,
                             fontSize = 10.sp,
-                            color = Color.White,
+                            color = MaterialTheme.colorScheme.onPrimary,
                             fontWeight = FontWeight.Medium
                         )
                     }
@@ -560,6 +866,7 @@ fun ExploreItemCard(product: ProductModel, onClick: () -> Unit) {
                     text = product.name,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -569,7 +876,7 @@ fun ExploreItemCard(product: ProductModel, onClick: () -> Unit) {
                 Text(
                     text = product.description,
                     fontSize = 12.sp,
-                    color = Color.Gray,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -588,7 +895,7 @@ fun ExploreItemCard(product: ProductModel, onClick: () -> Unit) {
                             "Rs${product.price}"
                         },
                         fontSize = 14.sp,
-                        color = Greenish,
+                        color = MaterialTheme.colorScheme.primary,
                         fontWeight = FontWeight.SemiBold
                     )
 
@@ -597,13 +904,14 @@ fun ExploreItemCard(product: ProductModel, onClick: () -> Unit) {
                             Image(
                                 painter = painterResource(R.drawable.location_on),
                                 contentDescription = "Location",
-                                modifier = Modifier.size(16.dp)
+                                modifier = Modifier.size(16.dp),
+                                colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.outline)
                             )
                             Spacer(modifier = Modifier.width(2.dp))
                             Text(
                                 text = product.location,
                                 fontSize = 10.sp,
-                                color = Color.Gray,
+                                color = MaterialTheme.colorScheme.outline,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                                 modifier = Modifier.widthIn(max = 60.dp)

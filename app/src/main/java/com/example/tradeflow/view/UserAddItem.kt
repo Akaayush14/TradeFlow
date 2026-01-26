@@ -317,18 +317,18 @@ fun UserAddItemScreen(
                 title = {
                     Text(
                         text = if (mode == AddItemMode.ADD) "Add New Item" else "Edit Item",
-                        color = White
+                        color = MaterialTheme.colorScheme.onPrimary
                     )
                 },
                 onBackClick = onBackClick
             )
         },
-        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
-        containerColor = White
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
     ) { innerPadding ->
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background)
                 .padding(innerPadding)
                 .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -338,21 +338,28 @@ fun UserAddItemScreen(
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
-                    label = { Text("Item Name", fontSize = 14.sp) },
+                    label = {
+                        Text("Item Name", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    },
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 16.dp),
                     singleLine = true,
-                    textStyle = TextStyle(fontSize = 14.sp),
+                    textStyle = TextStyle(
+                        fontSize = 14.sp,
+                        color = MaterialTheme.colorScheme.onSurface
+                    ),
                     keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Next),
-                    colors = TextFieldDefaults.colors(
-                        focusedContainerColor = White,
-                        unfocusedContainerColor = White,
-                        focusedIndicatorColor = Greenish,
-                        unfocusedIndicatorColor = Color.LightGray,
-                        cursorColor = Greenish,
-                        focusedLabelColor = Greenish,
-                        unfocusedLabelColor = Color.Gray
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedContainerColor = MaterialTheme.colorScheme.surface,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                        cursorColor = MaterialTheme.colorScheme.primary,
+                        focusedLabelColor = MaterialTheme.colorScheme.primary,
+                        unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                        unfocusedTextColor = MaterialTheme.colorScheme.onSurface
                     ),
                     shape = RoundedCornerShape(12.dp)
                 )
@@ -363,19 +370,26 @@ fun UserAddItemScreen(
                 OutlinedTextField(
                     value = price,
                     onValueChange = { price = it },
-                    label = { Text("Price", fontSize = 14.sp) },
+                    label = {
+                        Text("Price", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
-                    textStyle = TextStyle(fontSize = 14.sp),
+                    textStyle = TextStyle(
+                        fontSize = 14.sp,
+                        color = MaterialTheme.colorScheme.onSurface
+                    ),
                     keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Next),
-                    colors = TextFieldDefaults.colors(
-                        focusedContainerColor = White,
-                        unfocusedContainerColor = White,
-                        focusedIndicatorColor = Greenish,
-                        unfocusedIndicatorColor = Color.LightGray,
-                        cursorColor = Greenish,
-                        focusedLabelColor = Greenish,
-                        unfocusedLabelColor = Color.Gray
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedContainerColor = MaterialTheme.colorScheme.surface,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                        cursorColor = MaterialTheme.colorScheme.primary,
+                        focusedLabelColor = MaterialTheme.colorScheme.primary,
+                        unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                        unfocusedTextColor = MaterialTheme.colorScheme.onSurface
                     ),
                     shape = RoundedCornerShape(12.dp)
                 )
@@ -386,19 +400,26 @@ fun UserAddItemScreen(
                 OutlinedTextField(
                     value = category,
                     onValueChange = { category = it },
-                    label = { Text("Category", fontSize = 14.sp) },
+                    label = {
+                        Text("Category", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
-                    textStyle = TextStyle(fontSize = 14.sp),
+                    textStyle = TextStyle(
+                        fontSize = 14.sp,
+                        color = MaterialTheme.colorScheme.onSurface
+                    ),
                     keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Next),
-                    colors = TextFieldDefaults.colors(
-                        focusedContainerColor = White,
-                        unfocusedContainerColor = White,
-                        focusedIndicatorColor = Greenish,
-                        unfocusedIndicatorColor = Color.LightGray,
-                        cursorColor = Greenish,
-                        focusedLabelColor = Greenish,
-                        unfocusedLabelColor = Color.Gray
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedContainerColor = MaterialTheme.colorScheme.surface,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                        cursorColor = MaterialTheme.colorScheme.primary,
+                        focusedLabelColor = MaterialTheme.colorScheme.primary,
+                        unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                        unfocusedTextColor = MaterialTheme.colorScheme.onSurface
                     ),
                     shape = RoundedCornerShape(12.dp)
                 )
@@ -408,67 +429,102 @@ fun UserAddItemScreen(
             item {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Location
-                    Box(modifier = Modifier.weight(1f)) {
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(60.dp)
+                    ) {
                         OutlinedTextField(
                             value = location,
                             onValueChange = { location = it },
-                            label = { Text("Location", fontSize = 14.sp) },
-                            modifier = Modifier.fillMaxWidth(),
+                            label = {
+                                Text("Location", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            },
+                            modifier = Modifier.fillMaxSize(),  // Changed to fill parent
                             singleLine = true,
-                            textStyle = TextStyle(fontSize = 14.sp),
+                            textStyle = TextStyle(
+                                fontSize = 14.sp,
+                                color = MaterialTheme.colorScheme.onSurface
+                            ),
                             keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Next),
-                            colors = TextFieldDefaults.colors(
-                                focusedContainerColor = White,
-                                unfocusedContainerColor = White,
-                                focusedIndicatorColor = Greenish,
-                                unfocusedIndicatorColor = Color.LightGray,
-                                cursorColor = Greenish,
-                                focusedLabelColor = Greenish,
-                                unfocusedLabelColor = Color.Gray
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedContainerColor = MaterialTheme.colorScheme.surface,
+                                unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                                cursorColor = MaterialTheme.colorScheme.primary,
+                                focusedLabelColor = MaterialTheme.colorScheme.primary,
+                                unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                                unfocusedTextColor = MaterialTheme.colorScheme.onSurface
                             ),
                             shape = RoundedCornerShape(12.dp)
                         )
                     }
 
-                    // Purpose Dropdown
-                    Box(modifier = Modifier.weight(1f)) {
+                    // Purpose Dropdown -
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(60.dp)
+                    ) {
                         ExposedDropdownMenuBox(
                             expanded = isDropdownExpanded,
                             onExpandedChange = { isDropdownExpanded = !isDropdownExpanded },
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier.fillMaxSize()
                         ) {
                             OutlinedTextField(
                                 value = selectedPurpose,
                                 onValueChange = {},
                                 readOnly = true,
-                                textStyle = TextStyle(fontSize = 14.sp),
+                                textStyle = TextStyle(
+                                    fontSize = 14.sp,
+                                    color = if (isPlaceholder)
+                                        MaterialTheme.colorScheme.onSurfaceVariant
+                                    else
+                                        MaterialTheme.colorScheme.onSurface
+                                ),
                                 trailingIcon = {
                                     ExposedDropdownMenuDefaults.TrailingIcon(expanded = isDropdownExpanded)
                                 },
-                                modifier = Modifier.menuAnchor(),
-                                colors = TextFieldDefaults.colors(
-                                    focusedContainerColor = White,
-                                    unfocusedContainerColor = White,
-                                    disabledContainerColor = White,
-                                    focusedIndicatorColor = Greenish,
-                                    unfocusedIndicatorColor = Color.LightGray,
-                                    disabledIndicatorColor = Color.LightGray,
-                                    focusedTextColor = if (isPlaceholder) Color.Gray else Color.Black,
-                                    unfocusedTextColor = if (isPlaceholder) Color.Gray else Color.Black,
-                                    focusedLabelColor = Greenish,
-                                    unfocusedLabelColor = Color.Gray
+                                modifier = Modifier
+                                    .menuAnchor()
+                                    .fillMaxSize(),  // Fill parent
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedContainerColor = MaterialTheme.colorScheme.surface,
+                                    unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                                    disabledContainerColor = MaterialTheme.colorScheme.surface,
+                                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                    unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                                    disabledBorderColor = MaterialTheme.colorScheme.outline,
+                                    focusedTextColor = if (isPlaceholder)
+                                        MaterialTheme.colorScheme.onSurfaceVariant
+                                    else
+                                        MaterialTheme.colorScheme.onSurface,
+                                    unfocusedTextColor = if (isPlaceholder)
+                                        MaterialTheme.colorScheme.onSurfaceVariant
+                                    else
+                                        MaterialTheme.colorScheme.onSurface,
+                                    focusedLabelColor = MaterialTheme.colorScheme.primary,
+                                    unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             )
                             ExposedDropdownMenu(
                                 expanded = isDropdownExpanded,
-                                onDismissRequest = { isDropdownExpanded = false }
+                                onDismissRequest = { isDropdownExpanded = false },
+                                modifier = Modifier.background(MaterialTheme.colorScheme.surface)
                             ) {
                                 typeOptions.forEach { selectionOption ->
                                     DropdownMenuItem(
-                                        text = { Text(selectionOption) },
+                                        text = {
+                                            Text(
+                                                selectionOption,
+                                                color = MaterialTheme.colorScheme.onSurface
+                                            )
+                                        },
                                         onClick = {
                                             selectedPurpose = selectionOption
                                             isDropdownExpanded = false
@@ -487,19 +543,26 @@ fun UserAddItemScreen(
                 OutlinedTextField(
                     value = description,
                     onValueChange = { description = it },
-                    label = { Text("Description", fontSize = 14.sp) },
+                    label = {
+                        Text("Description", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(120.dp),
-                    textStyle = TextStyle(fontSize = 14.sp),
-                    colors = TextFieldDefaults.colors(
-                        focusedContainerColor = White,
-                        unfocusedContainerColor = White,
-                        focusedIndicatorColor = Greenish,
-                        unfocusedIndicatorColor = Color.LightGray,
-                        cursorColor = Greenish,
-                        focusedLabelColor = Greenish,
-                        unfocusedLabelColor = Color.Gray
+                    textStyle = TextStyle(
+                        fontSize = 14.sp,
+                        color = MaterialTheme.colorScheme.onSurface
+                    ),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedContainerColor = MaterialTheme.colorScheme.surface,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                        cursorColor = MaterialTheme.colorScheme.primary,
+                        focusedLabelColor = MaterialTheme.colorScheme.primary,
+                        unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                        unfocusedTextColor = MaterialTheme.colorScheme.onSurface
                     ),
                     shape = RoundedCornerShape(12.dp)
                 )
@@ -510,6 +573,7 @@ fun UserAddItemScreen(
                 Text(
                     "Add Images (Main + 3 Sub-images)",
                     fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.padding(bottom = 8.dp)
                 )
 
@@ -518,11 +582,16 @@ fun UserAddItemScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(200.dp)
-                        .border(1.dp, Greenish, RoundedCornerShape(12.dp))
+                        .border(
+                            1.dp,
+                            MaterialTheme.colorScheme.primary,
+                            RoundedCornerShape(12.dp)
+                        )
                         .clickable {
                             activeImageIndex = 0
                             launcher.launch("image/*")
-                        },
+                        }
+                        .background(MaterialTheme.colorScheme.surfaceVariant),
                     contentAlignment = Alignment.Center
                 ) {
                     val currentImage = imageUri ?: (if (mode == AddItemMode.EDIT && !initialProduct?.imageUrl.isNullOrEmpty())
@@ -551,10 +620,17 @@ fun UserAddItemScreen(
                         modifier = Modifier
                             .align(Alignment.BottomEnd)
                             .padding(8.dp)
-                            .background(Color.Black.copy(alpha = 0.6f), RoundedCornerShape(4.dp))
+                            .background(
+                                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                                RoundedCornerShape(4.dp)
+                            )
                             .padding(horizontal = 8.dp, vertical = 4.dp)
                     ) {
-                        Text("Main", color = White, fontSize = 12.sp)
+                        Text(
+                            "Main",
+                            color = MaterialTheme.colorScheme.surface,
+                            fontSize = 12.sp
+                        )
                     }
                 }
 
@@ -576,11 +652,16 @@ fun UserAddItemScreen(
                             modifier = Modifier
                                 .weight(1f)
                                 .height(100.dp)
-                                .border(1.dp, Greenish, RoundedCornerShape(8.dp))
+                                .border(
+                                    1.dp,
+                                    MaterialTheme.colorScheme.primary,
+                                    RoundedCornerShape(8.dp)
+                                )
                                 .clickable {
                                     activeImageIndex = index
                                     launcher.launch("image/*")
-                                },
+                                }
+                                .background(MaterialTheme.colorScheme.surfaceVariant),
                             contentAlignment = Alignment.Center
                         ) {
                             val currentSubImage = uri ?: (if (mode == AddItemMode.EDIT && !existingUrl.isNullOrEmpty())
@@ -614,14 +695,18 @@ fun UserAddItemScreen(
                     Checkbox(
                         checked = agreedToTerms,
                         onCheckedChange = { agreedToTerms = it },
-                        colors = CheckboxDefaults.colors(checkedColor = Greenish)
+                        colors = CheckboxDefaults.colors(
+                            checkedColor = MaterialTheme.colorScheme.primary,
+                            uncheckedColor = MaterialTheme.colorScheme.outline,
+                            checkmarkColor = MaterialTheme.colorScheme.onPrimary
+                        )
                     )
                     Text(
                         buildAnnotatedString {
                             append("I've read and agree with the ")
                             withStyle(
                                 style = SpanStyle(
-                                    color = Greenish,
+                                    color = MaterialTheme.colorScheme.primary,
                                     textDecoration = TextDecoration.Underline
                                 )
                             ) {
@@ -630,7 +715,7 @@ fun UserAddItemScreen(
                             append(" and the ")
                             withStyle(
                                 style = SpanStyle(
-                                    color = Greenish,
+                                    color = MaterialTheme.colorScheme.primary,
                                     textDecoration = TextDecoration.Underline
                                 )
                             ) {
@@ -638,7 +723,8 @@ fun UserAddItemScreen(
                             }
                             append(".")
                         },
-                        fontSize = 12.sp
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                 }
             }
@@ -651,12 +737,18 @@ fun UserAddItemScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(50.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Greenish)
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary,
+                        disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                        disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                    ),
+                    shape = RoundedCornerShape(12.dp)
                 ) {
                     if (isLoading) {
-                        Text("Saving...", color = White, fontSize = 18.sp)
+                        Text("Saving...", fontSize = 18.sp)
                     } else {
-                        Text("Confirm", color = White, fontSize = 18.sp)
+                        Text("Confirm", fontSize = 18.sp)
                     }
                 }
             }
@@ -667,19 +759,38 @@ fun UserAddItemScreen(
     if (showSuccessDialog) {
         AlertDialog(
             onDismissRequest = { showSuccessDialog = false },
-            title = { Text("Success", fontWeight = FontWeight.Bold) },
-            text = { Text("Product added successfully!") },
+            title = {
+                Text(
+                    "Success",
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            },
+            text = {
+                Text(
+                    "Product added successfully!",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            },
             confirmButton = {
                 Button(
                     onClick = {
                         showSuccessDialog = false
                         onBackClick()
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = Greenish)
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary
+                    )
                 ) {
-                    Text("OK")
+                    Text(
+                        "OK",
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
                 }
-            }
+            },
+            containerColor = MaterialTheme.colorScheme.surface,
+            titleContentColor = MaterialTheme.colorScheme.onSurface,
+            textContentColor = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
 
@@ -687,16 +798,35 @@ fun UserAddItemScreen(
     if (showErrorDialog) {
         AlertDialog(
             onDismissRequest = { showErrorDialog = false },
-            title = { Text("Error", fontWeight = FontWeight.Bold, color = Color.Red) },
-            text = { Text(errorMessage) },
+            title = {
+                Text(
+                    "Error",
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.error
+                )
+            },
+            text = {
+                Text(
+                    errorMessage,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            },
             confirmButton = {
                 Button(
                     onClick = { showErrorDialog = false },
-                    colors = ButtonDefaults.buttonColors(containerColor = Greenish)
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary
+                    )
                 ) {
-                    Text("OK")
+                    Text(
+                        "OK",
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
                 }
-            }
+            },
+            containerColor = MaterialTheme.colorScheme.surface,
+            titleContentColor = MaterialTheme.colorScheme.onSurface,
+            textContentColor = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
 }

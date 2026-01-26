@@ -13,7 +13,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material.icons.filled.Message
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -34,8 +33,6 @@ import com.example.tradeflow.model.RequestModel
 import com.example.tradeflow.model.ProductModel
 import com.example.tradeflow.repository.ProductRepoImpl
 import com.example.tradeflow.repository.UserNotificationRepoImpl
-import com.example.tradeflow.ui.theme.Greenish
-import com.example.tradeflow.ui.theme.White
 import com.example.tradeflow.viewmodel.UserNotificationViewModel
 import com.google.firebase.auth.FirebaseAuth
 import java.text.SimpleDateFormat
@@ -46,8 +43,7 @@ import java.util.*
 fun UserNotificationScreen(
     onBackClick: () -> Unit = {},
     onNotificationClick: (UserNotificationModel) -> Unit = {},
-    onViewDetails: (String) -> Unit = {},
-    onNavigateInbox: () -> Unit = {}
+    onViewDetails: (String) -> Unit = {}
 ) {
     val viewModel = remember { UserNotificationViewModel(UserNotificationRepoImpl()) }
     val notifications by viewModel.notifications.collectAsState()
@@ -68,13 +64,15 @@ fun UserNotificationScreen(
     }
 
     val filteredNotifications = when (selectedFilter) {
-        "Incoming Request" -> notifications
+        "Barter" -> notifications.filter { it.requestType == "BARTER" }
+        "Rent" -> notifications.filter { it.requestType == "RENT" }
         "My Requests" -> emptyList()
         else -> notifications
     }
 
     val filteredMyRequests = when (selectedFilter) {
-        "Incoming Request" -> emptyList()
+        "Barter" -> myRequests.filter { it.productType == "BARTER" }
+        "Rent" -> myRequests.filter { it.productType == "RENT" }
         "My Requests" -> myRequests
         else -> myRequests
     }
@@ -115,36 +113,47 @@ fun UserNotificationScreen(
                 title = {
                     Text(
                         "Notifications",
-                        color = White
+                        color = MaterialTheme.colorScheme.onPrimary
                     )
                 },
                 onBackClick = onBackClick
             )
-        },
-        containerColor = Color(0xFFF5F5F5)
+        }
     ) { innerPadding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background)
                 .padding(innerPadding)
-                .background(Color(0xFFF5F5F5))
         ) {
-            val filters = listOf("All", "Incoming Request", "My Requests")
+            val filters = listOf("All", "Barter", "Rent", "Request")
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(White)
+                    .background(MaterialTheme.colorScheme.surface)
                     .padding(horizontal = 16.dp, vertical = 12.dp),
-                horizontalArrangement = Arrangement.SpaceEvenly
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 filters.forEach { filter ->
                     FilterChip(
                         selected = selectedFilter == filter,
                         onClick = { selectedFilter = filter },
-                        label = { Text(filter, fontSize = 14.sp) },
+                        label = {
+                            Text(
+                                filter,
+                                fontSize = 14.sp,
+                                color = if (selectedFilter == filter)
+                                    MaterialTheme.colorScheme.onPrimary
+                                else
+                                    MaterialTheme.colorScheme.onSurface
+                            )
+                        },
+                        modifier = Modifier.weight(1f),
                         colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = Color(0xFF2196F3),
-                            selectedLabelColor = White
+                            selectedContainerColor = MaterialTheme.colorScheme.primary,
+                            selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                            labelColor = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     )
                 }
@@ -169,7 +178,7 @@ fun UserNotificationScreen(
                                         text = section,
                                         fontSize = 12.sp,
                                         fontWeight = FontWeight.SemiBold,
-                                        color = Color.Gray,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         modifier = Modifier.padding(bottom = 8.dp)
                                     )
                                 }
@@ -190,7 +199,7 @@ fun UserNotificationScreen(
                                             showRejectDialog = true
                                         },
                                         onViewDetails = { onViewDetails(notification.requestId) },
-                                        onMessage = { onNavigateInbox() }
+                                        onMessage = {}
                                     )
                                 }
                             }
@@ -204,7 +213,7 @@ fun UserNotificationScreen(
                                     text = "My Requests",
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.SemiBold,
-                                    color = Color.Gray,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.padding(bottom = 8.dp)
                                 )
                             } else if (hasNotifications) {
@@ -213,7 +222,7 @@ fun UserNotificationScreen(
                                     text = "My Requests",
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.SemiBold,
-                                    color = Color.Gray,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.padding(vertical = 8.dp)
                                 )
                             }
@@ -226,7 +235,7 @@ fun UserNotificationScreen(
                                         text = section,
                                         fontSize = 12.sp,
                                         fontWeight = FontWeight.SemiBold,
-                                        color = Color.Gray,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         modifier = Modifier.padding(bottom = 8.dp)
                                     )
                                 }
@@ -252,8 +261,18 @@ fun UserNotificationScreen(
     if (showAcceptDialog && selectedNotification != null) {
         AlertDialog(
             onDismissRequest = { showAcceptDialog = false },
-            title = { Text("Accept Request?") },
-            text = { Text("Do you want to accept this ${selectedNotification?.productName} request?") },
+            title = {
+                Text(
+                    "Accept Request?",
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            },
+            text = {
+                Text(
+                    "Do you want to accept this ${selectedNotification?.productName} request?",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            },
             confirmButton = {
                 Button(
                     onClick = {
@@ -264,16 +283,27 @@ fun UserNotificationScreen(
                         }
                         showAcceptDialog = false
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2196F3))
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary
+                    )
                 ) {
-                    Text("Accept")
+                    Text(
+                        "Accept",
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showAcceptDialog = false }) {
-                    Text("Cancel")
+                    Text(
+                        "Cancel",
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
                 }
-            }
+            },
+            containerColor = MaterialTheme.colorScheme.surface,
+            titleContentColor = MaterialTheme.colorScheme.onSurface,
+            textContentColor = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
 
@@ -281,8 +311,18 @@ fun UserNotificationScreen(
     if (showRejectDialog && selectedNotification != null) {
         AlertDialog(
             onDismissRequest = { showRejectDialog = false },
-            title = { Text("Reject Request?") },
-            text = { Text("Do you want to reject this ${selectedNotification?.productName} request?") },
+            title = {
+                Text(
+                    "Reject Request?",
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            },
+            text = {
+                Text(
+                    "Do you want to reject this ${selectedNotification?.productName} request?",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            },
             confirmButton = {
                 Button(
                     onClick = {
@@ -293,17 +333,28 @@ fun UserNotificationScreen(
                         }
                         showRejectDialog = false
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE0E0E0)),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.errorContainer
+                    ),
                     contentPadding = PaddingValues(horizontal = 24.dp)
                 ) {
-                    Text("Reject", color = Color.Black)
+                    Text(
+                        "Reject",
+                        color = MaterialTheme.colorScheme.onErrorContainer
+                    )
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showRejectDialog = false }) {
-                    Text("Cancel")
+                    Text(
+                        "Cancel",
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
                 }
-            }
+            },
+            containerColor = MaterialTheme.colorScheme.surface,
+            titleContentColor = MaterialTheme.colorScheme.onSurface,
+            textContentColor = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
 }
@@ -322,7 +373,9 @@ fun EnhancedNotificationCard(
             .fillMaxWidth()
             .clickable { onClick() },
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = White),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
         elevation = CardDefaults.cardElevation(2.dp)
     ) {
         Column(
@@ -357,8 +410,8 @@ fun EnhancedNotificationCard(
                                 modifier = Modifier
                                     .size(12.dp)
                                     .clip(CircleShape)
-                                    .background(Color(0xFF2196F3))
-                                    .border(2.dp, White, CircleShape)
+                                    .background(MaterialTheme.colorScheme.primary)
+                                    .border(2.dp, MaterialTheme.colorScheme.surface, CircleShape)
                                     .align(Alignment.TopEnd)
                             )
                         }
@@ -370,7 +423,7 @@ fun EnhancedNotificationCard(
                                 text = "@${notification.senderName}",
                                 fontWeight = FontWeight.SemiBold,
                                 fontSize = 14.sp,
-                                color = Color.Black
+                                color = MaterialTheme.colorScheme.onSurface
                             )
                             Spacer(modifier = Modifier.width(4.dp))
                             // Rating
@@ -379,12 +432,12 @@ fun EnhancedNotificationCard(
                                     imageVector = Icons.Default.Star,
                                     contentDescription = "Rating",
                                     modifier = Modifier.size(14.dp),
-                                    tint = Color(0xFFFFA000)
+                                    tint = MaterialTheme.colorScheme.tertiary
                                 )
                                 Text(
                                     text = "${notification.senderRating} (${notification.senderReviewCount})",
                                     fontSize = 11.sp,
-                                    color = Color.Gray
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
                         }
@@ -393,14 +446,18 @@ fun EnhancedNotificationCard(
                         Surface(
                             shape = RoundedCornerShape(4.dp),
                             color = if (notification.requestType == "BARTER")
-                                Color(0xFFFFEBEE) else Color(0xFFE3F2FD),
+                                MaterialTheme.colorScheme.errorContainer
+                            else
+                                MaterialTheme.colorScheme.primaryContainer,
                             modifier = Modifier.padding(top = 2.dp)
                         ) {
                             Text(
                                 text = notification.requestType.ifEmpty { "Message" },
                                 fontSize = 10.sp,
                                 color = if (notification.requestType == "BARTER")
-                                    Color(0xFFD32F2F) else Color(0xFF1976D2),
+                                    MaterialTheme.colorScheme.onErrorContainer
+                                else
+                                    MaterialTheme.colorScheme.onPrimaryContainer,
                                 modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
                                 fontWeight = FontWeight.Medium
                             )
@@ -412,7 +469,7 @@ fun EnhancedNotificationCard(
                 Text(
                     text = formatTime(notification.createdAt),
                     fontSize = 11.sp,
-                    color = Color.Gray
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
 
@@ -422,60 +479,29 @@ fun EnhancedNotificationCard(
             Text(
                 text = notification.message,
                 fontSize = 13.sp,
-                color = Color.Black,
+                color = MaterialTheme.colorScheme.onSurface,
                 lineHeight = 18.sp
             )
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Product Section - Your Item
             if (notification.productName.isNotEmpty()) {
                 ProductDetailsSection(
                     header = "Your Item",
                     productId = notification.productId,
                     fallbackName = notification.productName,
-                    fallbackImage = notification.productImage,
-                    highlightColor = Color(0xFFF5F5F5)
+                    fallbackImage = notification.productImage
                 )
             }
 
-            // Exchange Offer or Rental Details
-            if (notification.requestType == "BARTER") {
-                if (notification.offeredItems.size > 1) {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "Offering ${notification.offeredItems.size} items in exchange",
-                        fontSize = 11.sp,
-                        color = Color.Gray,
-                        fontWeight = FontWeight.Medium,
-                        modifier = Modifier.padding(bottom = 4.dp)
-                    )
-
-                    androidx.compose.foundation.lazy.LazyRow(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        items(notification.offeredItems) { item ->
-                            ProductDetailsSection(
-                                header = "",
-                                productId = item.productId,
-                                fallbackName = item.productName,
-                                fallbackImage = item.productImage,
-                                highlightColor = Color(0xFFFFF8E1),
-                                modifier = Modifier.width(260.dp)
-                            )
-                        }
-                    }
-                } else if (notification.offerProductName.isNotEmpty()) {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    ProductDetailsSection(
-                        header = "Offering in exchange",
-                        productId = notification.offerProductId,
-                        fallbackName = notification.offerProductName,
-                        fallbackImage = notification.offerProductImage,
-                        highlightColor = Color(0xFFFFF8E1)
-                    )
-                }
+            if (notification.requestType == "BARTER" && notification.offerProductName.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(8.dp))
+                ProductDetailsSection(
+                    header = "Offering in exchange",
+                    productId = notification.offerProductId,
+                    fallbackName = notification.offerProductName,
+                    fallbackImage = notification.offerProductImage
+                )
             } else if (notification.requestType == "RENT" && notification.rentalPeriod.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(8.dp))
                 Row(
@@ -486,26 +512,26 @@ fun EnhancedNotificationCard(
                         Text(
                             text = "Rental Period",
                             fontSize = 11.sp,
-                            color = Color.Gray
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Text(
                             text = notification.rentalPeriod,
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Medium,
-                            color = Color.Black
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                     }
                     Column(horizontalAlignment = Alignment.End) {
                         Text(
                             text = "Price",
                             fontSize = 11.sp,
-                            color = Color.Gray
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Text(
                             text = notification.rentalPrice,
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Bold,
-                            color = Color.Black
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                     }
                 }
@@ -523,21 +549,25 @@ fun EnhancedNotificationCard(
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
-                                painter = painterResource(R.drawable.placeholderimage), // Use checkmark icon
+                                painter = painterResource(R.drawable.placeholderimage),
                                 contentDescription = "Accepted",
                                 modifier = Modifier.size(16.dp),
-                                tint = Color(0xFF4CAF50)
+                                tint = MaterialTheme.colorScheme.tertiary
                             )
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(
                                 text = "Request accepted",
                                 fontSize = 12.sp,
-                                color = Color(0xFF4CAF50),
+                                color = MaterialTheme.colorScheme.tertiary,
                                 fontWeight = FontWeight.Medium
                             )
                         }
                         TextButton(onClick = onViewDetails) {
-                            Text("View Details", fontSize = 12.sp)
+                            Text(
+                                "View Details",
+                                fontSize = 12.sp,
+                                color = MaterialTheme.colorScheme.primary
+                            )
                         }
                     }
                 }
@@ -547,13 +577,13 @@ fun EnhancedNotificationCard(
                             painter = painterResource(R.drawable.placeholderimage), // Use close icon
                             contentDescription = "Rejected",
                             modifier = Modifier.size(16.dp),
-                            tint = Color(0xFFE53935)
+                            tint = MaterialTheme.colorScheme.error
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
                             text = "Request declined",
                             fontSize = 12.sp,
-                            color = Color(0xFFE53935),
+                            color = MaterialTheme.colorScheme.error,
                             fontWeight = FontWeight.Medium
                         )
                     }
@@ -569,11 +599,16 @@ fun EnhancedNotificationCard(
                                 .weight(1f)
                                 .height(40.dp),
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = Color(0xFF2196F3)
+                                containerColor = MaterialTheme.colorScheme.primary
                             ),
                             shape = RoundedCornerShape(8.dp)
                         ) {
-                            Text("Accept", fontSize = 13.sp, fontWeight = FontWeight.Medium)
+                            Text(
+                                "Accept",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = MaterialTheme.colorScheme.onPrimary
+                            )
                         }
                         OutlinedButton(
                             onClick = onReject,
@@ -581,18 +616,25 @@ fun EnhancedNotificationCard(
                                 .weight(1f)
                                 .height(40.dp),
                             shape = RoundedCornerShape(8.dp),
-                            border = BorderStroke(1.dp, Color(0xFFE0E0E0))
+                            border = BorderStroke(
+                                1.dp,
+                                MaterialTheme.colorScheme.outline
+                            )
                         ) {
-                            Text("Reject", fontSize = 13.sp, color = Color.Black)
+                            Text(
+                                "Reject",
+                                fontSize = 13.sp,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
                         }
                         IconButton(
                             onClick = onMessage,
                             modifier = Modifier.size(40.dp)
                         ) {
                             Icon(
-                                imageVector = Icons.Filled.Message,
+                                painter = painterResource(R.drawable.placeholderimage), // Use message icon
                                 contentDescription = "Message",
-                                tint = Color.Gray
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
@@ -607,9 +649,7 @@ fun ProductDetailsSection(
     header: String,
     productId: String,
     fallbackName: String,
-    fallbackImage: String,
-    highlightColor: Color,
-    modifier: Modifier = Modifier.fillMaxWidth()
+    fallbackImage: String
 ) {
     var product by remember { mutableStateOf<ProductModel?>(null) }
 
@@ -632,14 +672,18 @@ fun ProductDetailsSection(
     val priceText = if (isRent) "Rs ${formatAmount(price)} / Day" else "Rs ${formatAmount(price)}"
 
     Column(
-        modifier = modifier
-            .background(highlightColor, RoundedCornerShape(8.dp))
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(
+                MaterialTheme.colorScheme.surfaceVariant,
+                RoundedCornerShape(8.dp)
+            )
             .padding(12.dp)
     ) {
         Text(
             text = header,
             fontSize = 11.sp,
-            color = Color.Gray,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             fontWeight = FontWeight.Medium
         )
         Spacer(modifier = Modifier.height(8.dp))
@@ -661,7 +705,7 @@ fun ProductDetailsSection(
                     text = name,
                     fontSize = 15.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = Color.Black,
+                    color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -670,7 +714,7 @@ fun ProductDetailsSection(
                     Text(
                         text = desc,
                         fontSize = 12.sp,
-                        color = Color.DarkGray,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -680,22 +724,25 @@ fun ProductDetailsSection(
                     text = priceText,
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color.Black
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 if (location.isNotEmpty()) {
                     Spacer(modifier = Modifier.height(2.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         // Location Icon from drawable
                         Image(
-                            painter = painterResource(R.drawable.location_on), // You'll need to add this drawable
+                            painter = painterResource(R.drawable.location_on),
                             contentDescription = "Location",
-                            modifier = Modifier.size(16.dp)
+                            modifier = Modifier.size(16.dp),
+                            colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
                             text = location,
                             fontSize = 12.sp,
-                            color = Color.Gray
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
@@ -714,26 +761,28 @@ fun SentRequestCard(
     onCancel: () -> Unit
 ) {
     val statusColor = when (request.status) {
-        "PENDING" -> Color(0xFFFFA726)
-        "ACCEPTED" -> Color(0xFF4CAF50)
-        "CANCELED" -> Color(0xFF9E9E9E)
-        "REJECTED" -> Color(0xFFE53935)
-        else -> Color(0xFF9E9E9E)
+        "PENDING" -> MaterialTheme.colorScheme.secondary
+        "ACCEPTED" -> MaterialTheme.colorScheme.tertiary
+        "CANCELED" -> MaterialTheme.colorScheme.outline
+        "REJECTED" -> MaterialTheme.colorScheme.error
+        else -> MaterialTheme.colorScheme.outline
     }
 
     val statusBackground = when (request.status) {
-        "PENDING" -> Color(0xFFFFF3E0)
-        "ACCEPTED" -> Color(0xFFE8F5E9)
-        "CANCELED" -> Color(0xFFF5F5F5)
-        "REJECTED" -> Color(0xFFFFEBEE)
-        else -> Color(0xFFF5F5F5)
+        "PENDING" -> MaterialTheme.colorScheme.secondaryContainer
+        "ACCEPTED" -> MaterialTheme.colorScheme.tertiaryContainer
+        "CANCELED" -> MaterialTheme.colorScheme.surfaceVariant
+        "REJECTED" -> MaterialTheme.colorScheme.errorContainer
+        else -> MaterialTheme.colorScheme.surfaceVariant
     }
 
     Card(
         modifier = Modifier
             .fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = White),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
         elevation = CardDefaults.cardElevation(2.dp)
     ) {
         Column(
@@ -745,15 +794,14 @@ fun SentRequestCard(
                 text = if (request.productType == "BARTER") "Barter Request" else "Rent Request",
                 fontSize = 12.sp,
                 fontWeight = FontWeight.SemiBold,
-                color = Color.Gray
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Spacer(modifier = Modifier.height(8.dp))
             ProductDetailsSection(
                 header = "Item you're requesting",
                 productId = request.productId,
                 fallbackName = request.productName,
-                fallbackImage = request.productImage,
-                highlightColor = Color(0xFFEFF6FF)
+                fallbackImage = request.productImage
             )
 
             if (request.offerProductId.isNotEmpty()) {
@@ -762,8 +810,7 @@ fun SentRequestCard(
                     header = "Your offering",
                     productId = request.offerProductId,
                     fallbackName = request.offerProductName,
-                    fallbackImage = request.offerProductImage,
-                    highlightColor = Color(0xFFE8F5E9)
+                    fallbackImage = request.offerProductImage
                 )
             }
 
@@ -786,21 +833,21 @@ fun SentRequestCard(
                         text = request.ownerName,
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Medium,
-                        color = Color.Black,
+                        color = MaterialTheme.colorScheme.onSurface,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
                     Text(
                         text = "Owner",
                         fontSize = 12.sp,
-                        color = Color.Gray
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
                 Spacer(modifier = Modifier.weight(1f))
                 Text(
                     text = formatTime(request.createdAt),
                     fontSize = 11.sp,
-                    color = Color.Gray
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
 
@@ -834,7 +881,7 @@ fun SentRequestCard(
                     Button(
                         onClick = onCancel,
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFFFF7043)
+                            containerColor = MaterialTheme.colorScheme.error
                         ),
                         shape = RoundedCornerShape(8.dp),
                         modifier = Modifier.height(40.dp)
@@ -843,7 +890,7 @@ fun SentRequestCard(
                             text = "Cancel Request",
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Medium,
-                            color = White
+                            color = MaterialTheme.colorScheme.onError
                         )
                     }
                 }
@@ -866,20 +913,20 @@ fun EmptyNotificationState() {
                 painter = painterResource(R.drawable.placeholderimage),
                 contentDescription = "No notifications",
                 modifier = Modifier.size(80.dp),
-                tint = Color(0xFFBDBDBD)
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Spacer(modifier = Modifier.height(16.dp))
             Text(
                 text = "No notifications yet",
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Medium,
-                color = Color.Gray
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = "When you get notifications, they'll show up here",
                 fontSize = 13.sp,
-                color = Color(0xFF9E9E9E)
+                color = MaterialTheme.colorScheme.outline
             )
         }
     }
@@ -901,5 +948,7 @@ fun formatTime(timestamp: Long): String {
 @Preview
 @Composable
 fun PreviewNotification(){
-    UserNotificationScreen ()
+    MaterialTheme {
+        UserNotificationScreen()
+    }
 }

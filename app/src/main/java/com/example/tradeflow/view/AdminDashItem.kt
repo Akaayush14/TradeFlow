@@ -57,7 +57,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.Icons
+import androidx.compose.foundation.layout.width
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -79,6 +84,10 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.systemBars
 import com.example.tradeflow.R
 import com.example.tradeflow.model.NotificationModel
 import com.example.tradeflow.model.ProductModel
@@ -117,26 +126,17 @@ class AdminDashItem : ComponentActivity() {
 @OptIn(ExperimentalMaterial3Api::class)
 fun AdminItemScreen(initialTab: Int = 0, onBackClick: () -> Unit = {}) {
     val context = LocalContext.current
-    var selectedIndex by remember { mutableStateOf(3) } // Admin Items tab selected
     var selectedTab by remember { mutableStateOf(initialTab) } // 0 for Listed Items, 1 for Unlisted Items
 
     // Notification view model for unread count
     val notificationViewModel = remember { NotificationViewModel(NotificationRepoImpl()) }
-    val unreadCount by notificationViewModel.unreadCount.collectAsState()
-
+    
     LaunchedEffect(Unit) {
         notificationViewModel.getUnreadCount()
     }
 
-    BackHandler {
-        val intent = Intent(context, AdminDashExp::class.java)
-        context.startActivity(intent)
-        if (context is ComponentActivity) {
-            context.finish()
-        }
-    }
-
     Scaffold(
+        contentWindowInsets = WindowInsets.systemBars.only(WindowInsetsSides.Horizontal),
         topBar = {
             TopAppBar(
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -145,20 +145,13 @@ fun AdminItemScreen(initialTab: Int = 0, onBackClick: () -> Unit = {}) {
                     navigationIconContentColor = DarkGreen
                 ),
                 navigationIcon = {
-                    IconButton(onClick = onBackClick) {
-                        Icon(
-                            painter = painterResource(id = R.drawable.ic_back),
-                            contentDescription = "Back",
-                            tint = Color.White
-
-                        )
-                    }
+                    // Optional: Only show back if needed, or if this screen is pushed on a stack.
                 },
                 title = {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(end = 48.dp), // Compensate for back button width
+                            .padding(end = 48.dp), 
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
@@ -169,107 +162,6 @@ fun AdminItemScreen(initialTab: Int = 0, onBackClick: () -> Unit = {}) {
                     }
                 }
             )
-        },
-        bottomBar = {
-            NavigationBar(containerColor = Greenish) {
-                NavigationBarItem(
-                    selected = selectedIndex == 0,
-                    onClick = {
-                        val intent = Intent(context, AdminDashExp::class.java)
-                        context.startActivity(intent)
-                        if (context is ComponentActivity) {
-                            context.finish()
-                        }
-                    },
-                    icon = {
-                        Icon(
-                            painter = painterResource(R.drawable.ic_explore),
-                            contentDescription = "Explore",
-                            tint = Color.White
-                        )
-                    },
-                    label = { Text("Explore", color = Color.White) }
-                )
-
-                NavigationBarItem(
-                    selected = selectedIndex == 1,
-                    onClick = {
-                        val intent = Intent(context, AdminDashUser::class.java)
-                        context.startActivity(intent)
-                        if (context is ComponentActivity) {
-                            context.finish()
-                        }
-                    },
-                    icon = {
-                        Icon(
-                            painter = painterResource(R.drawable.ic_user),
-                            contentDescription = "Users",
-                            tint = Color.White
-                        )
-                    },
-                    label = { Text("Users", color = Color.White) }
-                )
-                NavigationBarItem(
-                    selected = selectedIndex == 3,
-                    onClick = {
-                        val intent = Intent(context, AdminDashItem::class.java)
-                        context.startActivity(intent)
-                        if (context is ComponentActivity) {
-                            context.finish()
-                        }
-                    },
-                    icon = {
-                        Icon(
-                            painter = painterResource(R.drawable.ic_items),
-                            contentDescription = "Items",
-                            tint = Color.White
-                        )
-                    },
-                    label = { Text("Items", color = Color.White) }
-                )
-
-
-                NavigationBarItem(
-                    selected = selectedIndex == 4,
-                    onClick = {
-                        val intent = Intent(context, AdminNotification::class.java)
-                        context.startActivity(intent)
-                        if (context is ComponentActivity) {
-                            context.finish()
-                        }
-                    },
-                    icon = {
-                        BadgedNotificationIconItem(
-                            unreadCount = unreadCount,
-                            iconPainter = painterResource(R.drawable.notification_filled),
-                            contentDescription = "notification"
-                        )
-                    },
-                    label = { Text("notification", color = Color.White) }
-                )
-
-
-                NavigationBarItem(
-                    selected = selectedIndex == 2,
-                    onClick = {
-                        val intent = Intent(context, AdminProfile::class.java)
-                        context.startActivity(intent)
-                        if (context is ComponentActivity) {
-                            context.finish()
-                        }
-                    },
-                    icon = {
-                        Icon(
-                            painter = painterResource(R.drawable.ic_profile),
-                            contentDescription = "Profile",
-                            tint = Color.White
-                        )
-                    },
-                    label = { Text("Profile", color = Color.White) }
-                )
-
-
-            }
         }
     ) { padding ->
         Column(
@@ -667,10 +559,16 @@ fun ItemCardItem(
     onUnlistClick: () -> Unit,
     onDeleteClick: () -> Unit
 ) {
+    val context = LocalContext.current
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 4.dp),
+            .padding(horizontal = 4.dp)
+            .clickable {
+                val intent = Intent(context, AdminItemDetailActivity::class.java)
+                intent.putExtra("productId", product.productId)
+                context.startActivity(intent)
+            },
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         colors = CardDefaults.cardColors(
             containerColor = if (!product.isListed) Color(0xFFFFEBEE) else Color.White
@@ -685,29 +583,36 @@ fun ItemCardItem(
             // Image on the left
             Box(
                 modifier = Modifier
-                    .size(100.dp)
+                    .size(130.dp)
                     .clip(RoundedCornerShape(8.dp))
                     .background(Color.LightGray),
                 contentAlignment = Alignment.Center
             ) {
-                // Placeholder icon for product image
-                Icon(
-                    painter = painterResource(R.drawable.ic_items),
-                    contentDescription = "Product Image",
-                    tint = Color.Gray,
-                    modifier = Modifier.size(48.dp)
-                )
+                val displayImage = if (product.imageUrl.isNotEmpty()) {
+                    product.imageUrl
+                } else if (product.imageUrls.isNotEmpty()) {
+                    product.imageUrls.first()
+                } else {
+                    ""
+                }
 
-                // If you have Coil library and imageUrl in ProductModel, use:
-                /*
-                AsyncImage(
-                    model = product.imageUrl,
-                    contentDescription = "Product Image",
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop,
-                    error = painterResource(R.drawable.ic_items)
-                )
-                */
+                if (displayImage.isNotEmpty()) {
+                    AsyncImage(
+                        model = displayImage,
+                        contentDescription = "Product Image",
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop,
+                        error = painterResource(R.drawable.ic_items),
+                        placeholder = painterResource(R.drawable.ic_items)
+                    )
+                } else {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_items),
+                        contentDescription = "Product Image",
+                        tint = Color.Gray,
+                        modifier = Modifier.size(48.dp)
+                    )
+                }
             }
 
             // Content on the right
@@ -723,9 +628,16 @@ fun ItemCardItem(
                     color = Color.Black
                 )
 
+                // Category
+                Text(
+                    text = "Category: ${product.category}",
+                    fontSize = 14.sp,
+                    color = Color.Gray
+                )
+
                 // Price
                 Text(
-                    text = "Price: $${product.price}",
+                    text = "Price: ${product.price}",
                     fontSize = 14.sp,
                     color = Color.Gray
                 )
@@ -737,11 +649,13 @@ fun ItemCardItem(
                     color = Color.Gray
                 )
 
-                // Location
+                // Description
                 Text(
-                    text = "Location: ${product.location}",
+                    text = "Description: ${product.description}",
                     fontSize = 14.sp,
-                    color = Color.Gray
+                    color = Color.Gray,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
                 )
 
                 // Unlisted status
@@ -758,45 +672,69 @@ fun ItemCardItem(
 
                 // Buttons
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     if (product.isListed) {
-                        // Show Unlist button when listed
+                        // Unlist Button
                         Button(
                             onClick = onUnlistClick,
-                            colors = ButtonDefaults.buttonColors(containerColor = Color.Red),
-                            modifier = Modifier.height(36.dp)
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFC107)),
+                            modifier = Modifier.height(40.dp),
+                            contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp)
                         ) {
+                            Icon(
+                                painter = painterResource(R.drawable.baseline_visibility_off_24),
+                                contentDescription = "Unlist",
+                                tint = Color.Black,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
                             Text(
                                 text = "Unlist",
-                                fontSize = 12.sp,
-                                color = Color.White
+                                fontSize = 14.sp,
+                                color = Color.Black
                             )
                         }
                     } else {
-                        // Show List button (green) when unlisted
+                        // List Button
                         Button(
                             onClick = onListClick,
                             colors = ButtonDefaults.buttonColors(containerColor = DarkGreen),
-                            modifier = Modifier.height(36.dp)
+                            modifier = Modifier.height(40.dp),
+                            contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp)
                         ) {
+                            Icon(
+                                painter = painterResource(R.drawable.baseline_visibility_24),
+                                contentDescription = "List",
+                                tint = Color.White,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
                             Text(
                                 text = "List",
-                                fontSize = 12.sp,
+                                fontSize = 14.sp,
                                 color = Color.White
                             )
                         }
                     }
 
-                    // Always show Delete button
+                    // Delete Button
                     Button(
                         onClick = onDeleteClick,
                         colors = ButtonDefaults.buttonColors(containerColor = Color.Red),
-                        modifier = Modifier.height(36.dp)
+                        modifier = Modifier.height(40.dp),
+                        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp)
                     ) {
+                        Icon(
+                            imageVector = Icons.Filled.Delete,
+                            contentDescription = "Delete",
+                            tint = Color.White,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             text = "Delete",
-                            fontSize = 12.sp,
+                            fontSize = 14.sp,
                             color = Color.White
                         )
                     }

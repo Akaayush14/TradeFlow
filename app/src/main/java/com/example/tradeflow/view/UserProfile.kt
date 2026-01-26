@@ -82,7 +82,7 @@ fun UserProfileScreen(
     val currentUserId = currentUser?.uid ?: ""
     val targetUserId = profileUserId ?: currentUserId
 
-    // Use collectAsState() for StateFlow
+    // Used collectAsState() for StateFlow
     val userData by userViewModel.users.collectAsState()
     val allProducts by productViewModel.allProducts.collectAsState()
 
@@ -100,11 +100,10 @@ fun UserProfileScreen(
         }
     }
 
-    // Log user data changes for debugging
     LaunchedEffect(userData) {
-        Log.d("ProfileScreen", "User data updated: $userData")
-        Log.d("ProfileScreen", "User name: ${userData?.name}")
-        Log.d("ProfileScreen", "User email: ${userData?.email}")
+        Log.d("ProfileScreen", "User data updated: name=${userData?.name}")
+        Log.d("ProfileScreen", "User profileImageUrl: ${userData?.profileImageUrl}")
+        Log.d("ProfileScreen", "Is profileImageUrl empty?: ${userData?.profileImageUrl.isNullOrEmpty()}")
     }
 
     // Memoized filtering logic
@@ -123,18 +122,14 @@ fun UserProfileScreen(
         }
     }
 
-    // Get user display info - prioritize database data over Firebase Auth display name
+    // Get user display info
     val userName = userData?.name ?: currentUser?.displayName ?: "User"
     val userEmail = userData?.email ?: currentUser?.email ?: ""
     val userDisplayEmail = userEmail
-
-    // Debug logging
-    Log.d("ProfileScreen", "Final userName: $userName")
-    Log.d("ProfileScreen", "userData?.name: ${userData?.name}")
-    Log.d("ProfileScreen", "currentUser?.displayName: ${currentUser?.displayName}")
+    val profileImageUrl = userData?.profileImageUrl
 
     // Show loading state while user data is being fetched
-    val isLoading = userData == null
+    val isLoading = userData == null && targetUserId.isNotEmpty()
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
 
@@ -151,19 +146,19 @@ fun UserProfileScreen(
                 title = {
                     Text(
                         "Profile",
-                        color = White
+                        color = MaterialTheme.colorScheme.onPrimary
                     )
                 },
                 onBackClick = onBackClick
             )
         },
-        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
-        containerColor = White
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
     ) { innerPadding ->
         // Single scrollable column so header + listings scroll together
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background)
                 .padding(innerPadding)
         ) {
             item {
@@ -184,66 +179,99 @@ fun UserProfileScreen(
                                 snackbarHostState.showSnackbar("Unable to open Settings")
                             }
                         }
-                    }
-                )
-
-                // Tabs for Barter / Rental / Both listings
-                TabRow(
-                    selectedTabIndex = when (selectedTab) {
-                        ListingType.BARTER -> 0
-                        ListingType.RENTAL -> 1
-                        ListingType.BOTH -> 2
                     },
-                    containerColor = White
+                    profileImageUrl = profileImageUrl
+                )
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                        .height(50.dp),
+                    shape = RoundedCornerShape(25.dp),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surface
+                    )
                 ) {
-                    Tab(
-                        selected = selectedTab == ListingType.BARTER,
-                        onClick = { selectedTab = ListingType.BARTER },
-                        text = { Text("Barter", fontSize = 14.sp, fontWeight = FontWeight.SemiBold) }
-                    )
-                    Tab(
-                        selected = selectedTab == ListingType.RENTAL,
-                        onClick = { selectedTab = ListingType.RENTAL },
-                        text = { Text("Rental", fontSize = 14.sp, fontWeight = FontWeight.SemiBold) }
-                    )
-                    Tab(
-                        selected = selectedTab == ListingType.BOTH,
-                        onClick = { selectedTab = ListingType.BOTH },
-                        text = { Text("Both", fontSize = 14.sp, fontWeight = FontWeight.SemiBold) }
-                    )
+                    Row(
+                        modifier = Modifier.fillMaxSize(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        listOf(ListingType.BARTER, ListingType.RENTAL, ListingType.BOTH).forEach { type ->
+                            val isSelected = selectedTab == type
+                            val title = when (type) {
+                                ListingType.BARTER -> "Barter"
+                                ListingType.RENTAL -> "Rental"
+                                ListingType.BOTH -> "Both"
+                            }
+
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .fillMaxHeight()
+                                    .padding(4.dp)
+                                    .clip(RoundedCornerShape(25.dp))
+                                    .background(
+                                        if (isSelected) MaterialTheme.colorScheme.primary
+                                        else Color.Transparent
+                                    )
+                                    .clickable { selectedTab = type },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = title,
+                                    color = if (isSelected) MaterialTheme.colorScheme.onPrimary
+                                    else MaterialTheme.colorScheme.onSurface,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                    fontSize = 14.sp
+                                )
+                            }
+                        }
+                    }
                 }
 
-                // Status filter tabs (All, Available, Pending, Completed)
-                TabRow(
-                    selectedTabIndex = when (selectedStatus) {
-                        ListingStatus.ALL -> 0
-                        ListingStatus.AVAILABLE -> 1
-                        ListingStatus.PENDING -> 2
-                        ListingStatus.COMPLETED -> 3
-                    },
-                    containerColor = Color(0xFFF5F5F5),
-                    modifier = Modifier.padding(horizontal = 16.dp)
+                androidx.compose.foundation.lazy.LazyRow(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
+                    contentPadding = PaddingValues(horizontal = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Tab(
-                        selected = selectedStatus == ListingStatus.ALL,
-                        onClick = { selectedStatus = ListingStatus.ALL },
-                        text = { Text("All", fontSize = 12.sp, fontWeight = FontWeight.Medium) }
-                    )
-                    Tab(
-                        selected = selectedStatus == ListingStatus.AVAILABLE,
-                        onClick = { selectedStatus = ListingStatus.AVAILABLE },
-                        text = { Text("Available", fontSize = 12.sp, fontWeight = FontWeight.Medium) }
-                    )
-                    Tab(
-                        selected = selectedStatus == ListingStatus.PENDING,
-                        onClick = { selectedStatus = ListingStatus.PENDING },
-                        text = { Text("Pending", fontSize = 12.sp, fontWeight = FontWeight.Medium) }
-                    )
-                    Tab(
-                        selected = selectedStatus == ListingStatus.COMPLETED,
-                        onClick = { selectedStatus = ListingStatus.COMPLETED },
-                        text = { Text("Completed", fontSize = 12.sp, fontWeight = FontWeight.Medium) }
-                    )
+                    items(ListingStatus.values()) { status ->
+                        val isSelected = selectedStatus == status
+                        val label = when (status) {
+                            ListingStatus.ALL -> "All"
+                            ListingStatus.AVAILABLE -> "Available"
+                            ListingStatus.PENDING -> "Pending"
+                            ListingStatus.COMPLETED -> "Completed"
+                        }
+
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(50))
+                                .background(
+                                    if (isSelected) MaterialTheme.colorScheme.primary
+                                    else Color.Transparent
+                                )
+                                .border(
+                                    width = 1.dp,
+                                    color = if (isSelected) Color.Transparent
+                                    else MaterialTheme.colorScheme.outline,
+                                    shape = RoundedCornerShape(50)
+                                )
+                                .clickable { selectedStatus = status }
+                                .padding(horizontal = 20.dp, vertical = 8.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = label,
+                                color = if (isSelected) MaterialTheme.colorScheme.onPrimary
+                                else MaterialTheme.colorScheme.onSurface,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    }
                 }
 
                 // Listing section title
@@ -255,11 +283,11 @@ fun UserProfileScreen(
                     },
                     fontWeight = FontWeight.Bold,
                     fontSize = 18.sp,
+                    color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                 )
             }
 
-            // Display products from database
             val data = filteredListings
             if (data.isEmpty()) {
                 item {
@@ -268,7 +296,7 @@ fun UserProfileScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(16.dp),
-                        color = Color.Gray,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontSize = 14.sp
                     )
                 }
@@ -331,161 +359,138 @@ fun ProfileHeaderSection(
     rentalCount: Int,
     completedCount: Int,
     isLoading: Boolean = false,
-    onEditProfileClick: () -> Unit = {}
+    onEditProfileClick: () -> Unit = {},
+    profileImageUrl: String? = null
 ) {
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(16.dp),
-        horizontalAlignment = Alignment.Start
+            .padding(16.dp)
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // Profile picture on the left
-            Box {
-                Box(
-                    modifier = Modifier
-                        .size(80.dp)
-                        .clip(CircleShape)
-                        .background(Color(0xFFE3F2FD))
-                ) {
-                    Icon(
-                        Icons.Default.Person,
-                        contentDescription = "Profile Avatar",
-                        modifier = Modifier
-                            .size(50.dp)
-                            .align(Alignment.Center),
-                        tint = Color(0xFF0288D1)
-                    )
-                }
-
-                // Pencil icon over avatar (bottom-right)
-                Box(
-                    modifier = Modifier
-                        .size(24.dp)
-                        .clip(CircleShape)
-                        .background(Greenish)
-                        .align(Alignment.BottomEnd)
-                        .clickable {
-                            // Navigate to Edit Profile screen
-                            onEditProfileClick()
-                        },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Create,
-                        contentDescription = "Edit Profile / Settings",
-                        tint = White,
-                        modifier = Modifier.size(12.dp)
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.width(16.dp))
-
-            // Name and email on the right of profile picture
-            Column(
-                verticalArrangement = Arrangement.Center
-            ) {
-                Text(
-                    text = userName,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 20.sp,  // Slightly smaller for left layout
-                    color = Color.Black
-                )
-                Text(userDisplayEmail, fontSize = 14.sp, color = Color.Gray)
-            }
-        }
-
-        Spacer(modifier = Modifier.height(20.dp))
-
-        // Stats row with better styling
         Card(
-            modifier = Modifier
-                .fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
             colors = CardDefaults.cardColors(
-                containerColor = Color(0xFFF8F9FA)
-            ),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-            shape = RoundedCornerShape(12.dp)
+                containerColor = MaterialTheme.colorScheme.surface
+            )
         ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceEvenly
+            Column(
+                modifier = Modifier.padding(16.dp)
             ) {
-                ProfileStat(
-                    label = "Barter Items",
-                    value = barterCount.toString(),
-                    modifier = Modifier.weight(1f)
-                )
-                // Divider between stats
-                Box(
-                    modifier = Modifier
-                        .width(1.dp)
-                        .height(40.dp)
-                        .background(Color(0xFFE0E0E0))
-                )
-                ProfileStat(
-                    label = "Rental Items",
-                    value = rentalCount.toString(),
-                    modifier = Modifier.weight(1f)
-                )
-                // Divider between stats
-                Box(
-                    modifier = Modifier
-                        .width(1.dp)
-                        .height(40.dp)
-                        .background(Color(0xFFE0E0E0))
-                )
-                // Completed Trades Stat
-                Column(
-                    modifier = Modifier.weight(1f),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                // Profile Info Row
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = completedCount.toString(),
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 18.sp,
-                        color = Color.Black
+                    Box {
+                        Box(
+                            modifier = Modifier
+                                .size(60.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.primaryContainer)
+                        ) {
+                            if (!profileImageUrl.isNullOrEmpty()) {
+                                AsyncImage(
+                                    model = profileImageUrl,
+                                    contentDescription = "Profile Avatar",
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = ContentScale.Crop,
+                                    placeholder = painterResource(R.drawable.placeholderimage),
+                                    error = painterResource(R.drawable.house_rent_logo)
+                                )
+                            } else {
+                                Icon(
+                                    Icons.Default.Person,
+                                    contentDescription = "Profile Avatar",
+                                    modifier = Modifier
+                                        .size(30.dp)
+                                        .align(Alignment.Center),
+                                    tint = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.width(16.dp))
+
+                    Column {
+                        Text(
+                            text = userName,
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            text = userDisplayEmail,
+                            fontSize = 14.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // Stats Row
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    StatBox(
+                        count = barterCount.toString(),
+                        label = "Barter Items",
+                        backgroundColor = MaterialTheme.colorScheme.primaryContainer,
+                        textColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                        modifier = Modifier.weight(1f)
                     )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = "Completed",
-                        fontSize = 12.sp,
-                        color = Color.Gray,
-                        fontWeight = FontWeight.Medium
+                    StatBox(
+                        count = rentalCount.toString(),
+                        label = "Rental Items",
+                        backgroundColor = MaterialTheme.colorScheme.secondaryContainer,
+                        textColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                        modifier = Modifier.weight(1f)
+                    )
+                    StatBox(
+                        count = completedCount.toString(),
+                        label = "Completed",
+                        backgroundColor = MaterialTheme.colorScheme.tertiaryContainer,
+                        textColor = MaterialTheme.colorScheme.onTertiaryContainer,
+                        modifier = Modifier.weight(1f)
                     )
                 }
             }
         }
-
-        Spacer(modifier = Modifier.height(16.dp))
     }
 }
 
 @Composable
-fun ProfileStat(label: String, value: String, modifier: Modifier = Modifier) {
+fun StatBox(
+    count: String,
+    label: String,
+    backgroundColor: Color,
+    textColor: Color,
+    modifier: Modifier = Modifier
+) {
     Column(
-        modifier = modifier,
-        horizontalAlignment = Alignment.CenterHorizontally
+        modifier = modifier
+            .clip(RoundedCornerShape(12.dp))
+            .background(backgroundColor)
+            .padding(vertical = 16.dp, horizontal = 4.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
     ) {
         Text(
-            text = value,
+            text = count,
+            fontSize = 24.sp,
             fontWeight = FontWeight.Bold,
-            fontSize = 18.sp,
-            color = Color.Black
+            color = textColor
         )
         Spacer(modifier = Modifier.height(4.dp))
         Text(
             text = label,
             fontSize = 12.sp,
-            color = Color.Gray,
-            fontWeight = FontWeight.Medium
+            color = textColor.copy(alpha = 0.8f),
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+            lineHeight = 14.sp
         )
     }
 }
@@ -499,30 +504,34 @@ fun ProductItemCard(
     onDeleteRequest: (ProductModel) -> Unit,
     onMarkTradedRequest: (ProductModel) -> Unit
 ) {
+    // Determine background color based on status and type
+    val cardBackgroundColor = when {
+        product.status == "Completed" -> MaterialTheme.colorScheme.tertiaryContainer
+        product.type == "Barter" -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+        product.type == "Rent" -> MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.3f)
+        else -> MaterialTheme.colorScheme.surfaceVariant
+    }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 4.dp)
-            .clickable(onClick = onClick)
-            .border(
-                width = 1.dp,
-                color = Color.LightGray,
-                shape = RoundedCornerShape(8.dp)
-            ),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFFF8F8F8)),
+            .clickable(onClick = onClick),
+        colors = CardDefaults.cardColors(
+            containerColor = cardBackgroundColor
+        ),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        shape = RoundedCornerShape(8.dp)
+        shape = RoundedCornerShape(12.dp)
     ) {
         Row(
-            modifier = Modifier.padding(vertical = 8.dp),
+            modifier = Modifier.padding(vertical = 8.dp, horizontal = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Image Display Area (Left Side)
             Box(
                 modifier = Modifier
                     .size(80.dp)
                     .clip(RoundedCornerShape(8.dp))
-                    .background(Color(0xFFE3F2FD)),
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
                 contentAlignment = Alignment.Center
             ) {
                 if (product.imageUrl.isNotEmpty()) {
@@ -539,32 +548,30 @@ fun ProductItemCard(
                         Icons.Default.Person,
                         contentDescription = "Product Image",
                         modifier = Modifier.size(40.dp),
-                        tint = Color(0xFF0288D1)
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
 
             Spacer(modifier = Modifier.width(16.dp))
 
-            // Status and Identity (Top Right/Center)
             Column(modifier = Modifier.weight(1f)) {
-                // Availability Badge at Top
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(12.dp))
                         .background(
                             when (product.status) {
-                                "Available" -> Color(0xFF00897B) // Teal
-                                "Pending" -> Color(0xFFFF9800) // Orange
-                                "Completed" -> Color(0xFF2196F3) // Blue
-                                else -> Color(0xFF9E9E9E) // Gray
+                                "Available" -> MaterialTheme.colorScheme.primary
+                                "Pending" -> MaterialTheme.colorScheme.secondary
+                                "Completed" -> MaterialTheme.colorScheme.tertiary
+                                else -> MaterialTheme.colorScheme.outline
                             }
                         )
                         .padding(horizontal = 8.dp, vertical = 4.dp)
                 ) {
                     Text(
                         text = product.status,
-                        color = White,
+                        color = MaterialTheme.colorScheme.onPrimary,
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -573,7 +580,12 @@ fun ProductItemCard(
                 Spacer(modifier = Modifier.height(4.dp))
 
                 // Title
-                Text(product.name, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.Black)
+                Text(
+                    product.name,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
 
                 Spacer(modifier = Modifier.height(2.dp))
 
@@ -581,7 +593,7 @@ fun ProductItemCard(
                 Text(
                     product.description.takeIf { it.isNotEmpty() } ?: "No description",
                     fontSize = 14.sp,
-                    color = Color.Gray,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 2
                 )
 
@@ -593,19 +605,20 @@ fun ProductItemCard(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    // Trade Type Badge (Left)
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(12.dp))
                             .background(
-                                if (product.type == "Barter") Color(0xFF00897B)
-                                else Color(0xFF795548) // Brown for Rent
+                                if (product.type == "Barter")
+                                    MaterialTheme.colorScheme.primary
+                                else
+                                    MaterialTheme.colorScheme.secondary
                             )
                             .padding(horizontal = 8.dp, vertical = 4.dp)
                     ) {
                         Text(
                             text = product.type,
-                            color = White,
+                            color = MaterialTheme.colorScheme.onPrimary,
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Bold
                         )
@@ -620,7 +633,7 @@ fun ProductItemCard(
                         },
                         fontWeight = FontWeight.Bold,
                         fontSize = 16.sp,
-                        color = Color.Black
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                 }
 
@@ -633,32 +646,35 @@ fun ProductItemCard(
                 ) {
                     // Location Icon from drawable
                     Image(
-                        painter = painterResource(R.drawable.location_on), // You'll need to add this drawable
+                        painter = painterResource(R.drawable.location_on),
                         contentDescription = "Location",
-                        modifier = Modifier.size(16.dp)
+                        modifier = Modifier.size(16.dp),
+                        colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
                         text = product.location.takeIf { it.isNotEmpty() } ?: "No location specified",
                         fontSize = 12.sp,
-                        color = Color.Gray,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1
                     )
                 }
 
                 Spacer(modifier = Modifier.height(4.dp))
 
-                // Gray divider line below location
+                // Divider line below location
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(1.dp)
-                        .background(Color.LightGray)
+                        .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
                 )
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // Action Buttons (Bottom Row)
+                // Action Buttons
                 if (isOwner) {
                     var showDeleteConfirm by remember { mutableStateOf(false) }
                     var showDeleteBlocked by remember { mutableStateOf(false) }
@@ -675,7 +691,7 @@ fun ProductItemCard(
                                     .weight(1f)
                                     .height(32.dp),
                                 colors = CardDefaults.cardColors(
-                                    containerColor = Color(0xFFE0E0E0)
+                                    containerColor = MaterialTheme.colorScheme.surfaceVariant
                                 ),
                                 shape = RoundedCornerShape(8.dp),
                                 elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
@@ -691,13 +707,16 @@ fun ProductItemCard(
                                         text = "Edit",
                                         fontSize = 12.sp,
                                         fontWeight = FontWeight.Medium,
-                                        color = Color.Black
+                                        color = MaterialTheme.colorScheme.onSurface
                                     )
                                     Spacer(modifier = Modifier.width(6.dp))
                                     Image(
                                         painter = painterResource(R.drawable.edit),
                                         contentDescription = "Edit",
-                                        modifier = Modifier.size(14.dp)
+                                        modifier = Modifier.size(14.dp),
+                                        colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(
+                                            MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
                                     )
                                 }
                             }
@@ -710,7 +729,7 @@ fun ProductItemCard(
                                     .weight(1f)
                                     .height(32.dp),
                                 colors = CardDefaults.cardColors(
-                                    containerColor = Color(0xFFE0E0E0)
+                                    containerColor = MaterialTheme.colorScheme.surfaceVariant
                                 ),
                                 shape = RoundedCornerShape(8.dp),
                                 elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
@@ -729,13 +748,16 @@ fun ProductItemCard(
                                         text = " Traded",
                                         fontSize = 12.sp,
                                         fontWeight = FontWeight.Medium,
-                                        color = Color.Black
+                                        color = MaterialTheme.colorScheme.onSurface
                                     )
                                     Spacer(modifier = Modifier.width(6.dp))
                                     Image(
                                         painter = painterResource(R.drawable.traded),
                                         contentDescription = "Traded",
-                                        modifier = Modifier.size(14.dp)
+                                        modifier = Modifier.size(14.dp),
+                                        colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(
+                                            MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
                                     )
                                 }
                             }
@@ -748,7 +770,7 @@ fun ProductItemCard(
                                     .weight(1f)
                                     .height(32.dp),
                                 colors = CardDefaults.cardColors(
-                                    containerColor = Color(0xFFE0E0E0)
+                                    containerColor = MaterialTheme.colorScheme.surfaceVariant
                                 ),
                                 shape = RoundedCornerShape(8.dp),
                                 elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
@@ -767,13 +789,16 @@ fun ProductItemCard(
                                         text = "Delete",
                                         fontSize = 12.sp,
                                         fontWeight = FontWeight.Medium,
-                                        color = Color.Black
+                                        color = MaterialTheme.colorScheme.onSurface
                                     )
                                     Spacer(modifier = Modifier.width(6.dp))
                                     Image(
                                         painter = painterResource(R.drawable.delete),
                                         contentDescription = "Delete",
-                                        modifier = Modifier.size(14.dp)
+                                        modifier = Modifier.size(14.dp),
+                                        colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(
+                                            MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
                                     )
                                 }
                             }
@@ -788,13 +813,13 @@ fun ProductItemCard(
                             Icon(
                                 imageVector = Icons.Default.CheckCircle,
                                 contentDescription = null,
-                                tint = Color(0xFF4CAF50)
+                                tint = MaterialTheme.colorScheme.tertiary
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
                                 text = "Traded successfully",
                                 fontSize = 12.sp,
-                                color = Color.Black
+                                color = MaterialTheme.colorScheme.onSurface
                             )
                         }
                     }
@@ -802,73 +827,146 @@ fun ProductItemCard(
                     if (showDeleteConfirm) {
                         AlertDialog(
                             onDismissRequest = { showDeleteConfirm = false },
-                            title = { Text("Delete item?") },
-                            text = { Text("This item will be permanently removed from your listings.") },
+                            title = {
+                                Text(
+                                    "Delete item?",
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                            },
+                            text = {
+                                Text(
+                                    "This item will be permanently removed from your listings.",
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            },
                             confirmButton = {
                                 TextButton(onClick = {
                                     showDeleteConfirm = false
                                     onDeleteRequest(product)
                                 }) {
-                                    Text("Delete", color = Color.Red)
+                                    Text(
+                                        "Delete",
+                                        color = MaterialTheme.colorScheme.error
+                                    )
                                 }
                             },
                             dismissButton = {
                                 TextButton(onClick = { showDeleteConfirm = false }) {
-                                    Text("Cancel")
+                                    Text(
+                                        "Cancel",
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
                                 }
-                            }
+                            },
+                            containerColor = MaterialTheme.colorScheme.surface,
+                            titleContentColor = MaterialTheme.colorScheme.onSurface,
+                            textContentColor = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
 
                     if (showMarkConfirm) {
                         AlertDialog(
                             onDismissRequest = { showMarkConfirm = false },
-                            title = { Text("Mark item as traded?") },
-                            text = { Text("This will move the item to completed and remove it from active listings.") },
+                            title = {
+                                Text(
+                                    "Mark item as traded?",
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                            },
+                            text = {
+                                Text(
+                                    "This will move the item to completed and remove it from active listings.",
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            },
                             confirmButton = {
                                 TextButton(onClick = {
                                     showMarkConfirm = false
                                     onMarkTradedRequest(product)
                                 }) {
-                                    Text("Mark as Traded")
+                                    Text(
+                                        "Mark as Traded",
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
                                 }
                             },
                             dismissButton = {
                                 TextButton(onClick = { showMarkConfirm = false }) {
-                                    Text("Cancel")
+                                    Text(
+                                        "Cancel",
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
                                 }
-                            }
+                            },
+                            containerColor = MaterialTheme.colorScheme.surface,
+                            titleContentColor = MaterialTheme.colorScheme.onSurface,
+                            textContentColor = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
 
                     if (showMarkBlocked) {
                         AlertDialog(
                             onDismissRequest = { showMarkBlocked = false },
-                            title = { Text("Not allowed") },
-                            text = { Text("You can mark this item as traded only after completion.") },
+                            title = {
+                                Text(
+                                    "Not allowed",
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                            },
+                            text = {
+                                Text(
+                                    "You can mark this item as traded only after completion.",
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            },
                             confirmButton = {
                                 TextButton(onClick = { showMarkBlocked = false }) {
-                                    Text("OK")
+                                    Text(
+                                        "OK",
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
                                 }
-                            }
+                            },
+                            containerColor = MaterialTheme.colorScheme.surface,
+                            titleContentColor = MaterialTheme.colorScheme.onSurface,
+                            textContentColor = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
 
                     if (showDeleteBlocked) {
                         AlertDialog(
                             onDismissRequest = { showDeleteBlocked = false },
-                            title = { Text("Delete not allowed") },
-                            text = { Text("You can't delete this item while a trade is in progress.") },
+                            title = {
+                                Text(
+                                    "Delete not allowed",
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                            },
+                            text = {
+                                Text(
+                                    "You can't delete this item while a trade is in progress.",
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            },
                             confirmButton = {
                                 TextButton(onClick = { showDeleteBlocked = false }) {
-                                    Text("Mark as completed")
+                                    Text(
+                                        "Mark as completed",
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
                                 }
                             },
                             dismissButton = {
                                 TextButton(onClick = { showDeleteBlocked = false }) {
-                                    Text("Cancel trade")
+                                    Text(
+                                        "Cancel trade",
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
                                 }
-                            }
+                            },
+                            containerColor = MaterialTheme.colorScheme.surface,
+                            titleContentColor = MaterialTheme.colorScheme.onSurface,
+                            textContentColor = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
