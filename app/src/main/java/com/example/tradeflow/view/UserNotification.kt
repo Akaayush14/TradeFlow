@@ -156,6 +156,8 @@ fun UserNotificationScreen(
                             labelColor = Color.Black
                         ),
                         border = FilterChipDefaults.filterChipBorder(
+                            enabled = true,
+                            selected = isSelected,
                             borderColor = Color(0xFFE0E0E0)
                         )
                     )
