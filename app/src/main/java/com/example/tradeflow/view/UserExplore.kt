@@ -177,55 +177,92 @@ fun UserExploreScreen() {
                 // Search bar
                 TradeFlowTopBar(
                     title = {
-                        TextField(
-                            value = searchQuery,
-                            onValueChange = { searchQuery = it },
-                            placeholder = {
-                                Text(
-                                    "Search items or users...",
-                                    color = Color.White.copy(alpha = 0.7f),
-                                    fontSize = 16.sp
-                                )
-                            },
-                            leadingIcon = {
-                                Icon(
-                                    imageVector = Icons.Default.Search,
-                                    contentDescription = "Search Icon",
-                                    tint = White
-                                )
-                            },
-                            trailingIcon = {
-                                if (searchQuery.isNotEmpty()) {
-                                    IconButton(onClick = { searchQuery = "" }) {
-                                        Icon(
-                                            imageVector = Icons.Default.Close,
-                                            contentDescription = "Clear Search",
-                                            tint = White
-                                        )
-                                    }
-                                }
-                            },
+                        Row(
                             modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(end = 8.dp),
-                            colors = TextFieldDefaults.colors(
-                                focusedContainerColor = Color.White.copy(alpha = 0.2f),
-                                unfocusedContainerColor = Color.White.copy(alpha = 0.15f),
-                                disabledContainerColor = Color.White.copy(alpha = 0.15f),
-                                focusedIndicatorColor = Color.Transparent,
-                                unfocusedIndicatorColor = Color.Transparent,
-                                cursorColor = White,
-                                focusedTextColor = White,
-                                unfocusedTextColor = White
-                            ),
-                            textStyle = TextStyle(
-                                color = White,
-                                fontSize = 16.sp
-                            ),
-                            shape = RoundedCornerShape(24.dp),
-                            singleLine = true)
+                                .fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+
+                            // 🔍 Search Field (smaller)
+                            TextField(
+                                value = searchQuery,
+                                onValueChange = { searchQuery = it },
+                                placeholder = {
+                                    Text(
+                                        "Search items or users...",
+                                        color = Color.White.copy(alpha = 0.7f),
+                                        fontSize = 14.sp
+                                    )
+                                },
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = Icons.Default.Search,
+                                        contentDescription = null,
+                                        tint = White
+                                    )
+                                },
+                                trailingIcon = {
+                                    if (searchQuery.isNotEmpty()) {
+                                        IconButton(onClick = { searchQuery = "" }) {
+                                            Icon(
+                                                imageVector = Icons.Default.Close,
+                                                contentDescription = null,
+                                                tint = White
+                                            )
+                                        }
+                                    }
+                                },
+                                modifier = Modifier
+                                    .weight(1f)              // 👈 makes it smaller
+                                    .height(48.dp),
+                                singleLine = true,
+                                shape = RoundedCornerShape(24.dp),
+                                textStyle = TextStyle(fontSize = 14.sp),
+                                colors = TextFieldDefaults.colors(
+                                    focusedContainerColor = Color.White.copy(alpha = 0.2f),
+                                    unfocusedContainerColor = Color.White.copy(alpha = 0.15f),
+                                    focusedIndicatorColor = Color.Transparent,
+                                    unfocusedIndicatorColor = Color.Transparent,
+                                    cursorColor = White,
+                                    focusedTextColor = White,
+                                    unfocusedTextColor = White
+                                )
+                            )
+
+                            Spacer(modifier = Modifier.width(8.dp))
+
+                            // 🗺 Map Button
+                            Box(
+                                modifier = Modifier
+                                    .height(48.dp)
+                                    .clip(RoundedCornerShape(24.dp))
+                                    .background(Color.White.copy(alpha = 0.2f))
+                                    .clickable {
+                                        // TODO: Navigate to Map Screen
+                                        // startActivity(Intent(context, MapActivity::class.java))
+                                    }
+                                    .padding(horizontal = 16.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        imageVector = Icons.Default.LocationOn,
+                                        contentDescription = "Map",
+                                        tint = White,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(
+                                        text = "Map",
+                                        color = White,
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                }
+                            }
+                        }
                     },
-                    actions = {
+                            actions = {
                         IconButton(onClick = {
                             val intent = Intent(activity, UserSetting::class.java)
                             activity.startActivity(intent)
