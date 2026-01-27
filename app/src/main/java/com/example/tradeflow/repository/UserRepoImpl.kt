@@ -117,6 +117,23 @@ class UserRepoImpl: UserRepo {
                             snapshot.child("location").getValue(String::class.java) ?: ""
                         user.gender = snapshot.child("gender").getValue(String::class.java) ?: ""
                         user.dob = snapshot.child("dob").getValue(String::class.java) ?: ""
+                        
+                        // Explicitly fetch boolean status flags
+                        if (snapshot.hasChild("isBlocked")) {
+                            user.isBlocked = snapshot.child("isBlocked").getValue(Boolean::class.java) ?: false
+                        } else {
+                            user.isBlocked = false
+                        }
+                        
+                        if (snapshot.hasChild("isRestricted")) {
+                            user.isRestricted = snapshot.child("isRestricted").getValue(Boolean::class.java) ?: false
+                        } else {
+                            user.isRestricted = false
+                        }
+
+                        // Also fetch points and profile image if needed
+                        user.points = snapshot.child("points").getValue(Long::class.java) ?: 0L
+                        user.profileImageUrl = snapshot.child("profileImageUrl").getValue(String::class.java) ?: ""
 
                         callback(true, "Profile Fetched", user)
                     } else {

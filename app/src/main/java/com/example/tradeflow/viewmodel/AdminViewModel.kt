@@ -21,10 +21,11 @@ class AdminViewModel(val repo: AdminRepo): ViewModel(){
     }
 
     fun register(
+        context: Context,
         email:String, password: String, phone:String,
         callback: (Boolean, String, String) -> Unit
     ){
-        repo.register(email, password, phone, callback)
+        repo.register(context, email, password, phone, callback)
     }
 
     fun addAdminToDatabase(
