@@ -20,6 +20,10 @@ interface ChatRepo {
         callback: (Boolean, String, List<String>?) -> Unit
     )
 
+    fun getChatSummaries(
+        callback: (Boolean, String, List<com.example.tradeflow.model.UserModel.ChatModel>?) -> Unit
+    )
+
     fun getCurrentUser(): FirebaseUser?
 
     fun removeListeners()

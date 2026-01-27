@@ -3,6 +3,7 @@ package com.example.tradeflow.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.tradeflow.model.MessageModel
+import com.example.tradeflow.model.UserModel
 import com.example.tradeflow.repository.ChatRepo
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -15,6 +16,8 @@ class ChatViewModel(val repo: ChatRepo) : ViewModel() {
     val messages: StateFlow<List<MessageModel>> = _messages.asStateFlow()
     private val _chatPartners = MutableStateFlow<List<String>>(emptyList())
     val chatPartners: StateFlow<List<String>> = _chatPartners.asStateFlow()
+    private val _chatSummaries = MutableStateFlow<List<UserModel.ChatModel>>(emptyList())
+    val chatSummaries: StateFlow<List<UserModel.ChatModel>> = _chatSummaries.asStateFlow()
     fun sendTextMessage(
         receiverId: String,
         text: String,
@@ -51,6 +54,14 @@ class ChatViewModel(val repo: ChatRepo) : ViewModel() {
         viewModelScope.launch {
             repo.getChatPartners { success, message, data ->
                 _chatPartners.value = if (success) (data ?: emptyList()) else emptyList()
+            }
+        }
+    }
+
+    fun loadChatSummaries() {
+        viewModelScope.launch {
+            repo.getChatSummaries { success, message, data ->
+                _chatSummaries.value = if (success) (data ?: emptyList()) else emptyList()
             }
         }
     }

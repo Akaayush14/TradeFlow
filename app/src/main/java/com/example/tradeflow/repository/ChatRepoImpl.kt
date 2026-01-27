@@ -110,6 +110,47 @@ class ChatRepoImpl : ChatRepo {
         })
     }
 
+    override fun getChatSummaries(
+        callback: (Boolean, String, List<UserModel.ChatModel>?) -> Unit
+    ) {
+        val user = getCurrentUser() ?: return callback(false, "Not logged in", null)
+        messagesRef.addListenerForSingleValueEvent(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val summaries = mutableListOf<UserModel.ChatModel>()
+                snapshot.children.forEach { chatSnapshot ->
+                    val chatId = chatSnapshot.key ?: return@forEach
+                    val parts = chatId.split("_")
+                    if (parts.size == 2 && (parts[0] == user.uid || parts[1] == user.uid)) {
+                        var lastMsg: MessageModel? = null
+                        chatSnapshot.children.forEach { msgSnap ->
+                            val m = msgSnap.getValue(MessageModel::class.java)
+                            if (m != null) {
+                                if (lastMsg == null || m.timestamp > (lastMsg?.timestamp ?: 0L)) {
+                                    lastMsg = m
+                                }
+                            }
+                        }
+                        val partner = if (parts[0] == user.uid) parts[1] else parts[0]
+                        val model = UserModel.ChatModel(
+                            chatId = chatId,
+                            participants = listOf(user.uid, partner),
+                            lastMessage = lastMsg?.text ?: "",
+                            lastMessageTime = lastMsg?.timestamp ?: 0L,
+                            unreadCount = 0
+                        )
+                        summaries.add(model)
+                    }
+                }
+                val sorted = summaries.sortedByDescending { it.lastMessageTime }
+                callback(true, "Chat summaries fetched", sorted)
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                callback(false, error.message, null)
+            }
+        })
+    }
+
     override fun getCurrentUser(): FirebaseUser? = auth.currentUser
 
     override fun removeListeners() {

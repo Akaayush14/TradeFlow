@@ -41,30 +41,34 @@ fun UserInboxScreen(
     val userViewModel: UserViewModel = viewModel(factory = ViewModelFactory())
     val chatViewModel: ChatViewModel = viewModel(factory = ViewModelFactory())
     val allUsers by userViewModel.allUsers.collectAsState()
-    val chatPartners by chatViewModel.chatPartners.collectAsState()
+    val chatSummaries by chatViewModel.chatSummaries.collectAsState()
     val currentUser = userViewModel.getCurrentUser()
 
-    val filteredUsers = remember(searchQuery, allUsers, chatPartners) {
-        if (searchQuery.isEmpty()) {
-            allUsers
-                ?.filter { it.userId != currentUser?.uid }
-                ?.filter { chatPartners.contains(it.userId) }
-                ?: emptyList()
-        } else {
-            allUsers
-                ?.filter {
-                    it.userId != currentUser?.uid &&
-                            (it.name.contains(searchQuery, ignoreCase = true) ||
-                                    it.email.contains(searchQuery, ignoreCase = true))
-                }
-                ?.filter { chatPartners.contains(it.userId) }
-                ?: emptyList()
+    val inboxRows = remember(searchQuery, allUsers, chatSummaries) {
+        val rows = mutableListOf<Pair<UserModel, com.example.tradeflow.model.UserModel.ChatModel>>()
+        val usersMap = allUsers?.associateBy { it.userId } ?: emptyMap()
+        chatSummaries.forEach { summary ->
+            val partnerId = summary.participants.firstOrNull { it != currentUser?.uid } ?: ""
+            val user = usersMap[partnerId]
+            if (user != null) {
+                rows.add(user to summary)
+            }
         }
+        val filtered = if (searchQuery.isEmpty()) {
+            rows
+        } else {
+            rows.filter {
+                it.first.name.contains(searchQuery, ignoreCase = true) ||
+                        it.first.email.contains(searchQuery, ignoreCase = true) ||
+                        summaryText(it.second).contains(searchQuery, ignoreCase = true)
+            }
+        }
+        filtered.sortedByDescending { it.second.lastMessageTime }
     }
 
     LaunchedEffect(Unit) {
         userViewModel.getAllUser()
-        chatViewModel.loadChatPartners()
+        chatViewModel.loadChatSummaries()
     }
 
     Scaffold(
@@ -119,8 +123,13 @@ fun UserInboxScreen(
             LazyColumn(
                 modifier = Modifier.fillMaxWidth()
             ) {
-                items(filteredUsers) { user ->
-                    UserItem(user = user, onClick = { onChatClick(user.userId) })
+                items(inboxRows) { row ->
+                    InboxItem(
+                        user = row.first,
+                        lastMessage = summaryText(row.second),
+                        lastTime = row.second.lastMessageTime,
+                        onClick = { onChatClick(row.first.userId) }
+                    )
                 }
             }
         }
@@ -151,7 +160,7 @@ fun InboxTopAppBar(onBackClick: () -> Unit) {
 }
 
 @Composable
-fun UserItem(user: UserModel, onClick: () -> Unit) {
+fun InboxItem(user: UserModel, lastMessage: String, lastTime: Long, onClick: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -184,7 +193,7 @@ fun UserItem(user: UserModel, onClick: () -> Unit) {
                 color = Color.Black
             )
             Text(
-                text = user.email,
+                text = lastMessage.ifEmpty { "No messages yet" },
                 fontSize = 14.sp,
                 color = Color.Gray,
                 maxLines = 1,
@@ -199,4 +208,8 @@ fun UserItem(user: UserModel, onClick: () -> Unit) {
                 .background(if (!user.isBlocked) Color.Green else Color.Red)
         )
     }
+}
+
+private fun summaryText(model: com.example.tradeflow.model.UserModel.ChatModel): String {
+    return model.lastMessage
 }
