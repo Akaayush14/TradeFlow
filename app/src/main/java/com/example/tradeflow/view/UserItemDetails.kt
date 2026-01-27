@@ -42,21 +42,22 @@ import com.example.tradeflow.model.UserModel
 import com.example.tradeflow.repository.ProductRepoImpl
 import com.example.tradeflow.repository.ReviewRepoImpl
 import com.example.tradeflow.repository.UserRepoImpl
-import com.example.tradeflow.repository.UserNotificationRepoImpl
-import com.example.tradeflow.ui.theme.Greenish
-import com.example.tradeflow.ui.theme.White
+import com.example.tradeflow.ui.components.ThemeWrapper
 import com.example.tradeflow.viewmodel.ProductViewModel
 import com.example.tradeflow.viewmodel.ReviewViewModel
 import com.example.tradeflow.viewmodel.UserViewModel
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
 import android.content.Intent
+import androidx.compose.foundation.isSystemInDarkTheme
 
 class UserItemDetails : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            ItemDetailsScreen()
+            ThemeWrapper {
+                ItemDetailsScreen()
+            }
         }
     }
 }
@@ -65,10 +66,15 @@ class UserItemDetails : ComponentActivity() {
 fun ContainerTag(text: String, color: Color, textColor: Color) {
     Box(
         modifier = Modifier
-            .background(color, RoundedCornerShape(4.dp))
-            .padding(horizontal = 8.dp, vertical = 4.dp)
+            .background(color, RoundedCornerShape(8.dp))
+            .padding(horizontal = 12.dp, vertical = 6.dp)
     ) {
-        Text(text = text, fontSize = 12.sp, color = textColor)
+        Text(
+            text = text,
+            fontSize = 12.sp,
+            color = textColor,
+            fontWeight = FontWeight.SemiBold
+        )
     }
 }
 
@@ -79,7 +85,8 @@ fun ReviewItem(username: String, rating: Int, comment: String) {
             Text(
                 text = username,
                 fontWeight = FontWeight.SemiBold,
-                fontSize = 14.sp
+                fontSize = 14.sp,
+                color = MaterialTheme.colorScheme.onSurface
             )
             Spacer(modifier = Modifier.width(8.dp))
             Row {
@@ -87,13 +94,17 @@ fun ReviewItem(username: String, rating: Int, comment: String) {
                     Icon(
                         imageVector = if (index < rating) Icons.Default.Star else Icons.Outlined.Star,
                         contentDescription = null,
-                        tint = Color(0xFFFFD700),
+                        tint = MaterialTheme.colorScheme.tertiary,
                         modifier = Modifier.size(16.dp)
                     )
                 }
             }
         }
-        Text(text = comment, fontSize = 14.sp, color = Color.Gray)
+        Text(
+            text = comment,
+            fontSize = 14.sp,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }
 
@@ -110,8 +121,6 @@ fun ItemDetailsScreen() {
 
     val currentUser = FirebaseAuth.getInstance().currentUser
     val currentUserId = currentUser?.uid ?: ""
-
-
 
     // State variables
     val product by productViewModel.product.collectAsState()
@@ -138,30 +147,32 @@ fun ItemDetailsScreen() {
             }
         }
     }
-
-    // Check if current user is the owner
     val isOwner = currentUserId == product?.ownerId
 
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text("Item Details", color = White) },
+                title = {
+                    Text(
+                        "Item Details",
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = { activity?.finish() }) {
                         Icon(
                             painterResource(id = R.drawable.outline_arrow_back_ios_new_24),
                             contentDescription = "Back",
-                            tint = White
+                            tint = MaterialTheme.colorScheme.onPrimary
                         )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Greenish
+                    containerColor = MaterialTheme.colorScheme.primary
                 )
             )
         },
         bottomBar = {
-            // Only show request button if user is not the owner and product is loaded
             if (!isOwner && currentUserId.isNotEmpty() && product != null) {
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
@@ -216,7 +227,7 @@ fun ItemDetailsScreen() {
                                 .weight(1f)
                                 .height(50.dp),
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = Greenish
+                                containerColor = MaterialTheme.colorScheme.primary
                             ),
                             shape = RoundedCornerShape(12.dp)
                         ) {
@@ -226,7 +237,8 @@ fun ItemDetailsScreen() {
                                     "Rent" -> "Rent Now"
                                     else -> "Send Request"
                                 },
-                                fontSize = 14.sp
+                                fontSize = 14.sp,
+                                color = MaterialTheme.colorScheme.onPrimary
                             )
                         }
                     }
@@ -236,11 +248,14 @@ fun ItemDetailsScreen() {
     ) { paddingValues ->
         if (loading || (product == null && productId.isNotEmpty())) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(color = Greenish)
+                CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
             }
         } else if (product == null) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("Product not found")
+                Text(
+                    "Product not found",
+                    color = MaterialTheme.colorScheme.onSurface
+                )
             }
         } else {
             val allImages = remember(product) {
@@ -263,13 +278,13 @@ fun ItemDetailsScreen() {
                     .fillMaxSize()
                     .padding(paddingValues)
                     .verticalScroll(rememberScrollState())
+                    .background(MaterialTheme.colorScheme.background)
             ) {
-                // 1. Item Image (Main Display)
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(300.dp)
-                        .background(Color.LightGray),
+                        .background(MaterialTheme.colorScheme.surfaceVariant),
                     contentAlignment = Alignment.Center
                 ) {
                     HorizontalPager(
@@ -314,14 +329,14 @@ fun ItemDetailsScreen() {
                                 .align(Alignment.BottomEnd)
                                 .padding(16.dp)
                                 .background(
-                                    Color.Black.copy(alpha = 0.6f),
+                                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                                     RoundedCornerShape(16.dp)
                                 )
                                 .padding(horizontal = 12.dp, vertical = 6.dp)
                         ) {
                             Text(
                                 text = "${pagerState.currentPage + 1}/${allImages.size}",
-                                color = White,
+                                color = MaterialTheme.colorScheme.surface,
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.Bold
                             )
@@ -344,7 +359,8 @@ fun ItemDetailsScreen() {
                                     .size(70.dp)
                                     .border(
                                         width = if (pagerState.currentPage == index) 2.dp else 1.dp,
-                                        color = if (pagerState.currentPage == index) Greenish else Color.Gray,
+                                        color = if (pagerState.currentPage == index) MaterialTheme.colorScheme.primary
+                                        else MaterialTheme.colorScheme.outline,
                                         shape = RoundedCornerShape(8.dp)
                                     )
                                     .clip(RoundedCornerShape(8.dp))
@@ -373,7 +389,7 @@ fun ItemDetailsScreen() {
                             text = productItem.name,
                             fontSize = 24.sp,
                             fontWeight = FontWeight.Bold,
-                            color = Color.Black
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Row(
@@ -389,24 +405,46 @@ fun ItemDetailsScreen() {
                                 },
                                 fontSize = 20.sp,
                                 fontWeight = FontWeight.SemiBold,
-                                color = Greenish
+                                color = MaterialTheme.colorScheme.primary
                             )
 
+                            val isDarkMode = isSystemInDarkTheme()
                             ContainerTag(
                                 text = productItem.type,
-                                color = if (productItem.type == "Rent") Color(0xFFE0F7FA) else Color(0xFFFFF3E0),
-                                textColor = if (productItem.type == "Rent") Color(0xFF006064) else Color(0xFFE65100)
+                                color = if (productItem.type == "Rent") {
+                                    if (isDarkMode)
+                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
+                                    else
+                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
+                                } else {
+                                    if (isDarkMode)
+                                        MaterialTheme.colorScheme.secondaryContainer
+                                    else
+                                        MaterialTheme.colorScheme.secondary.copy(alpha = 0.15f)
+                                },
+                                textColor = if (productItem.type == "Rent") {
+                                    if (isDarkMode)
+                                        MaterialTheme.colorScheme.onPrimary
+                                    else
+                                        MaterialTheme.colorScheme.primary
+                                } else {
+                                    // For Barter
+                                    if (isDarkMode)
+                                        MaterialTheme.colorScheme.onSecondaryContainer
+                                    else
+                                        MaterialTheme.colorScheme.secondary
+                                }
                             )
                         }
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
                             text = "Status: ${productItem.status}",
                             fontSize = 14.sp,
-                            color = Color.Gray
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
 
                         Spacer(modifier = Modifier.height(16.dp))
-                        HorizontalDivider(color = Color.LightGray, thickness = 0.5.dp)
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
                         Spacer(modifier = Modifier.height(16.dp))
 
                         // 3. Owner Info
@@ -414,41 +452,51 @@ fun ItemDetailsScreen() {
                             text = "Owner",
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Bold,
-                            color = Color.Black
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Image(
-                                painter = painterResource(id = R.drawable.ic_launcher_foreground),
-                                contentDescription = "Owner Profile",
+                            Box(
                                 modifier = Modifier
                                     .size(50.dp)
                                     .clip(CircleShape)
-                                    .border(1.dp, Color.Gray, CircleShape)
-                                    .background(Color.LightGray),
-                                contentScale = ContentScale.Crop
-                            )
+                                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                                    .border(
+                                        1.dp,
+                                        MaterialTheme.colorScheme.outline,
+                                        CircleShape
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Image(
+                                    painter = painterResource(id = R.drawable.ic_launcher_foreground),
+                                    contentDescription = "Owner Profile",
+                                    modifier = Modifier.size(40.dp),
+                                    contentScale = ContentScale.Fit
+                                )
+                            }
                             Spacer(modifier = Modifier.width(12.dp))
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
                                     text = owner?.name ?: "Loading...",
                                     fontSize = 16.sp,
-                                    fontWeight = FontWeight.SemiBold
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.onSurface
                                 )
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Icon(
                                         Icons.Default.Star,
                                         contentDescription = null,
-                                        tint = Color(0xFFFFD700),
+                                        tint = MaterialTheme.colorScheme.tertiary,
                                         modifier = Modifier.size(16.dp)
                                     )
                                     Text(
                                         text = "4.8 (24 reviews)",
                                         fontSize = 14.sp,
-                                        color = Color.Gray,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         modifier = Modifier.padding(start = 4.dp)
                                     )
                                 }
@@ -456,7 +504,7 @@ fun ItemDetailsScreen() {
                         }
 
                         Spacer(modifier = Modifier.height(16.dp))
-                        HorizontalDivider(color = Color.LightGray, thickness = 0.5.dp)
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
                         Spacer(modifier = Modifier.height(16.dp))
 
                         // 4. Description
@@ -464,18 +512,18 @@ fun ItemDetailsScreen() {
                             text = "Description",
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Bold,
-                            color = Color.Black
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
                             text = product?.description ?: "",
                             fontSize = 14.sp,
-                            color = Color.DarkGray,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             lineHeight = 20.sp
                         )
 
                         Spacer(modifier = Modifier.height(16.dp))
-                        HorizontalDivider(color = Color.LightGray, thickness = 0.5.dp)
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
                         Spacer(modifier = Modifier.height(16.dp))
 
                         // 5. Reviews
@@ -483,12 +531,16 @@ fun ItemDetailsScreen() {
                             text = "Reviews (${reviews.size})",
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Bold,
-                            color = Color.Black
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                         Spacer(modifier = Modifier.height(8.dp))
 
                         if (reviews.isEmpty()) {
-                            Text("No reviews yet.", fontSize = 14.sp, color = Color.Gray)
+                            Text(
+                                "No reviews yet.",
+                                fontSize = 14.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         } else {
                             reviews.forEach { review ->
                                 ReviewItem(
@@ -513,18 +565,29 @@ fun ItemDetailsScreen() {
                     Text(
                         "Error",
                         fontWeight = FontWeight.Bold,
-                        color = Color.Red
+                        color = MaterialTheme.colorScheme.error
                     )
                 },
-                text = { Text(errorMessage) },
+                text = {
+                    Text(
+                        errorMessage,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                },
                 confirmButton = {
                     Button(
                         onClick = { showErrorDialog = false },
-                        colors = ButtonDefaults.buttonColors(containerColor = Greenish)
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary
+                        )
                     ) {
-                        Text("OK")
+                        Text(
+                            "OK",
+                            color = MaterialTheme.colorScheme.onPrimary
+                        )
                     }
-                }
+                },
+                containerColor = MaterialTheme.colorScheme.surface
             )
         }
     }

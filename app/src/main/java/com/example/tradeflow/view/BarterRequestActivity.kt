@@ -31,8 +31,7 @@ import com.example.tradeflow.model.UserModel
 import com.example.tradeflow.repository.ProductRepoImpl
 import com.example.tradeflow.repository.UserNotificationRepoImpl
 import com.example.tradeflow.repository.UserRepoImpl
-import com.example.tradeflow.ui.theme.Greenish
-import com.example.tradeflow.ui.theme.White
+import com.example.tradeflow.ui.components.ThemeWrapper
 import com.example.tradeflow.viewmodel.ProductViewModel
 import com.example.tradeflow.viewmodel.UserNotificationViewModel
 import com.example.tradeflow.viewmodel.UserViewModel
@@ -43,7 +42,9 @@ class BarterRequestActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            BarterRequestScreen()
+            ThemeWrapper {
+                BarterRequestScreen()
+            }
         }
     }
 }
@@ -55,8 +56,8 @@ fun BarterRequestScreen() {
     val activity = context as? BarterRequestActivity
 
     // Get passed data from intent
-    val product = activity?.intent?.getSerializableExtra("product") as? ProductModel
-    val owner = activity?.intent?.getSerializableExtra("owner") as? UserModel
+    val productId = activity?.intent?.getStringExtra("productId") ?: ""
+    val ownerId = activity?.intent?.getStringExtra("ownerId") ?: ""
 
     // Initialize ViewModels
     val notificationViewModel = remember {
@@ -83,6 +84,28 @@ fun BarterRequestScreen() {
     var showErrorDialog by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf("") }
 
+    // Load product data
+    var productData by remember { mutableStateOf<ProductModel?>(null) }
+    var ownerData by remember { mutableStateOf<UserModel?>(null) }
+
+    // Load product details
+    LaunchedEffect(productId) {
+        if (productId.isNotEmpty()) {
+            productViewModel.getProductById(productId)
+        }
+    }
+
+    // Load owner details
+    LaunchedEffect(ownerId) {
+        if (ownerId.isNotEmpty()) {
+            userViewModel.getUserById(ownerId) { success, _, user ->
+                if (success) {
+                    ownerData = user
+                }
+            }
+        }
+    }
+
     // Load current user data
     LaunchedEffect(currentUserId) {
         if (currentUserId.isNotEmpty()) {
@@ -104,6 +127,8 @@ fun BarterRequestScreen() {
 
     // Observe user products
     val allProducts by productViewModel.allProducts.collectAsState()
+    val productDetails by productViewModel.product.collectAsState()
+
     LaunchedEffect(allProducts) {
         userProducts = allProducts.filter {
             it.isDeleted != true &&
@@ -113,23 +138,31 @@ fun BarterRequestScreen() {
         isLoadingProducts = false
     }
 
+    LaunchedEffect(productDetails) {
+        productData = productDetails
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
                 title = {
                     Text(
                         "Barter Request",
-                        color = White,
+                        color = MaterialTheme.colorScheme.onPrimary,
                         fontWeight = FontWeight.Bold
                     )
                 },
                 navigationIcon = {
                     IconButton(onClick = { activity?.finish() }) {
-                        Icon(Icons.Default.ArrowBack, "Back", tint = White)
+                        Icon(
+                            Icons.Default.ArrowBack,
+                            "Back",
+                            tint = MaterialTheme.colorScheme.onPrimary
+                        )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Greenish
+                    containerColor = MaterialTheme.colorScheme.primary
                 )
             )
         }
@@ -138,11 +171,12 @@ fun BarterRequestScreen() {
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
+                .background(MaterialTheme.colorScheme.background)
                 .padding(16.dp)
         ) {
             // Product they want
-            product?.let {
-                ProductWantCard(product = it, owner = owner)
+            productData?.let { product ->
+                ProductWantCard(product = product, owner = ownerData)
             }
 
             Spacer(modifier = Modifier.height(20.dp))
@@ -158,7 +192,7 @@ fun BarterRequestScreen() {
                     modifier = Modifier.fillMaxWidth(),
                     contentAlignment = Alignment.Center
                 ) {
-                    CircularProgressIndicator(color = Greenish)
+                    CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                 }
             } else if (userProducts.isEmpty()) {
                 EmptyStateCard()
@@ -199,18 +233,18 @@ fun BarterRequestScreen() {
                 isLoading = isLoading,
                 selectedCount = selectedItems.size,
                 onClick = {
-                    val productData = product
-                    val ownerData = owner
-                    val userData = currentUserData
+                    val product = productData
+                    val owner = ownerData
+                    val user = currentUserData
 
                     // Null checks before sending request
-                    if (productData == null) {
+                    if (product == null) {
                         errorMessage = "Product information not available"
                         showErrorDialog = true
-                    } else if (ownerData == null) {
+                    } else if (owner == null) {
                         errorMessage = "Owner information not available"
                         showErrorDialog = true
-                    } else if (userData == null) {
+                    } else if (user == null) {
                         errorMessage = "User information not available. Please try again."
                         showErrorDialog = true
                     } else if (selectedItems.isEmpty()) {
@@ -223,11 +257,11 @@ fun BarterRequestScreen() {
 
                         if (selectedProductList.isNotEmpty()) {
                             isLoading = true
-                            
+
                             notificationViewModel.createItemRequest(
-                                product = productData,
-                                owner = ownerData,
-                                requester = userData,
+                                product = product,
+                                owner = owner,
+                                requester = user,
                                 requestType = "BARTER",
                                 message = message,
                                 offerProducts = selectedProductList
@@ -257,11 +291,15 @@ fun BarterRequestScreen() {
             title = {
                 Text(
                     "Barter Request Sent!",
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
             },
             text = {
-                Text("Your barter request has been sent to the owner. You'll be notified when they respond.")
+                Text(
+                    "Your barter request has been sent to the owner. You'll be notified when they respond.",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             },
             confirmButton = {
                 Button(
@@ -270,12 +308,16 @@ fun BarterRequestScreen() {
                         activity?.finish()
                     },
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = Greenish
+                        containerColor = MaterialTheme.colorScheme.primary
                     )
                 ) {
-                    Text("OK")
+                    Text(
+                        "OK",
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
                 }
-            }
+            },
+            containerColor = MaterialTheme.colorScheme.surface
         )
     }
 
@@ -287,20 +329,29 @@ fun BarterRequestScreen() {
                 Text(
                     "Error",
                     fontWeight = FontWeight.Bold,
-                    color = Color.Red
+                    color = MaterialTheme.colorScheme.error
                 )
             },
-            text = { Text(errorMessage) },
+            text = {
+                Text(
+                    errorMessage,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            },
             confirmButton = {
                 Button(
                     onClick = { showErrorDialog = false },
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = Greenish
+                        containerColor = MaterialTheme.colorScheme.primary
                     )
                 ) {
-                    Text("OK")
+                    Text(
+                        "OK",
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
                 }
-            }
+            },
+            containerColor = MaterialTheme.colorScheme.surface
         )
     }
 }
@@ -320,7 +371,10 @@ fun ProductWantCard(product: ProductModel, owner: UserModel?) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
-        elevation = CardDefaults.cardElevation(4.dp)
+        elevation = CardDefaults.cardElevation(4.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        )
     ) {
         Column(
             modifier = Modifier
@@ -330,7 +384,7 @@ fun ProductWantCard(product: ProductModel, owner: UserModel?) {
             Text(
                 text = "You want to barter for:",
                 fontSize = 12.sp,
-                color = Color.Gray,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(bottom = 8.dp)
             )
 
@@ -352,16 +406,17 @@ fun ProductWantCard(product: ProductModel, owner: UserModel?) {
                     Text(
                         text = product.name,
                         fontWeight = FontWeight.Bold,
-                        fontSize = 16.sp
+                        fontSize = 16.sp,
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
                         text = "Owner: ${owner?.name ?: "Unknown"}",
                         fontSize = 12.sp,
-                        color = Color.Gray
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        text = "Value: $${product.price}",
-                        color = Greenish,
+                        text = "Value: Rs${product.price}",
+                        color = MaterialTheme.colorScheme.primary,
                         fontWeight = FontWeight.SemiBold
                     )
                 }
@@ -369,7 +424,7 @@ fun ProductWantCard(product: ProductModel, owner: UserModel?) {
                 Icon(
                     Icons.Default.SwapHoriz,
                     contentDescription = "Swap",
-                    tint = Greenish,
+                    tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(32.dp)
                 )
             }
@@ -379,7 +434,7 @@ fun ProductWantCard(product: ProductModel, owner: UserModel?) {
                 Text(
                     text = "More images:",
                     fontSize = 10.sp,
-                    color = Color.Gray,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(bottom = 4.dp)
                 )
                 androidx.compose.foundation.lazy.LazyRow(
@@ -392,7 +447,11 @@ fun ProductWantCard(product: ProductModel, owner: UserModel?) {
                             modifier = Modifier
                                 .size(60.dp)
                                 .clip(RoundedCornerShape(4.dp))
-                                .border(1.dp, Color.LightGray, RoundedCornerShape(4.dp)),
+                                .border(
+                                    1.dp,
+                                    MaterialTheme.colorScheme.outline,
+                                    RoundedCornerShape(4.dp)
+                                ),
                             contentScale = androidx.compose.ui.layout.ContentScale.Crop,
                             error = painterResource(R.drawable.placeholderimage)
                         )
@@ -408,7 +467,7 @@ fun SelectionInstructionCard(selectedCount: Int) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = Color(0xFFFFF3CD)
+            containerColor = MaterialTheme.colorScheme.secondaryContainer
         )
     ) {
         Row(
@@ -421,14 +480,14 @@ fun SelectionInstructionCard(selectedCount: Int) {
             Icon(
                 Icons.Default.SwapHoriz,
                 contentDescription = "Swap",
-                tint = Color(0xFF856404)
+                tint = MaterialTheme.colorScheme.onSecondaryContainer
             )
 
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = "Select items to offer in exchange",
                     fontWeight = FontWeight.SemiBold,
-                    color = Color(0xFF856404)
+                    color = MaterialTheme.colorScheme.onSecondaryContainer
                 )
                 Text(
                     text = if (selectedCount == 0)
@@ -436,7 +495,7 @@ fun SelectionInstructionCard(selectedCount: Int) {
                     else
                         "$selectedCount item${if (selectedCount > 1) "s" else ""} selected",
                     fontSize = 12.sp,
-                    color = Color(0xFF856404)
+                    color = MaterialTheme.colorScheme.onSecondaryContainer
                 )
             }
         }
@@ -448,7 +507,7 @@ fun EmptyStateCard() {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = Color(0xFFF8F9FA)
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
         )
     ) {
         Column(
@@ -460,13 +519,14 @@ fun EmptyStateCard() {
             Text(
                 text = "No Barter Items Available",
                 fontWeight = FontWeight.Bold,
-                color = Color.Gray
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = "You don't have any available barter items to offer.\nAdd some items to your profile first!",
                 fontSize = 12.sp,
-                color = Color.Gray
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center
             )
         }
     }
@@ -484,12 +544,16 @@ fun UserProductCard(
             .clickable { onSelectionChange(!isSelected) }
             .border(
                 width = if (isSelected) 2.dp else 1.dp,
-                color = if (isSelected) Greenish else Color.LightGray,
+                color = if (isSelected) MaterialTheme.colorScheme.primary
+                else MaterialTheme.colorScheme.outline,
                 shape = RoundedCornerShape(12.dp)
             ),
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(
-            containerColor = if (isSelected) Color(0xFFF0FFF0) else White
+            containerColor = if (isSelected)
+                MaterialTheme.colorScheme.primaryContainer
+            else
+                MaterialTheme.colorScheme.surface
         ),
         elevation = CardDefaults.cardElevation(
             defaultElevation = if (isSelected) 8.dp else 2.dp
@@ -503,14 +567,19 @@ fun UserProductCard(
             verticalAlignment = Alignment.CenterVertically
         ) {
             // Selection checkbox
-            IconButton(
-                onClick = { onSelectionChange(!isSelected) },
-                modifier = Modifier.size(40.dp)
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clickable { onSelectionChange(!isSelected) },
+                contentAlignment = Alignment.Center
             ) {
                 Icon(
                     Icons.Default.CheckCircle,
                     contentDescription = if (isSelected) "Selected" else "Not selected",
-                    tint = if (isSelected) Greenish else Color.LightGray,
+                    tint = if (isSelected)
+                        MaterialTheme.colorScheme.primary
+                    else
+                        MaterialTheme.colorScheme.outline,
                     modifier = Modifier.fillMaxSize()
                 )
             }
@@ -522,7 +591,8 @@ fun UserProductCard(
                 modifier = Modifier
                     .size(60.dp)
                     .clip(RoundedCornerShape(8.dp)),
-                error = painterResource(R.drawable.placeholderimage)
+                error = painterResource(R.drawable.placeholderimage),
+                contentScale = androidx.compose.ui.layout.ContentScale.Crop
             )
 
             // Product details
@@ -530,19 +600,20 @@ fun UserProductCard(
                 Text(
                     text = product.name,
                     fontWeight = FontWeight.Bold,
-                    fontSize = 14.sp
+                    fontSize = 14.sp,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = product.description,
                     fontSize = 12.sp,
-                    color = Color.Gray,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 2
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "$${product.price}",
-                    color = Greenish,
+                    text = "Rs${product.price}",
+                    color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.SemiBold
                 )
             }
@@ -557,7 +628,10 @@ fun BarterMessageSection(
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp)
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        )
     ) {
         Column(
             modifier = Modifier
@@ -568,19 +642,33 @@ fun BarterMessageSection(
                 text = "Message to Owner (Optional)",
                 fontWeight = FontWeight.Bold,
                 fontSize = 16.sp,
+                color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.padding(bottom = 12.dp)
             )
 
             OutlinedTextField(
                 value = message,
                 onValueChange = onMessageChange,
-                placeholder = { Text("Add a message for the owner...") },
+                placeholder = {
+                    Text(
+                        "Add a message for the owner...",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                },
                 modifier = Modifier.fillMaxWidth(),
                 minLines = 3,
                 maxLines = 5,
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = Greenish,
-                    cursorColor = Greenish
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                    cursorColor = MaterialTheme.colorScheme.primary,
+                    focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                    unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                    focusedLabelColor = MaterialTheme.colorScheme.primary,
+                    unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
+                ),
+                textStyle = androidx.compose.ui.text.TextStyle(
+                    color = MaterialTheme.colorScheme.onSurface
                 )
             )
         }
@@ -601,27 +689,29 @@ fun BarterActionButton(
             .fillMaxWidth()
             .height(56.dp),
         colors = ButtonDefaults.buttonColors(
-            containerColor = Greenish,
-            disabledContainerColor = Color.Gray
+            containerColor = MaterialTheme.colorScheme.primary,
+            disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant
         ),
         shape = RoundedCornerShape(12.dp)
     ) {
         if (isLoading) {
             CircularProgressIndicator(
                 modifier = Modifier.size(24.dp),
-                color = White
+                color = MaterialTheme.colorScheme.onPrimary
             )
         } else {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(
                     text = "Send Barter Request",
                     fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onPrimary
                 )
                 if (selectedCount > 0) {
                     Text(
                         text = "$selectedCount item${if (selectedCount > 1) "s" else ""} offered",
-                        fontSize = 12.sp
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f)
                     )
                 }
             }

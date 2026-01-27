@@ -13,13 +13,22 @@
                 </DropdownSelection>
                 <DialogSelection />
             </SelectionState>
-            <SelectionState runConfigName="SplashActivity">
-                <option name="selectionMode" value="DROPDOWN" />
-            </SelectionState>
             <SelectionState runConfigName="AdminDashExp">
                 <option name="selectionMode" value="DROPDOWN" />
             </SelectionState>
-            <SelectionState runConfigName="AdminDashExp (1)">
+            <SelectionState runConfigName="SplashActivity">
+                <option name="selectionMode" value="DROPDOWN" />
+            </SelectionState>
+            <SelectionState runConfigName="UserSettingEditProfile">
+                <option name="selectionMode" value="DROPDOWN" />
+            </SelectionState>
+            <SelectionState runConfigName="ForgetPasswordActivity">
+                <option name="selectionMode" value="DROPDOWN" />
+            </SelectionState>
+            <SelectionState runConfigName="LoginActivity">
+                <option name="selectionMode" value="DROPDOWN" />
+            </SelectionState>
+            <SelectionState runConfigName="SplashActivity">
                 <option name="selectionMode" value="DROPDOWN" />
             </SelectionState>
         </selectionStates>

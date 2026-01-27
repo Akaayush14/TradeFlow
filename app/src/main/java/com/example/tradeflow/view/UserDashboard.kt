@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
@@ -33,13 +34,16 @@ import com.example.tradeflow.ui.theme.Greenish
 import com.example.tradeflow.ui.theme.Transparent
 import com.example.tradeflow.ui.theme.White
 import com.example.tradeflow.model.ProductModel
+import com.example.tradeflow.ui.components.ThemeWrapper
 
 class UserDashboard : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            DashboardPageBody()
+            ThemeWrapper {
+                DashboardPageBody()
+            }
         }
     }
 }
@@ -74,7 +78,6 @@ fun TradeFlowTopBar(
     )
 }
 
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DashboardPageBody() {
@@ -88,14 +91,13 @@ fun DashboardPageBody() {
     var editingProduct by remember { mutableStateOf<ProductModel?>(null) }
     var showEditSuccess by remember { mutableStateOf(false) }
 
-    // Add navigation guard to prevent rapid switching
     var isNavigating by remember { mutableStateOf(false) }
-    
+
     val listItem = listOf(
         NavItem(label = "Explore", R.drawable.explore, R.drawable.explore_filled),
         NavItem(label = "Inbox", R.drawable.inbox, R.drawable.inbox_filled),
         NavItem(label = "Add", R.drawable.additem, R.drawable.additem_filled),
-        NavItem(label = "Notification", R.drawable.notification, R.drawable.notification_filled),
+        NavItem(label = "Alert", R.drawable.notification, R.drawable.notification_filled),
         NavItem(label = "profile", R.drawable.profile, R.drawable.profile_filled),
     )
 
@@ -103,7 +105,7 @@ fun DashboardPageBody() {
         contentWindowInsets = WindowInsets(0.dp),
         bottomBar = {
             NavigationBar(
-                containerColor = Greenish
+                containerColor = MaterialTheme.colorScheme.primary
             ) {
                 listItem.forEachIndexed { index, item ->
                     val isSelected = selectedIndex == index
@@ -113,9 +115,8 @@ fun DashboardPageBody() {
                             if (!isNavigating) {
                                 isNavigating = true
                                 selectedIndex = index
-                                // Reset navigation guard after a delay
-                                kotlinx.coroutines.GlobalScope.launch {
-                                    kotlinx.coroutines.delay(300)
+                                GlobalScope.launch {
+                                    delay(300)
                                     isNavigating = false
                                 }
                             }
@@ -124,16 +125,21 @@ fun DashboardPageBody() {
                             Icon(
                                 painter = painterResource(if (isSelected) item.iconFilled else item.iconOutlined),
                                 contentDescription = null,
-                                tint = White
+                                tint = MaterialTheme.colorScheme.onPrimary
                             )
                         },
-                        label = { Text(item.label, color = White) },
+                        label = {
+                            Text(
+                                item.label,
+                                color = MaterialTheme.colorScheme.onPrimary
+                            )
+                        },
                         colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = White,
-                            unselectedIconColor = White,
-                            selectedTextColor = White,
-                            unselectedTextColor = White,
-                            indicatorColor = Transparent
+                            selectedIconColor = MaterialTheme.colorScheme.onPrimary,
+                            unselectedIconColor = MaterialTheme.colorScheme.onPrimary,
+                            selectedTextColor = MaterialTheme.colorScheme.onPrimary,
+                            unselectedTextColor = MaterialTheme.colorScheme.onPrimary,
+                            indicatorColor = MaterialTheme.colorScheme.primaryContainer
                         )
                     )
                 }
@@ -179,4 +185,3 @@ fun DashboardPageBody() {
         }
     }
 }
-
