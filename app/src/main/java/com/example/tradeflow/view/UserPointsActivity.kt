@@ -77,6 +77,7 @@ fun PointsScreen() {
 
     val userData by userViewModel.users.collectAsState()
     val activeDeals by pointDealViewModel.activeDeals.observeAsState(initial = emptyList())
+    val userRedemptions by pointDealViewModel.userRedemptions.observeAsState(initial = emptySet())
     val txList by pointHistoryViewModel.transactions.collectAsState()
 
     val userPoints = userData?.points ?: 0L
@@ -135,56 +136,105 @@ fun PointsScreen() {
         val canRedeem = userPoints >= requiredPoints
 
         if (canRedeem || isFreeDeal) {
-            AlertDialog(
+            Dialog(
                 onDismissRequest = {
                     showRedeemConfirmation = false
                     selectedDeal = null
-                },
-                title = { Text(if (isFreeDeal) "Confirm Claim" else "Confirm Redemption") },
-                text = {
-                    Text(
-                        if (isFreeDeal) "Are you sure you want to claim ${selectedDeal?.offer}?"
-                        else "Are you sure you want to redeem ${selectedDeal?.offer} for $requiredPoints points?"
-                    )
-                },
-                confirmButton = {
-                    Button(
-                        onClick = {
-                            selectedDeal?.let { deal ->
-                                if (isFreeDeal) {
-                                    pointDealViewModel.claimPointDeal(
-                                        deal.dealId,
-                                        deal.title,
-                                        deal.offer
-                                    )
-                                } else {
-                                    pointDealViewModel.redeemPointDeal(
-                                        deal.dealId,
-                                        requiredPoints,
-                                        deal.title,
-                                        deal.offer
-                                    )
+                }
+            ) {
+                Card(
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = White),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        Text(
+                            text = if (isFreeDeal) "Claim Deal" else "Redeem Deal",
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.Black
+                        )
+                        
+                        Text(
+                            text = if (isFreeDeal) "Claim ${selectedDeal?.offer} for free!"
+                                   else "Use points or pay directly to get ${selectedDeal?.offer}",
+                            fontSize = 14.sp,
+                            color = Color.Gray,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                        )
+
+                        // Redeem with Points Button
+                        Button(
+                            onClick = {
+                                selectedDeal?.let { deal ->
+                                    if (isFreeDeal) {
+                                        pointDealViewModel.claimPointDeal(deal.dealId, deal.title, deal.offer)
+                                    } else {
+                                        pointDealViewModel.redeemPointDeal(deal.dealId, requiredPoints, deal.title, deal.offer)
+                                    }
                                 }
-                            }
-                            showRedeemConfirmation = false
-                            selectedDeal = null
-                        },
-                        colors = ButtonDefaults.buttonColors(containerColor = Greenish)
-                    ) {
-                        Text(if (isFreeDeal) "Yes, Claim" else "Yes, Redeem")
-                    }
-                },
-                dismissButton = {
-                    TextButton(
-                        onClick = {
-                            showRedeemConfirmation = false
-                            selectedDeal = null
+                                showRedeemConfirmation = false
+                                selectedDeal = null
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(50.dp),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Greenish)
+                        ) {
+                            Text(
+                                text = if (isFreeDeal) "Claim Now" else "Redeem for $requiredPoints Points",
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold
+                            )
                         }
-                    ) {
-                        Text("Cancel")
+
+                        // OR Divider (only if not free)
+                        if (!isFreeDeal) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                HorizontalDivider(modifier = Modifier.weight(1f))
+                                Text(
+                                    text = "OR",
+                                    modifier = Modifier.padding(horizontal = 8.dp),
+                                    color = Color.Gray,
+                                    fontSize = 12.sp
+                                )
+                                HorizontalDivider(modifier = Modifier.weight(1f))
+                            }
+
+                            // Pay with Khalti Button
+                            KhaltiPaymentButton(
+                                onClick = {
+                                    selectedDeal?.let { deal ->
+                                        val amountRs = requiredPoints.toDouble()
+                                        pointDealViewModel.buyDealDirectly(userId, deal, amountRs)
+                                    }
+                                    showRedeemConfirmation = false
+                                    selectedDeal = null
+                                }
+                            )
+                        }
+                        
+                        TextButton(
+                            onClick = {
+                                showRedeemConfirmation = false
+                                selectedDeal = null
+                            }
+                        ) {
+                            Text("Cancel", color = Color.Gray)
+                        }
                     }
                 }
-            )
+            }
         } else {
             // Insufficient points - Show Khalti Payment Dialog
             Dialog(
@@ -223,7 +273,7 @@ fun PointsScreen() {
                             onClick = {
                                 selectedDeal?.let { deal ->
                                     val amountRs = requiredPoints.toDouble()
-                                    pointDealViewModel.buyPoints(userId, requiredPoints, amountRs)
+                                    pointDealViewModel.buyDealDirectly(userId, deal, amountRs)
                                 }
                                 showRedeemConfirmation = false
                                 selectedDeal = null
@@ -299,6 +349,30 @@ fun PointsScreen() {
                 }
                 "Buy Deals" -> {
                     val dealsList = activeDeals ?: emptyList()
+
+                    // Header for Delete All (if any redemptions exist)
+                    if (userRedemptions.isNotEmpty()) {
+                        item {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                                horizontalArrangement = Arrangement.End
+                            ) {
+                                TextButton(
+                                    onClick = {
+                                        pointDealViewModel.deleteAllRedemptions(userId)
+                                    },
+                                    colors = ButtonDefaults.textButtonColors(contentColor = Color.Red)
+                                ) {
+                                    Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Delete All Claims")
+                                }
+                            }
+                        }
+                    }
+
                     if (dealsList.isEmpty()) {
                         item {
                             Box(
@@ -312,13 +386,20 @@ fun PointsScreen() {
                         }
                     } else {
                         items(dealsList) { deal ->
+                            val isClaimed = deal.dealId in userRedemptions
                             PointDealCard(
                                 deal = deal,
                                 userPoints = userPoints,
+                                isClaimed = isClaimed,
                                 onRedeemClick = {
-                                    selectedDeal = it
-                                    showRedeemConfirmation = true
-                                }
+                                    if (!isClaimed) {
+                                        selectedDeal = it
+                                        showRedeemConfirmation = true
+                                    }
+                                },
+                                onDeleteClick = if (isClaimed) { 
+                                    { pointDealViewModel.deleteRedemption(userId, deal.dealId) }
+                                } else null
                             )
                             Spacer(modifier = Modifier.height(12.dp))
                         }
@@ -610,7 +691,9 @@ private fun NavigationTabs(
 private fun PointDealCard(
     deal: PointDealModel,
     userPoints: Long,
-    onRedeemClick: (PointDealModel) -> Unit
+    isClaimed: Boolean = false,
+    onRedeemClick: (PointDealModel) -> Unit,
+    onDeleteClick: (() -> Unit)? = null
 ) {
     val isFreeDeal = deal.pointsRequired == 0L
     val canRedeem = isFreeDeal || userPoints >= deal.pointsRequired
@@ -708,20 +791,34 @@ private fun PointDealCard(
                     onClick = {
                         onRedeemClick(deal)
                     },
-                    enabled = true,
+                    enabled = !isClaimed,
                     modifier = Modifier.width(100.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = Greenish,
-                        disabledContainerColor = Color.LightGray
+                        containerColor = if (isClaimed) Color.Gray else Greenish,
+                        disabledContainerColor = Color.Gray
                     ),
                     shape = RoundedCornerShape(8.dp)
                 ) {
                     Text(
-                        text = if (isFreeDeal) "Claim" else "${deal.pointsRequired} Points",
+                        text = if (isClaimed) "Claimed" else if (isFreeDeal) "Claim" else "${deal.pointsRequired} Points",
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
                         color = White
                     )
+                }
+                
+                if (isClaimed && onDeleteClick != null) {
+                    IconButton(
+                        onClick = onDeleteClick,
+                        modifier = Modifier.size(24.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.Delete,
+                            contentDescription = "Delete Claim",
+                            tint = Color.Red,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
                 }
             }
         }

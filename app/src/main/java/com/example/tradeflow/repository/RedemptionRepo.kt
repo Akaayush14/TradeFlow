@@ -30,4 +30,9 @@ interface RedemptionRepo {
         dealId: String,
         callback: (Boolean, String) -> Unit
     )
+
+    fun deleteAllRedemptionsForUser(
+        userId: String,
+        callback: (Boolean, String) -> Unit
+    )
 }

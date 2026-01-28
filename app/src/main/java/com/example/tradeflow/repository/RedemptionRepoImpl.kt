@@ -148,6 +148,35 @@ class RedemptionRepoImpl : RedemptionRepo {
                 }
             }
     }
+
+    override fun deleteAllRedemptionsForUser(
+        userId: String,
+        callback: (Boolean, String) -> Unit
+    ) {
+        ref.orderByChild("userId").equalTo(userId).addListenerForSingleValueEvent(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                if (!snapshot.exists()) {
+                    callback(true, "No redemptions to delete")
+                    return
+                }
+                
+                val updates = hashMapOf<String, Any?>()
+                for (child in snapshot.children) {
+                    updates[child.key!!] = null
+                }
+                
+                ref.updateChildren(updates)
+                    .addOnCompleteListener { task ->
+                        if (task.isSuccessful) callback(true, "All redemptions deleted")
+                        else callback(false, task.exception?.message ?: "Error deleting redemptions")
+                    }
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                callback(false, error.message)
+            }
+        })
+    }
 }
 
 

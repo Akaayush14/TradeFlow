@@ -30,6 +30,10 @@ class PointDealViewModel(
 
     private val _redemptionStatus = MutableLiveData<Pair<Boolean, String>?>()
     val redemptionStatus: MutableLiveData<Pair<Boolean, String>?> get() = _redemptionStatus
+
+    private val _userRedemptions = MutableLiveData<Set<String>>()
+    val userRedemptions: MutableLiveData<Set<String>> get() = _userRedemptions
+
     private val redemptionRepo: RedemptionRepo = RedemptionRepoImpl()
     private val txRepo: PointTransactionRepo = PointTransactionRepoImpl()
 
@@ -86,8 +90,11 @@ class PointDealViewModel(
             }
             redemptionRepo.getRedemptionsByUserId(userId) { rSuccess, _, redemptions ->
                 val claimedIds = redemptions?.map { it.dealId }?.toSet() ?: emptySet()
+                _userRedemptions.postValue(claimedIds)
+                
                 val filtered = deals?.filter { deal ->
-                    val isNotClaimed = deal.dealId !in claimedIds
+                    // We now show claimed deals too, so we don't filter by claimedIds
+                    // val isNotClaimed = deal.dealId !in claimedIds
                     
                     val isTargetUserMatch = if (deal.targetUserId.isNotEmpty()) {
                         deal.targetUserId == userId
@@ -105,7 +112,7 @@ class PointDealViewModel(
                         }
                     }
                     
-                    isNotClaimed && isTargetUserMatch && isTierMatch
+                    isTargetUserMatch && isTierMatch
                 } ?: emptyList()
                 _activeDeals.postValue(filtered)
             }
@@ -182,7 +189,7 @@ class PointDealViewModel(
                                                     PointTransaction(
                                                         userId = userId,
                                                         type = "DEBIT",
-                                                        source = "Deal Redemption: ${deal.title}",
+                                                        source = "Congratulation ! ${deal.offer} IN ${deal.serviceCategory.ifEmpty { deal.title }}",
                                                         points = -pointsRequired,
                                                         amount = 0.0,
                                                         timestamp = System.currentTimeMillis()
@@ -325,6 +332,41 @@ class PointDealViewModel(
         }
     }
 
+    fun buyDealDirectly(userId: String, deal: PointDealModel, amount: Double) {
+        // 1. Save Transaction History with custom message
+        txRepo.saveTransaction(
+            PointTransaction(
+                userId = userId,
+                type = "DEAL_PURCHASE",
+                source = "Congratulation ! ${deal.offer} IN ${deal.serviceCategory.ifEmpty { deal.title }}",
+                points = 0,
+                amount = amount,
+                timestamp = System.currentTimeMillis()
+            )
+        ) { txSuccess, _ ->
+            if (txSuccess) {
+                // 2. Save Redemption Record (so it shows as claimed)
+                val redemption = UserPointRedemModel(
+                    redemptionId = "",
+                    userId = userId,
+                    dealId = deal.dealId,
+                    pointsSpent = 0, // Paid with cash
+                    dealTitle = deal.title,
+                    dealOffer = deal.offer
+                )
+                redemptionRepo.saveRedemption(redemption) { rSuccess, _ ->
+                    if (rSuccess) {
+                        _redemptionStatus.postValue(Pair(true, "Payment successful! You got ${deal.offer}"))
+                    } else {
+                        _redemptionStatus.postValue(Pair(false, "Payment successful but failed to save redemption"))
+                    }
+                }
+            } else {
+                _redemptionStatus.postValue(Pair(false, "Failed to save transaction"))
+            }
+        }
+    }
+
     fun giftPointsToUser(targetUserId: String, points: Long, dealTitle: String, callback: (Boolean, String) -> Unit) {
         userRepo.getUserByIdSingle(targetUserId) { success, message, user ->
             if (success && user != null) {
@@ -348,6 +390,30 @@ class PointDealViewModel(
                 }
             } else {
                 callback(false, message)
+            }
+        }
+    }
+
+    fun deleteRedemption(userId: String, dealId: String) {
+        redemptionRepo.removeRedemption(userId, dealId) { success, message ->
+            if (success) {
+                _redemptionStatus.postValue(Pair(true, "Redemption deleted"))
+                val current = _userRedemptions.value?.toMutableSet() ?: mutableSetOf()
+                current.remove(dealId)
+                _userRedemptions.postValue(current)
+            } else {
+                _redemptionStatus.postValue(Pair(false, message))
+            }
+        }
+    }
+
+    fun deleteAllRedemptions(userId: String) {
+        redemptionRepo.deleteAllRedemptionsForUser(userId) { success, message ->
+            if (success) {
+                _redemptionStatus.postValue(Pair(true, "All redemptions deleted"))
+                _userRedemptions.postValue(emptySet())
+            } else {
+                _redemptionStatus.postValue(Pair(false, message))
             }
         }
     }
