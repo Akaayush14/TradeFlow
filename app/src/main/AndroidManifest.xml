@@ -15,10 +15,25 @@
         android:fullBackupContent="@xml/backup_rules"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
+        android:networkSecurityConfig="@xml/network_security_config"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.TradeFlow"
         tools:replace="android:fullBackupContent">
+
+        <!-- ThemeWrapper from your code -->
+        <activity
+            android:name=".view.ThemeWrapper"
+            android:exported="true"
+            android:label="@string/title_activity_theme_wrapper"
+            android:theme="@style/Theme.TradeFlow">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- LocationPickerActivity from friend's code -->
         <activity
             android:name=".view.LocationPickerActivity"
             android:exported="true"
@@ -26,10 +41,11 @@
             android:theme="@style/Theme.TradeFlow">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- MapActivity from friend's code -->
         <activity
             android:name=".view.MapActivity"
             android:exported="true"
@@ -37,25 +53,27 @@
             android:theme="@style/Theme.TradeFlow">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
 
+        <!-- Google Maps API Key from friend's code -->
         <meta-data
             android:name="com.google.android.geo.API_KEY"
             android:value="AIzaSyCX3_5f2eilotR-J9y7sC-7Q-zCFP98G7U" />
 
+        <!-- MainActivity (both have it) -->
         <activity
             android:name=".view.MainActivity"
             android:exported="true"
             android:theme="@style/Theme.TradeFlow">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- SplashActivity (both have it) -->
         <activity
             android:name=".SplashActivity"
             android:exported="true"
@@ -63,20 +81,22 @@
             android:theme="@style/Theme.TradeFlow">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- LoginActivity (both have it) -->
         <activity
             android:name=".view.LoginActivity"
             android:exported="true"
             android:theme="@style/Theme.TradeFlow">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- ForgetPasswordActivity (both have it) -->
         <activity
             android:name=".view.ForgetPasswordActivity"
             android:exported="true"
@@ -84,84 +104,88 @@
             android:theme="@style/Theme.TradeFlow">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- RegisterActivity (both have it) -->
         <activity
             android:name=".RegisterActivity"
             android:exported="true"
             android:theme="@style/Theme.TradeFlow">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- UserDashboard (both have it, friend has extra meta-data) -->
         <activity
             android:name=".view.UserDashboard"
             android:exported="true"
             android:theme="@style/Theme.TradeFlow">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-
-            <meta-data
-                android:name="com.google.android.geo.API_KEY"
-                android:value="YOUR_MAP_API_KEY" />
         </activity>
+
+        <!-- UserItemDetails (both have it) -->
         <activity
             android:name=".view.UserItemDetails"
             android:exported="true"
             android:theme="@style/Theme.TradeFlow">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- UserSetting (both have it) -->
         <activity
             android:name=".view.UserSetting"
             android:exported="true"
             android:theme="@style/Theme.TradeFlow">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- UserChatSystemActivity (both have it) -->
         <activity
             android:name=".UserChatSystemActivity"
             android:exported="true"
             android:theme="@style/Theme.TradeFlow">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- AdminDashExp (both have it) -->
         <activity
             android:name=".view.AdminDashExp"
             android:exported="true"
             android:theme="@style/Theme.TradeFlow">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- AdminDashUser from friend's code -->
         <activity
             android:name=".view.AdminDashUser"
             android:exported="true"
             android:theme="@style/Theme.TradeFlow">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- AdminProfile (both have it) -->
         <activity
             android:name=".view.AdminProfile"
             android:exported="true"
@@ -169,20 +193,22 @@
             android:theme="@style/Theme.TradeFlow">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- AdminNotification (both have it) -->
         <activity
             android:name=".view.AdminNotification"
             android:exported="true"
             android:theme="@style/Theme.TradeFlow">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- Common activities (both have these) -->
         <activity
             android:name=".view.AdminUserMetric"
             android:exported="true"
@@ -247,6 +273,27 @@
             android:name=".view.RentalRequestActivity"
             android:exported="false"
             android:theme="@style/Theme.TradeFlow" />
-    </application>
 
+        <!-- Unique activities from your code -->
+        <activity
+            android:name=".view.AdminItemDetailActivity"
+            android:exported="false"
+            android:theme="@style/Theme.TradeFlow" />
+        <activity
+            android:name=".view.AdminDetailActivity"
+            android:exported="false"
+            android:theme="@style/Theme.TradeFlow" />
+        <activity
+            android:name=".view.AdminUserDetailActivity"
+            android:exported="false"
+            android:theme="@style/Theme.TradeFlow" />
+
+        <!-- ChatActivity from your code -->
+        <activity
+            android:name=".view.ChatActivity"
+            android:exported="true"
+            android:theme="@style/Theme.TradeFlow"
+            android:windowSoftInputMode="adjustResize">
+        </activity>
+    </application>
 </manifest>

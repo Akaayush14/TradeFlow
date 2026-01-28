@@ -41,6 +41,15 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.Block
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Phone
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.NavigationBar
@@ -48,6 +57,8 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
+import coil.compose.AsyncImage
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.material3.TabRowDefaults
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material3.OutlinedTextField
@@ -74,6 +85,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.border
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
@@ -105,9 +117,11 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import kotlin.math.cos
 import kotlin.math.sin
 import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.layout.ContentScale
-import coil.compose.AsyncImage
 
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.systemBars
 import com.example.tradeflow.R
 import com.example.tradeflow.model.NotificationModel
 import com.example.tradeflow.model.ProductModel
@@ -139,12 +153,10 @@ class AdminDashExp : ComponentActivity() {
 fun AdminExp() {
     val context = LocalContext.current
     var selectedIndex by remember { mutableStateOf(0) }
-    var searchText by remember { mutableStateOf("") }
-    var selectedTab by remember { mutableStateOf(1) } // 0 for User, 1 for Metrics, 2 for Items
+    var userTab by remember { mutableStateOf(0) }
+    var itemTab by remember { mutableStateOf(0) }
     var backPressedTime by remember { mutableLongStateOf(0L) }
-    var showPasswordDialog by remember { mutableStateOf(false) }
-    var passwordInput by remember { mutableStateOf("") }
-
+    
     // Notification view model for unread count
     val notificationViewModel = remember { NotificationViewModel(NotificationRepoImpl()) }
     val unreadCount by notificationViewModel.unreadCount.collectAsState()
@@ -155,19 +167,147 @@ fun AdminExp() {
 
     // Handle back button press
     BackHandler {
-        val currentTime = System.currentTimeMillis()
-        if (currentTime - backPressedTime < 2000) {
-            // Exit app if pressed twice within 2 seconds
-            if (context is ComponentActivity) {
-                context.finishAffinity()
-            }
+        if (selectedIndex != 0) {
+            selectedIndex = 0
         } else {
-            backPressedTime = currentTime
-            Toast.makeText(context, "Click again to quit", Toast.LENGTH_SHORT).show()
+            val currentTime = System.currentTimeMillis()
+            if (currentTime - backPressedTime < 2000) {
+                if (context is ComponentActivity) {
+                    context.finishAffinity()
+                }
+            } else {
+                backPressedTime = currentTime
+                Toast.makeText(context, "Click again to quit", Toast.LENGTH_SHORT).show()
+            }
         }
     }
 
     Scaffold(
+        bottomBar = {
+            NavigationBar(containerColor = Greenish) {
+                NavigationBarItem(
+                    selected = selectedIndex == 0,
+                    onClick = { selectedIndex = 0 },
+                    icon = {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_explore),
+                            contentDescription = "Explore",
+                            tint = Color.White
+                        )
+                    },
+                    label = { Text("Explore", color = Color.White) }
+                )
+
+                NavigationBarItem(
+                    selected = selectedIndex == 1,
+                    onClick = { selectedIndex = 1 },
+                    icon = {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_user),
+                            contentDescription = "User",
+                            tint = Color.White
+                        )
+                    },
+                    label = { Text("User", color = Color.White) }
+                )
+                
+                NavigationBarItem(
+                    selected = selectedIndex == 3,
+                    onClick = { selectedIndex = 3 },
+                    icon = {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_items),
+                            contentDescription = "Items",
+                            tint = Color.White
+                        )
+                    },
+                    label = { Text("Items", color = Color.White) }
+                )
+                
+                NavigationBarItem(
+                    selected = selectedIndex == 4,
+                    onClick = { selectedIndex = 4 },
+                    icon = {
+                        BadgedNotificationIconExp(
+                            unreadCount = unreadCount,
+                            iconPainter = painterResource(R.drawable.notification_filled),
+                            contentDescription = "Alerts"
+                        )
+                    },
+                    label = { 
+                        Text(
+                            "Alerts", 
+                            color = Color.White,
+                            maxLines = 1,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                        ) 
+                    }
+                )
+
+                NavigationBarItem(
+                    selected = selectedIndex == 2,
+                    onClick = { selectedIndex = 2 },
+                    icon = {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_profile),
+                            contentDescription = "Profile",
+                            tint = Color.White
+                        )
+                    },
+                    label = { Text("Profile", color = Color.White) }
+                )
+            }
+        }
+    ) { padding ->
+        Box(
+            modifier = Modifier
+                .padding(bottom = padding.calculateBottomPadding())
+                .fillMaxSize()
+        ) {
+            when (selectedIndex) {
+                0 -> AdminExploreScreen(
+                    onNavigateToUser = { tab ->
+                        userTab = tab
+                        selectedIndex = 1
+                    },
+                    onNavigateToItem = { tab ->
+                        itemTab = tab
+                        selectedIndex = 3
+                    }
+                )
+                1 -> AdminUserScreen(initialTab = userTab, onBackClick = { selectedIndex = 0 })
+                2 -> AdminProfileScreen(onBackClick = { selectedIndex = 0 })
+                3 -> AdminItemScreen(initialTab = itemTab, onBackClick = { selectedIndex = 0 })
+                4 -> AdminNotificationScreen(onBackClick = { selectedIndex = 0 })
+            }
+        }
+    }
+}
+
+@Composable
+@OptIn(ExperimentalMaterial3Api::class)
+fun AdminExploreScreen(
+    onNavigateToUser: (Int) -> Unit,
+    onNavigateToItem: (Int) -> Unit
+) {
+    val context = LocalContext.current
+    var searchText by remember { mutableStateOf("") }
+    var selectedTab by remember { mutableStateOf(1) } // 0 for User, 1 for Metrics, 2 for Items
+    var showPasswordDialog by remember { mutableStateOf(false) }
+    var passwordInput by remember { mutableStateOf("") }
+
+    val adminViewModel = remember { AdminViewModel(AdminRepoImpl()) }
+    val currentAdmin by adminViewModel.admin.collectAsState()
+
+    LaunchedEffect(Unit) {
+        val currentUser = adminViewModel.getCurrentUser()
+        if (currentUser != null) {
+            adminViewModel.getAdminById(currentUser.uid)
+        }
+    }
+
+    Scaffold(
+        contentWindowInsets = WindowInsets.systemBars.only(WindowInsetsSides.Horizontal),
         topBar = {
             TopAppBar(
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -233,102 +373,17 @@ fun AdminExp() {
         },
         floatingActionButton = {
             FloatingActionButton(
-                onClick = { showPasswordDialog = true },
+                onClick = { 
+                    if (currentAdmin?.isRestricted == true) {
+                        Toast.makeText(context, "you don't have the permissions to access the super admin", Toast.LENGTH_SHORT).show()
+                    } else {
+                        showPasswordDialog = true 
+                    }
+                },
                 containerColor = Greenish,
                 contentColor = Color.White
             ) {
                 Icon(Icons.Filled.Add, "Add Admin")
-            }
-        },
-        bottomBar = {
-            NavigationBar(containerColor = Greenish) {
-                NavigationBarItem(
-                    selected = selectedIndex == 0,
-                    onClick = { selectedIndex = 0 },
-                    icon = {
-                        Icon(
-                            painter = painterResource(R.drawable.ic_explore),
-                            contentDescription = "Explore",
-                            tint = Color.White
-                        )
-                    },
-                    label = { Text("Explore", color = Color.White) }
-                )
-
-                NavigationBarItem(
-                    selected = selectedIndex == 1,
-                    onClick = {
-                        val intent = Intent(context, AdminDashUser::class.java)
-                        context.startActivity(intent)
-                        if (context is ComponentActivity) {
-                            context.finish()
-                        }
-                    },
-                    icon = {
-                        Icon(
-                            painter = painterResource(R.drawable.ic_user),
-                            contentDescription = "User",
-                            tint = Color.White
-                        )
-                    },
-                    label = { Text("User", color = Color.White) }
-                )
-                NavigationBarItem(
-                    selected = selectedIndex == 3,
-                    onClick = {
-                        val intent = Intent(context, AdminDashItem::class.java)
-                        context.startActivity(intent)
-                        if (context is ComponentActivity) {
-                            context.finish()
-                        }
-                    },
-                    icon = {
-                        Icon(
-                            painter = painterResource(R.drawable.ic_items),
-                            contentDescription = "Items",
-                            tint = Color.White
-                        )
-                    },
-                    label = { Text("Items", color = Color.White) }
-                )
-                NavigationBarItem(
-                    selected = selectedIndex == 4,
-                    onClick = {
-                        val intent = Intent(context, AdminNotification::class.java)
-                        context.startActivity(intent)
-                        if (context is ComponentActivity) {
-                            context.finish()
-                        }
-                    },
-                    icon = {
-                        BadgedNotificationIconExp(
-                            unreadCount = unreadCount,
-                            iconPainter = painterResource(R.drawable.notification_filled),
-                            contentDescription = "notification"
-                        )
-                    },
-                    label = { Text("notification", color = Color.White) }
-                )
-
-
-                NavigationBarItem(
-                    selected = selectedIndex == 2,
-                    onClick = {
-                        val intent = Intent(context, AdminProfile::class.java)
-                        context.startActivity(intent)
-                        if (context is ComponentActivity) {
-                            context.finish()
-                        }
-                    },
-                    icon = {
-                        Icon(
-                            painter = painterResource(R.drawable.ic_profile),
-                            contentDescription = "Profile",
-                            tint = Color.White
-                        )
-                    },
-                    label = { Text("Profile", color = Color.White) }
-                )
             }
         }
     ) { padding ->
@@ -395,7 +450,11 @@ fun AdminExp() {
             ) {
                 when (selectedTab) {
                     0 -> UsersContent(searchText = searchText)
-                    1 -> MetricsContent(onRequireAdminAccess = { showPasswordDialog = true })
+                    1 -> MetricsContent(
+                        onRequireAdminAccess = { showPasswordDialog = true },
+                        onNavigateToUser = onNavigateToUser,
+                        onNavigateToItem = onNavigateToItem
+                    )
                     2 -> ItemsContent(searchText = searchText)
                 }
             }
@@ -455,7 +514,11 @@ fun AdminExp() {
 }
 
 @Composable
-fun MetricsContent(onRequireAdminAccess: () -> Unit) {
+fun MetricsContent(
+    onRequireAdminAccess: () -> Unit,
+    onNavigateToUser: (Int) -> Unit,
+    onNavigateToItem: (Int) -> Unit
+) {
     val context = LocalContext.current
     val userViewModel = remember { UserViewModel(UserRepoImpl()) }
     val productViewModel = remember { ProductViewModel(ProductRepoImpl()) }
@@ -567,12 +630,7 @@ fun MetricsContent(onRequireAdminAccess: () -> Unit) {
                         icon = painterResource(R.drawable.ic_user),
                         color = Greenish,
                         modifier = Modifier.weight(1f),
-                        onClick = {
-                            val intent = Intent(context, AdminDashUser::class.java).apply {
-                                putExtra("target_tab", 0)
-                            }
-                            context.startActivity(intent)
-                        }
+                        onClick = { onNavigateToUser(0) }
                     )
                     MetricCard(
                         title = "Blocked",
@@ -580,12 +638,7 @@ fun MetricsContent(onRequireAdminAccess: () -> Unit) {
                         icon = painterResource(R.drawable.ic_user),
                         color = Color.Red,
                         modifier = Modifier.weight(1f),
-                        onClick = {
-                            val intent = Intent(context, AdminDashUser::class.java).apply {
-                                putExtra("target_tab", 2)
-                            }
-                            context.startActivity(intent)
-                        }
+                        onClick = { onNavigateToUser(2) }
                     )
                 }
 
@@ -599,12 +652,7 @@ fun MetricsContent(onRequireAdminAccess: () -> Unit) {
                         icon = painterResource(R.drawable.ic_user),
                         color = Color(0xFFFF9800),
                         modifier = Modifier.weight(1f),
-                        onClick = {
-                            val intent = Intent(context, AdminDashUser::class.java).apply {
-                                putExtra("target_tab", 2)
-                            }
-                            context.startActivity(intent)
-                        }
+                        onClick = { onNavigateToUser(1) }
                     )
 
                     // User Status Pie Chart Card
@@ -689,10 +737,7 @@ fun MetricsContent(onRequireAdminAccess: () -> Unit) {
                         icon = painterResource(R.drawable.ic_items),
                         color = Greenish,
                         modifier = Modifier.weight(1f),
-                        onClick = {
-                            val intent = Intent(context, AdminDashItem::class.java)
-                            context.startActivity(intent)
-                        }
+                        onClick = { onNavigateToItem(0) } // Default to listed/all? Or use separate logic. Let's say 0 is Listed.
                     )
                     MetricCard(
                         title = "Listed",
@@ -700,12 +745,7 @@ fun MetricsContent(onRequireAdminAccess: () -> Unit) {
                         icon = painterResource(R.drawable.ic_items),
                         color = DarkGreen,
                         modifier = Modifier.weight(1f),
-                        onClick = {
-                            val intent = Intent(context, AdminDashItem::class.java).apply {
-                                putExtra("target_tab", 0)
-                            }
-                            context.startActivity(intent)
-                        }
+                        onClick = { onNavigateToItem(0) }
                     )
                 }
 
@@ -730,12 +770,7 @@ fun MetricsContent(onRequireAdminAccess: () -> Unit) {
                             icon = painterResource(R.drawable.ic_items),
                             color = Color.Red,
                             modifier = Modifier.weight(1f),
-                            onClick = {
-                                val intent = Intent(context, AdminDashItem::class.java).apply {
-                                    putExtra("target_tab", 1)
-                                }
-                                context.startActivity(intent)
-                            }
+                            onClick = { onNavigateToItem(1) }
                         )
                         MetricCard(
                             title = "Avg Price",
@@ -1536,10 +1571,16 @@ fun ItemCardExp(
     onUnlistClick: () -> Unit,
     onDeleteClick: () -> Unit
 ) {
+    val context = LocalContext.current
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 4.dp),
+            .padding(horizontal = 4.dp)
+            .clickable {
+                val intent = Intent(context, AdminItemDetailActivity::class.java)
+                intent.putExtra("productId", product.productId)
+                context.startActivity(intent)
+            },
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         colors = CardDefaults.cardColors(
             containerColor = if (!product.isListed) Color(0xFFFFEBEE) else Color.White
@@ -1554,30 +1595,36 @@ fun ItemCardExp(
             // Image on the left
             Box(
                 modifier = Modifier
-                    .size(100.dp)
+                    .size(130.dp)
                     .clip(RoundedCornerShape(8.dp))
                     .background(Color.LightGray),
                 contentAlignment = Alignment.Center
             ) {
-                // If product has imageUrl field, use AsyncImage with Coil
-                // For now, showing placeholder icon
-                Icon(
-                    painter = painterResource(R.drawable.ic_items),
-                    contentDescription = "Product Image",
-                    tint = Color.Gray,
-                    modifier = Modifier.size(48.dp)
-                )
+                val displayImage = if (product.imageUrl.isNotEmpty()) {
+                    product.imageUrl
+                } else if (product.imageUrls.isNotEmpty()) {
+                    product.imageUrls.first()
+                } else {
+                    ""
+                }
 
-                // If you have Coil library and imageUrl in ProductModel, use:
-                /*
-                AsyncImage(
-                    model = product.imageUrl,
-                    contentDescription = "Product Image",
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop,
-                    error = painterResource(R.drawable.ic_items)
-                )
-                */
+                if (displayImage.isNotEmpty()) {
+                    AsyncImage(
+                        model = displayImage,
+                        contentDescription = "Product Image",
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop,
+                        error = painterResource(R.drawable.ic_items),
+                        placeholder = painterResource(R.drawable.ic_items)
+                    )
+                } else {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_items),
+                        contentDescription = "Product Image",
+                        tint = Color.Gray,
+                        modifier = Modifier.size(48.dp)
+                    )
+                }
             }
 
             // Content on the right
@@ -1591,6 +1638,13 @@ fun ItemCardExp(
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color.Black
+                )
+
+                // Category
+                Text(
+                    text = "Category: ${product.category}",
+                    fontSize = 14.sp,
+                    color = Color.Gray
                 )
 
                 // Price
@@ -1607,11 +1661,13 @@ fun ItemCardExp(
                     color = Color.Gray
                 )
 
-                // Location
+                // Description
                 Text(
-                    text = "Location: ${product.location}",
+                    text = "Description: ${product.description}",
                     fontSize = 14.sp,
-                    color = Color.Gray
+                    color = Color.Gray,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
                 )
 
                 // Unlisted status
@@ -1628,46 +1684,73 @@ fun ItemCardExp(
 
                 // Buttons
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     if (product.isListed) {
-                        // Show Unlist button when listed
+                        // Unlist Button
                         Button(
                             onClick = onUnlistClick,
-                            colors = ButtonDefaults.buttonColors(containerColor = Color.Red),
-                            modifier = Modifier.height(36.dp)
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFC107)),
+                            modifier = Modifier.height(40.dp).weight(1f),
+                            contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 4.dp)
                         ) {
+                            Icon(
+                                painter = painterResource(R.drawable.baseline_visibility_off_24),
+                                contentDescription = "Unlist",
+                                tint = Color.Black,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
                             Text(
                                 text = "Unlist",
-                                fontSize = 12.sp,
-                                color = Color.White
+                                fontSize = 14.sp,
+                                color = Color.Black,
+                                maxLines = 1
                             )
                         }
                     } else {
-                        // Show List button (green) when unlisted
+                        // List Button
                         Button(
                             onClick = onListClick,
                             colors = ButtonDefaults.buttonColors(containerColor = DarkGreen),
-                            modifier = Modifier.height(36.dp)
+                            modifier = Modifier.height(40.dp).weight(1f),
+                            contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 4.dp)
                         ) {
+                            Icon(
+                                painter = painterResource(R.drawable.baseline_visibility_24),
+                                contentDescription = "List",
+                                tint = Color.White,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
                             Text(
                                 text = "List",
-                                fontSize = 12.sp,
-                                color = Color.White
+                                fontSize = 14.sp,
+                                color = Color.White,
+                                maxLines = 1
                             )
                         }
                     }
 
-                    // Always show Delete button
+                    // Delete Button
                     Button(
                         onClick = onDeleteClick,
                         colors = ButtonDefaults.buttonColors(containerColor = Color.Red),
-                        modifier = Modifier.height(36.dp)
+                        modifier = Modifier.height(40.dp).weight(1f),
+                        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 4.dp)
                     ) {
+                        Icon(
+                            imageVector = Icons.Filled.Delete,
+                            contentDescription = "Delete",
+                            tint = Color.White,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
                         Text(
                             text = "Delete",
-                            fontSize = 12.sp,
-                            color = Color.White
+                            fontSize = 14.sp,
+                            color = Color.White,
+                            maxLines = 1
                         )
                     }
                 }
@@ -1683,17 +1766,23 @@ fun UserCardExp(
     onBlockClick: () -> Unit,
     onRestrictClick: () -> Unit
 ) {
-    // Determine card color: blocked = light red, restricted = light orange, normal = white
     val cardColor = when {
-        user.isBlocked -> Color(0xFFFFEBEE) // Light red
-        user.isRestricted -> Color(0xFFFFF3E0) // Light orange
+        user.isBlocked -> Color(0xFFFFEBEE)
+        user.isRestricted -> Color(0xFFFFF3E0)
         else -> Color.White
     }
+
+    val context = LocalContext.current
 
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 4.dp),
+            .padding(horizontal = 4.dp)
+            .clickable {
+                val intent = Intent(context, AdminUserDetailActivity::class.java)
+                intent.putExtra("userId", user.userId)
+                context.startActivity(intent)
+            },
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         colors = CardDefaults.cardColors(
             containerColor = cardColor
@@ -1704,43 +1793,162 @@ fun UserCardExp(
                 .fillMaxWidth()
                 .padding(16.dp)
         ) {
-            // Name
-            Text(
-                text = user.name,
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.Black
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            // Email
-            Text(
-                text = user.email,
-                fontSize = 14.sp,
-                color = Color.Gray
-            )
-            // Status labels
-            if (user.isBlocked) {
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = "BLOCKED",
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.Red
-                )
+            Row(
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Profile Picture (Left)
+                Box(
+                    modifier = Modifier
+                        .size(100.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(Color.LightGray)
+                        .border(1.dp, Greenish, RoundedCornerShape(8.dp)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (user.profileImageUrl.isNotEmpty()) {
+                        AsyncImage(
+                            model = user.profileImageUrl,
+                            contentDescription = "Profile Picture",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop,
+                            error = painterResource(R.drawable.ic_profile),
+                            placeholder = painterResource(R.drawable.ic_profile)
+                        )
+                    } else {
+                        Icon(
+                            imageVector = androidx.compose.material.icons.Icons.Default.Person,
+                            contentDescription = "Profile Picture",
+                            modifier = Modifier.size(50.dp),
+                            tint = Color.Gray
+                        )
+                    }
+                }
+                
+                Spacer(modifier = Modifier.width(16.dp))
+
+                // Details Column (Right)
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                    modifier = Modifier.weight(1f)
+                ) {
+                     // Name & Status
+                    Row(
+                         modifier = Modifier.fillMaxWidth(),
+                         horizontalArrangement = Arrangement.SpaceBetween,
+                         verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = user.name.ifEmpty { "Unknown User" },
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.Black
+                        )
+                        
+                         if (user.isBlocked) {
+                            Text(
+                                text = "BLOCKED",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.Red
+                            )
+                        } else if (user.isRestricted) {
+                            Text(
+                                text = "RESTRICTED",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFFFF9800)
+                            )
+                        }
+                    }
+
+                    // Email
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = androidx.compose.material.icons.Icons.Default.Email,
+                            contentDescription = "Email",
+                            modifier = Modifier.size(14.dp),
+                            tint = Color.Gray
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = user.email.ifEmpty { "No email" },
+                            fontSize = 14.sp,
+                            color = Color.Gray
+                        )
+                    }
+
+                    // Phone
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = androidx.compose.material.icons.Icons.Default.Phone,
+                            contentDescription = "Phone",
+                            modifier = Modifier.size(14.dp),
+                            tint = Color.Gray
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = user.phone.ifEmpty { "No phone" },
+                            fontSize = 14.sp,
+                            color = Color.Gray
+                        )
+                    }
+
+                    // Location
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = androidx.compose.material.icons.Icons.Default.LocationOn,
+                            contentDescription = "Location",
+                            modifier = Modifier.size(14.dp),
+                            tint = Color.Gray
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = user.location.ifEmpty { "No location" },
+                            fontSize = 14.sp,
+                            color = Color.Gray
+                        )
+                    }
+                    
+                    // Gender & DOB
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                         // Gender
+                        Icon(
+                            imageVector = androidx.compose.material.icons.Icons.Default.Person,
+                            contentDescription = "Gender",
+                            modifier = Modifier.size(14.dp),
+                            tint = Color.Gray
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = user.gender.ifEmpty { "N/A" },
+                            fontSize = 14.sp,
+                            color = Color.Gray
+                        )
+                        
+                        Spacer(modifier = Modifier.width(12.dp))
+                        
+                        // DOB
+                        Icon(
+                            imageVector = androidx.compose.material.icons.Icons.Default.DateRange,
+                            contentDescription = "DOB",
+                            modifier = Modifier.size(14.dp),
+                            tint = Color.Gray
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = (user.dob ?: "").ifEmpty { "N/A" },
+                            fontSize = 14.sp,
+                            color = Color.Gray
+                        )
+                    }
+                }
             }
-            if (user.isRestricted) {
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = "RESTRICTED",
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFFFF9800) // Orange
-                )
-            }
+
             // Buttons at the bottom
             Spacer(modifier = Modifier.height(12.dp))
             Row(
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxWidth()
             ) {
                 // Block/Unblock button
                 Button(
@@ -1748,11 +1956,20 @@ fun UserCardExp(
                     colors = ButtonDefaults.buttonColors(
                         containerColor = if (user.isBlocked) DarkGreen else Color.Red
                     ),
-                    modifier = Modifier.height(32.dp)
+                    modifier = Modifier.weight(1f).height(36.dp),
+                    shape = RoundedCornerShape(8.dp),
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 4.dp)
                 ) {
+                    Icon(
+                        imageVector = if (user.isBlocked) androidx.compose.material.icons.Icons.Filled.Lock else androidx.compose.material.icons.Icons.Filled.Block,
+                        contentDescription = null,
+                        modifier = Modifier.size(12.dp),
+                        tint = Color.White
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
                     Text(
                         text = if (user.isBlocked) "Unblock" else "Block",
-                        fontSize = 11.sp,
+                        fontSize = 10.sp,
                         color = Color.White
                     )
                 }
@@ -1762,11 +1979,20 @@ fun UserCardExp(
                     colors = ButtonDefaults.buttonColors(
                         containerColor = if (user.isRestricted) DarkGreen else Color(0xFFFF9800) // Orange
                     ),
-                    modifier = Modifier.height(32.dp)
+                    modifier = Modifier.weight(1f).height(36.dp),
+                    shape = RoundedCornerShape(8.dp),
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 4.dp)
                 ) {
+                    Icon(
+                        imageVector = if (user.isRestricted) androidx.compose.material.icons.Icons.Filled.Lock else androidx.compose.material.icons.Icons.Filled.Block,
+                        contentDescription = null,
+                        modifier = Modifier.size(12.dp),
+                        tint = Color.White
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
                     Text(
                         text = if (user.isRestricted) "Unrestrict" else "Restrict",
-                        fontSize = 11.sp,
+                        fontSize = 10.sp,
                         color = Color.White
                     )
                 }
@@ -1774,11 +2000,20 @@ fun UserCardExp(
                 Button(
                     onClick = onDeleteClick,
                     colors = ButtonDefaults.buttonColors(containerColor = Color.Red),
-                    modifier = Modifier.height(32.dp)
+                    modifier = Modifier.weight(1f).height(36.dp),
+                    shape = RoundedCornerShape(8.dp),
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 4.dp)
                 ) {
+                    Icon(
+                        imageVector = androidx.compose.material.icons.Icons.Filled.Delete,
+                        contentDescription = null,
+                        modifier = Modifier.size(12.dp),
+                        tint = Color.White
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
                     Text(
                         text = "Delete",
-                        fontSize = 11.sp,
+                        fontSize = 10.sp,
                         color = Color.White
                     )
                 }

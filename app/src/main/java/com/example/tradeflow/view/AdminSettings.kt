@@ -13,10 +13,13 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -31,6 +34,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -39,17 +44,21 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
 import com.example.tradeflow.R
+import com.example.tradeflow.model.AdminModel
+import com.example.tradeflow.repository.AdminRepoImpl
 import com.example.tradeflow.ui.theme.DarkGreen
 import com.example.tradeflow.ui.theme.Greenish
 import com.example.tradeflow.ui.theme.White
-
+import com.example.tradeflow.viewmodel.AdminViewModel
 
 class AdminSettings : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -72,8 +81,18 @@ class AdminSettings : ComponentActivity() {
 @OptIn(ExperimentalMaterial3Api::class)
 fun AdminSettingsScreen(onBackClick: () -> Unit = {}) {
     val context = LocalContext.current
-    var selectedIndex by remember { mutableStateOf(-1) }
     var showLogoutDialog by remember { mutableStateOf(false) }
+
+    // Admin view model for fetching profile details
+    val adminViewModel = remember { AdminViewModel(AdminRepoImpl()) }
+    val admin by adminViewModel.admin.collectAsState()
+
+    LaunchedEffect(Unit) {
+        val currentUser = adminViewModel.getCurrentUser()
+        currentUser?.let {
+            adminViewModel.getAdminById(it.uid)
+        }
+    }
 
     // Handle back button press - navigate to AdminDashExp
     BackHandler {
@@ -193,24 +212,77 @@ fun AdminSettingsScreen(onBackClick: () -> Unit = {}) {
                 .fillMaxSize()
                 .background(Color(0xFFF5F5F5))
         ) {
-            SettingsContent(
-                onLogoutClick = { showLogoutDialog = true }
-            )
+            Box(
+                modifier = Modifier.fillMaxSize()
+            ) {
+                SettingsContent(
+                    admin = admin,
+                    onLogoutClick = { showLogoutDialog = true }
+                )
+            }
         }
     }
 }
 
 @Composable
-fun SettingsContent(onLogoutClick: () -> Unit = {}) {
+fun SettingsContent(admin: AdminModel?, onLogoutClick: () -> Unit = {}) {
     val context = LocalContext.current
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(16.dp)
-            .padding(top = 220.dp),
+            .padding(top = 48.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
+        // Profile Section Header
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(160.dp)
+                    .clip(CircleShape)
+                    .background(Color.White),
+                contentAlignment = Alignment.Center
+            ) {
+                if (admin != null && admin.imageUrl.isNotEmpty()) {
+                    AsyncImage(
+                        model = admin.imageUrl,
+                        contentDescription = "Profile Picture",
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_user),
+                        contentDescription = "Profile Picture",
+                        modifier = Modifier.size(96.dp),
+                        tint = Color.Gray
+                    )
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            Text(
+                text = admin?.name ?: "Admin Name",
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.Black
+            )
+            
+            Text(
+                text = admin?.email ?: "admin@example.com",
+                fontSize = 14.sp,
+                color = Color.Blue
+            )
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Settings Menu
         Column(
             modifier = Modifier
                 .fillMaxWidth()

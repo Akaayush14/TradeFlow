@@ -1,7 +1,16 @@
 package com.example.tradeflow.repository
 
 import android.content.Context
-import android.location.Geocoder
+import android.database.Cursor
+import android.net.Uri
+import android.os.Handler
+import android.os.Looper
+import android.provider.OpenableColumns
+import android.util.Log
+import com.cloudinary.Cloudinary
+import com.cloudinary.utils.ObjectUtils
+import com.example.tradeflow.model.UserModel
+import com.google.firebase.auth.EmailAuthProvider
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.database.DataSnapshot
@@ -9,16 +18,21 @@ import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
-import com.example.tradeflow.model.UserModel
-import com.google.android.gms.maps.model.LatLng
-import java.util.Locale
-import kotlin.collections.toMap
+import java.io.InputStream
+import java.util.concurrent.Executors
 
-class UserRepoImpl: UserRepo{
+class UserRepoImpl: UserRepo {
     val auth: FirebaseAuth = FirebaseAuth.getInstance()
     val database: FirebaseDatabase = FirebaseDatabase.getInstance()
-    //table haru ma kaam garnu paro vane ref ma garnu paryo
     val ref: DatabaseReference = database.getReference("Users")
+
+    private val cloudinary = Cloudinary(
+        mapOf(
+            "cloud_name" to "dpi7b9iam",
+            "api_key" to "561879326562495",
+            "api_secret" to "iteXJaLRqFgpuMwmVcw0gw9fjgE"
+        )
+    )
 
     override fun login(
         email: String,
@@ -27,9 +41,9 @@ class UserRepoImpl: UserRepo{
     ) {
         auth.signInWithEmailAndPassword(email, password)
             .addOnCompleteListener {
-                if(it.isSuccessful){
+                if (it.isSuccessful) {
                     callback(true, "login successful")
-                }else{
+                } else {
                     callback(false, "${it.exception?.message}")
                 }
             }
@@ -43,10 +57,12 @@ class UserRepoImpl: UserRepo{
     ) {
         auth.createUserWithEmailAndPassword(email, password)
             .addOnCompleteListener {
-                if (it.isSuccessful){
-                    callback(true, "Registration success",
-                        "${auth.currentUser?.uid}")
-                }else{
+                if (it.isSuccessful) {
+                    callback(
+                        true, "Registration success",
+                        "${auth.currentUser?.uid}"
+                    )
+                } else {
                     callback(false, "${it.exception?.message}", "")
                 }
             }
@@ -58,9 +74,9 @@ class UserRepoImpl: UserRepo{
         callback: (Boolean, String) -> Unit
     ) {
         ref.child(userId).setValue(model).addOnCompleteListener {
-            if (it.isSuccessful){
+            if (it.isSuccessful) {
                 callback(true, "Registration successful")
-            }else{
+            } else {
                 callback(true, "${it.exception?.message}")
             }
         }
@@ -88,7 +104,7 @@ class UserRepoImpl: UserRepo{
         userId: String,
         callback: (Boolean, String, UserModel?) -> Unit
     ) {
-        ref.child(userId).addListenerForSingleValueEvent(object: ValueEventListener {
+        ref.child(userId).addListenerForSingleValueEvent(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 if (snapshot.exists()) {
                     val user = snapshot.getValue(UserModel::class.java)
@@ -97,9 +113,27 @@ class UserRepoImpl: UserRepo{
                         user.name = snapshot.child("name").getValue(String::class.java) ?: ""
                         user.email = snapshot.child("email").getValue(String::class.java) ?: ""
                         user.phone = snapshot.child("phone").getValue(String::class.java) ?: ""
-                        user.location = snapshot.child("location").getValue(String::class.java) ?: ""
+                        user.location =
+                            snapshot.child("location").getValue(String::class.java) ?: ""
                         user.gender = snapshot.child("gender").getValue(String::class.java) ?: ""
                         user.dob = snapshot.child("dob").getValue(String::class.java) ?: ""
+                        
+                        // Explicitly fetch boolean status flags
+                        if (snapshot.hasChild("isBlocked")) {
+                            user.isBlocked = snapshot.child("isBlocked").getValue(Boolean::class.java) ?: false
+                        } else {
+                            user.isBlocked = false
+                        }
+                        
+                        if (snapshot.hasChild("isRestricted")) {
+                            user.isRestricted = snapshot.child("isRestricted").getValue(Boolean::class.java) ?: false
+                        } else {
+                            user.isRestricted = false
+                        }
+
+                        // Also fetch points and profile image if needed
+                        user.points = snapshot.child("points").getValue(Long::class.java) ?: 0L
+                        user.profileImageUrl = snapshot.child("profileImageUrl").getValue(String::class.java) ?: ""
 
                         callback(true, "Profile Fetched", user)
                     } else {
@@ -120,12 +154,12 @@ class UserRepoImpl: UserRepo{
         ref.addValueEventListener(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 try {
-                    if(snapshot.exists()){
+                    if (snapshot.exists()) {
                         var allUsers = mutableListOf<UserModel>()
-                        for (data in snapshot.children){
+                        for (data in snapshot.children) {
                             try {
                                 var user = data.getValue(UserModel::class.java)
-                                if(user != null){
+                                if (user != null) {
                                     // Ensure userId is set from the snapshot key
                                     val userId = data.key ?: ""
                                     if (userId.isEmpty()) continue
@@ -133,13 +167,17 @@ class UserRepoImpl: UserRepo{
                                     user.userId = userId
 
                                     // Ensure name and email are not null
-                                    user.name = data.child("name").getValue(String::class.java) ?: ""
-                                    user.email = data.child("email").getValue(String::class.java) ?: ""
-                                    user.phone = data.child("phone").getValue(String::class.java) ?: ""
+                                    user.name =
+                                        data.child("name").getValue(String::class.java) ?: ""
+                                    user.email =
+                                        data.child("email").getValue(String::class.java) ?: ""
+                                    user.phone =
+                                        data.child("phone").getValue(String::class.java) ?: ""
 
                                     // Read isBlocked value from Firebase, default to false if field doesn't exist
                                     if (data.hasChild("isBlocked")) {
-                                        val isBlockedValue = data.child("isBlocked").getValue(Boolean::class.java)
+                                        val isBlockedValue =
+                                            data.child("isBlocked").getValue(Boolean::class.java)
                                         user.isBlocked = isBlockedValue ?: false
                                     } else {
                                         // Field doesn't exist in database, default to false
@@ -147,7 +185,8 @@ class UserRepoImpl: UserRepo{
                                     }
                                     // Read isRestricted value from Firebase, default to false if field doesn't exist
                                     if (data.hasChild("isRestricted")) {
-                                        val isRestrictedValue = data.child("isRestricted").getValue(Boolean::class.java)
+                                        val isRestrictedValue =
+                                            data.child("isRestricted").getValue(Boolean::class.java)
                                         user.isRestricted = isRestrictedValue ?: false
                                     } else {
                                         // Field doesn't exist in database, default to false
@@ -184,9 +223,9 @@ class UserRepoImpl: UserRepo{
         callback: (Boolean, String) -> Unit
     ) {
         ref.child(userId).removeValue().addOnCompleteListener {
-            if(it.isSuccessful){
+            if (it.isSuccessful) {
                 callback(true, "User deleted successfully")
-            }else{
+            } else {
                 callback(false, "${it.exception?.message}")
             }
         }
@@ -198,10 +237,11 @@ class UserRepoImpl: UserRepo{
         callback: (Boolean, String) -> Unit
     ) {
         ref.child(userId).child("isBlocked").setValue(isBlocked).addOnCompleteListener {
-            if(it.isSuccessful){
-                val message = if(isBlocked) "User blocked successfully" else "User unblocked successfully"
+            if (it.isSuccessful) {
+                val message =
+                    if (isBlocked) "User blocked successfully" else "User unblocked successfully"
                 callback(true, message)
-            }else{
+            } else {
                 callback(false, "${it.exception?.message}")
             }
         }
@@ -213,14 +253,16 @@ class UserRepoImpl: UserRepo{
         callback: (Boolean, String) -> Unit
     ) {
         ref.child(userId).child("isRestricted").setValue(isRestricted).addOnCompleteListener {
-            if(it.isSuccessful){
-                val message = if(isRestricted) "User restricted successfully" else "User unrestricted successfully"
+            if (it.isSuccessful) {
+                val message =
+                    if (isRestricted) "User restricted successfully" else "User unrestricted successfully"
                 callback(true, message)
-            }else{
+            } else {
                 callback(false, "${it.exception?.message}")
             }
         }
     }
+
     override fun updateUserPoints(
         userId: String,
         pointsToAdd: Long,
@@ -248,6 +290,7 @@ class UserRepoImpl: UserRepo{
             }
         }
     }
+
     override fun updateUserProfile(
         userId: String,
         updates: Map<String, Any>,
@@ -263,8 +306,96 @@ class UserRepoImpl: UserRepo{
             }
     }
 
+    override fun uploadImage(context: Context, imageUri: Uri, callback: (String?) -> Unit) {
+        val executor = Executors.newSingleThreadExecutor()
+        executor.execute {
+            try {
+                val inputStream: InputStream? = context.contentResolver.openInputStream(imageUri)
+                var fileName = getFileNameFromUri(context, imageUri)
 
+                // Create unique name for profile image
+                fileName = fileName?.substringBeforeLast(".") ?: "profile"
+                fileName = "${fileName}_${System.currentTimeMillis()}"
 
+                Log.d("TF_CLOUDINARY_UPLOAD", "Uploading to Cloudinary: $fileName")
 
+                val response = cloudinary.uploader().upload(
+                    inputStream, ObjectUtils.asMap(
+                        "public_id", fileName,
+                        "resource_type", "image"
+                    )
+                )
 
+                var imageUrl = response["url"] as String?
+                imageUrl = imageUrl?.replace("http://", "https://")
+
+                Log.d("TF_CLOUDINARY_UPLOAD", "Upload successful: $imageUrl")
+
+                Handler(Looper.getMainLooper()).post {
+                    callback(imageUrl)
+                }
+
+            } catch (e: Exception) {
+                Log.e("TF_CLOUDINARY_UPLOAD", "Upload failed: ${e.message}")
+                e.printStackTrace()
+                Handler(Looper.getMainLooper()).post {
+                    callback(null)
+                }
+            }
+        }
+    }
+
+    private fun getFileNameFromUri(context: Context, uri: Uri): String? {
+        var fileName: String? = null
+        val cursor: Cursor? = context.contentResolver.query(uri, null, null, null, null)
+        cursor?.use {
+            if (it.moveToFirst()) {
+                val nameIndex = it.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                if (nameIndex != -1) {
+                    fileName = it.getString(nameIndex)
+                }
+            }
+        }
+        return fileName
+    }
+
+    override fun changePassword(
+        currentPassword: String,
+        newPassword: String,
+        callback: (Boolean, String) -> Unit
+    ) {
+        val user = auth.currentUser
+        if (user == null) {
+            callback(false, "No user logged in")
+            return
+        }
+
+        val email = user.email
+        if (email.isNullOrEmpty()) {
+            callback(false, "User email not found")
+            return
+        }
+
+        // Step 1: Re-authenticate the user with current password
+        val credential = EmailAuthProvider.getCredential(email, currentPassword)
+        user.reauthenticate(credential)
+            .addOnCompleteListener { reauthTask ->
+                if (reauthTask.isSuccessful) {
+                    // Step 2: Update to new password
+                    user.updatePassword(newPassword)
+                        .addOnCompleteListener { updateTask ->
+                            if (updateTask.isSuccessful) {
+                                callback(true, "Password changed successfully")
+                            } else {
+                                callback(
+                                    false,
+                                    "Failed to update password: ${updateTask.exception?.message}"
+                                )
+                            }
+                        }
+                } else {
+                    callback(false, "Current password is incorrect")
+                }
+            }
+    }
 }

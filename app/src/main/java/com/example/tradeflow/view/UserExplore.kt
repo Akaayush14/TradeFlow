@@ -263,7 +263,7 @@ fun UserExploreScreen() {
                             }
                         }
                     },
-                            actions = {
+                    actions = {
                         IconButton(onClick = {
                             val intent = Intent(activity, UserSetting::class.java)
                             activity.startActivity(intent)

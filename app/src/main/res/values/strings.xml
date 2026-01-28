@@ -33,5 +33,8 @@
     <string name="title_activity_user_setting_notification">UserSettingNotification</string>
     <string name="title_activity_user_chat_bot">UserChatBotActivity</string>
     <string name="title_activity_map">MapActivity</string>
+    <string name="title_activity_theme_preference">ThemePreference</string>
+    <string name="title_activity_theme_setting_acitivity">ThemeSettingAcitivity</string>
+    <string name="title_activity_theme_wrapper">ThemeWrapper</string>
     <string name="title_activity_location_picker">LocationPickerActivity</string>
 </resources>

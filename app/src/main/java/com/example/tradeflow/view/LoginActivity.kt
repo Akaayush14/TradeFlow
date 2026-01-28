@@ -1,5 +1,6 @@
 package com.example.tradeflow.view
 
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -7,31 +8,14 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -39,15 +23,14 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.platform.LocalContext
-import com.example.tradeflow.viewmodel.UserViewModel
 import com.example.tradeflow.R
 import com.example.tradeflow.RegisterActivity
-import com.example.tradeflow.repository.UserRepoImpl
 import com.example.tradeflow.ui.theme.Greenish
-import androidx.compose.material3.Checkbox
-import android.content.Context
-import androidx.compose.runtime.LaunchedEffect
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.database.DataSnapshot
+import com.google.firebase.database.DatabaseError
+import com.google.firebase.database.FirebaseDatabase
+import com.google.firebase.database.ValueEventListener
 
 class LoginActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -55,38 +38,37 @@ class LoginActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             LoginScreen()
-
         }
     }
 }
+
 @Composable
 fun LoginScreen() {
-
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var showPassword by remember { mutableStateOf(false) }
-
+    var rememberMe by remember { mutableStateOf(false) }
+    var isLoading by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf("") }
 
     val BlueButton = Color(0xFF006CFF)
     val Teal = Color(0xFF00897B)
 
-    var isLoading by remember { mutableStateOf(false) }
-    var errorMessage by remember { mutableStateOf("") }
-
-    //For navigating a var is declared
     val context = LocalContext.current
+    val auth = FirebaseAuth.getInstance()
+    val database = FirebaseDatabase.getInstance()
+
+    // Get shared preferences for Remember Me
     val sharedPrefs = context.getSharedPreferences("login_prefs", Context.MODE_PRIVATE)
-    var rememberMe by remember { mutableStateOf(false) }
+
+    // Load saved credentials if Remember Me was checked
     LaunchedEffect(Unit) {
         rememberMe = sharedPrefs.getBoolean("remember", false)
-
         if (rememberMe) {
             email = sharedPrefs.getString("email", "") ?: ""
             password = sharedPrefs.getString("password", "") ?: ""
         }
     }
-
-    val userViewModel = remember { UserViewModel(UserRepoImpl()) }
 
     fun handleLogin() {
         if (email.isBlank() || password.isBlank()) {
@@ -97,28 +79,90 @@ fun LoginScreen() {
         isLoading = true
         errorMessage = ""
 
-        userViewModel.login(email.trim(), password) { success, message ->
-            isLoading = false
-            if (success) {
-                if (rememberMe) {
-                    sharedPrefs.edit()
-                        .putString("email", email)
-                        .putString("password", password)
-                        .putBoolean("remember", true)
-                        .apply()
+        auth.signInWithEmailAndPassword(email.trim(), password)
+            .addOnCompleteListener { task ->
+                isLoading = false
+
+                if (task.isSuccessful) {
+                    // Save credentials if Remember Me is checked
+                    if (rememberMe) {
+                        sharedPrefs.edit()
+                            .putString("email", email)
+                            .putString("password", password)
+                            .putBoolean("remember", true)
+                            .apply()
+                    } else {
+                        sharedPrefs.edit().clear().apply()
+                    }
+
+                    val userId = auth.currentUser?.uid ?: ""
+
+                    if (userId.isNotEmpty()) {
+                        // Check if user is an admin
+                        val adminsRef = database.getReference("Admins").child(userId)
+
+                        adminsRef.addListenerForSingleValueEvent(object : ValueEventListener {
+                            override fun onDataChange(snapshot: DataSnapshot) {
+                                if (snapshot.exists()) {
+                                    // Check if admin is blocked
+                                    val isBlocked = snapshot.child("isBlocked").getValue(Boolean::class.java) ?: false
+                                    if (isBlocked) {
+                                        auth.signOut()
+                                        errorMessage = "Your account has been blocked. Please contact support."
+                                    } else {
+                                        // User exists in Admins collection → Admin Dashboard
+                                        val intent = Intent(context, AdminDashExp::class.java)
+                                        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                                        context.startActivity(intent)
+                                        (context as? ComponentActivity)?.finish()
+                                    }
+                                } else {
+                                    // User not in Admins collection, check Users collection
+                                    val usersRef = database.getReference("Users").child(userId)
+                                    usersRef.addListenerForSingleValueEvent(object : ValueEventListener {
+                                        override fun onDataChange(userSnapshot: DataSnapshot) {
+                                            if (userSnapshot.exists()) {
+                                                // Check if user is blocked
+                                                val isBlocked = userSnapshot.child("isBlocked").getValue(Boolean::class.java) ?: false
+                                                if (isBlocked) {
+                                                    auth.signOut()
+                                                    errorMessage = "Your account has been blocked. Please contact support."
+                                                } else {
+                                                    // Regular User Dashboard
+                                                    val intent = Intent(context, UserDashboard::class.java)
+                                                    intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                                                    context.startActivity(intent)
+                                                    (context as? ComponentActivity)?.finish()
+                                                }
+                                            } else {
+                                                // User Auth exists but no DB record found (Edge case)
+                                                // Defaulting to UserDashboard to handle profile creation if needed
+                                                val intent = Intent(context, UserDashboard::class.java)
+                                                intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                                                context.startActivity(intent)
+                                                (context as? ComponentActivity)?.finish()
+                                            }
+                                        }
+
+                                        override fun onCancelled(error: DatabaseError) {
+                                            errorMessage = "Database error: ${error.message}"
+                                            auth.signOut()
+                                        }
+                                    })
+                                }
+                            }
+
+                            override fun onCancelled(error: DatabaseError) {
+                                // If we can't check, default to user dashboard
+                                errorMessage = "Network error: ${error.message}"
+                                auth.signOut()
+                            }
+                        })
+                    }
                 } else {
-                    sharedPrefs.edit().clear().apply()
+                    errorMessage = "Login failed: ${task.exception?.message}"
                 }
-                // Navigate to DashboardPage on successful login
-                val intent = Intent(context, UserDashboard::class.java)
-                intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-                context.startActivity(intent)
-                // Finish LoginActivity so user can't go back
-                (context as? android.app.Activity)?.finish()
-            } else {
-                errorMessage = message
             }
-        }
     }
 
     Column(
@@ -126,8 +170,6 @@ fun LoginScreen() {
             .fillMaxSize()
             .background(Color.White)
     ) {
-
-
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -147,12 +189,10 @@ fun LoginScreen() {
 
         Spacer(modifier = Modifier.height(20.dp))
 
-
         Column(
             modifier = Modifier
                 .padding(horizontal = 25.dp)
-        )  {
-
+        ) {
             Text(
                 text = "Welcome!",
                 fontSize = 26.sp,
@@ -199,16 +239,13 @@ fun LoginScreen() {
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            // FORGOT PASSWORD
-            Spacer(modifier = Modifier.height(10.dp))
-
+            // REMEMBER ME AND FORGOT PASSWORD ROW
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-
-                //  Remember Me
+                // Remember Me Checkbox
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Checkbox(
                         checked = rememberMe,
@@ -222,19 +259,19 @@ fun LoginScreen() {
                     )
                 }
 
-                //  Forgot Password
+                // Forgot Password
                 Text(
                     text = "Forgot password?",
                     color = BlueButton,
-                    modifier = Modifier.clickable{
-                        context.startActivity(
-                            Intent(context, ForgetPasswordActivity::class.java)
-                        )},
+                    modifier = Modifier.clickable {
+                        val intent = Intent(context, ForgetPasswordActivity::class.java)
+                        intent.putExtra("email", email)
+                        context.startActivity(intent)
+                    },
                     fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold
                 )
             }
-
 
             Spacer(modifier = Modifier.height(10.dp))
 
@@ -257,9 +294,18 @@ fun LoginScreen() {
                     .fillMaxWidth()
                     .height(55.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = BlueButton),
-                shape = RoundedCornerShape(12.dp)
+                shape = RoundedCornerShape(12.dp),
+                enabled = !isLoading
             ) {
-                Text(text = "Login", fontSize = 17.sp, color = Color.White)
+                if (isLoading) {
+                    CircularProgressIndicator(
+                        color = Color.White,
+                        strokeWidth = 2.dp,
+                        modifier = Modifier.size(20.dp)
+                    )
+                } else {
+                    Text(text = "Login", fontSize = 17.sp, color = Color.White)
+                }
             }
 
             Spacer(modifier = Modifier.height(15.dp))
@@ -274,20 +320,15 @@ fun LoginScreen() {
                     text = "Register now",
                     color = BlueButton,
                     fontWeight = FontWeight.Bold,
-                    modifier = Modifier.clickable{
-                        context.startActivity(
-                            Intent(context, RegisterActivity::class.java)
-                        )},
+                    modifier = Modifier.clickable {
+                        val intent = Intent(context, RegisterActivity::class.java)
+                        context.startActivity(intent)
+                    },
                 )
             }
-
-            Spacer(modifier = Modifier.height(15.dp))
-
-
         }
     }
 }
-
 
 @Preview
 @Composable

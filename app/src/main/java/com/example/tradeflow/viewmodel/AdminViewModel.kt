@@ -1,5 +1,7 @@
 package com.example.tradeflow.viewmodel
 
+import android.content.Context
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseUser
@@ -19,10 +21,11 @@ class AdminViewModel(val repo: AdminRepo): ViewModel(){
     }
 
     fun register(
+        context: Context,
         email:String, password: String, phone:String,
         callback: (Boolean, String, String) -> Unit
     ){
-        repo.register(email, password, phone, callback)
+        repo.register(context, email, password, phone, callback)
     }
 
     fun addAdminToDatabase(
@@ -91,5 +94,17 @@ class AdminViewModel(val repo: AdminRepo): ViewModel(){
         callback: (Boolean, String) -> Unit
     ) {
         repo.updateAdminStatus(userId, isBlocked, isRestricted, callback)
+    }
+
+    fun updateAdmin(
+        userId: String,
+        data: Map<String, Any>,
+        callback: (Boolean, String) -> Unit
+    ) {
+        repo.updateAdmin(userId, data, callback)
+    }
+
+    fun uploadImage(context: Context, imageUri: Uri, callback: (String?) -> Unit) {
+        repo.uploadImage(context, imageUri, callback)
     }
 }
