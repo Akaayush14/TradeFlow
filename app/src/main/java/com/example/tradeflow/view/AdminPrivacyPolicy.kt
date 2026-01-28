@@ -32,7 +32,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.tradeflow.R
 import com.example.tradeflow.repository.AdminRepoImpl
-import com.example.tradeflow.ui.components.ThemeWrapper
 import com.example.tradeflow.ui.theme.Greenish
 import com.example.tradeflow.viewmodel.AdminViewModel
 
@@ -41,15 +40,13 @@ class AdminPrivacyPolicy : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            ThemeWrapper {
-                AdminPrivacyPolicyScreen(
-                    onBackClick = {
-                        val intent = Intent(this, AdminSettings::class.java)
-                        startActivity(intent)
-                        finish()
-                    }
-                )
-            }
+            AdminPrivacyPolicyScreen(
+                onBackClick = {
+                    val intent = Intent(this, AdminSettings::class.java)
+                    startActivity(intent)
+                    finish()
+                }
+            )
         }
     }
 }
@@ -76,16 +73,16 @@ fun AdminPrivacyPolicyScreen(onBackClick: () -> Unit = {}) {
         topBar = {
             TopAppBar(
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
-                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimary
+                    containerColor = Greenish,
+                    titleContentColor = Color.White,
+                    navigationIconContentColor = Color.White
                 ),
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
                         Icon(
                             painter = painterResource(id = R.drawable.ic_back),
                             contentDescription = "Back",
-                            tint = MaterialTheme.colorScheme.onPrimary
+                            tint = Color.White
                         )
                     }
                 },
@@ -98,7 +95,7 @@ fun AdminPrivacyPolicyScreen(onBackClick: () -> Unit = {}) {
                     ) {
                         Text(
                             text = "Privacy & Security",
-                            color = MaterialTheme.colorScheme.onPrimary,
+                            color = Color.White,
                             style = MaterialTheme.typography.titleLarge
                         )
                     }
@@ -110,7 +107,7 @@ fun AdminPrivacyPolicyScreen(onBackClick: () -> Unit = {}) {
             modifier = Modifier
                 .padding(padding)
                 .fillMaxSize()
-                .background(MaterialTheme.colorScheme.background)
+                .background(Color(0xFFF5F5F5))
                 .verticalScroll(rememberScrollState())
         ) {
             // Account Security Section
@@ -136,7 +133,7 @@ fun AdminPrivacyPolicyScreen(onBackClick: () -> Unit = {}) {
                     "Change Password",
                     style = MaterialTheme.typography.titleMedium,
                     modifier = Modifier.padding(bottom = 8.dp),
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = Color(0xFF333333)
                 )
             },
             text = {
@@ -157,9 +154,9 @@ fun AdminPrivacyPolicyScreen(onBackClick: () -> Unit = {}) {
                         visualTransformation = if (showCurrentPassword) VisualTransformation.None
                         else PasswordVisualTransformation(),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = MaterialTheme.colorScheme.primary,
-                            focusedLabelColor = MaterialTheme.colorScheme.primary,
-                            unfocusedBorderColor = MaterialTheme.colorScheme.outline
+                            focusedBorderColor = Greenish,
+                            focusedLabelColor = Greenish,
+                            unfocusedBorderColor = Color(0xFFCCCCCC)
                         ),
                         trailingIcon = {
                             IconButton(
@@ -172,7 +169,7 @@ fun AdminPrivacyPolicyScreen(onBackClick: () -> Unit = {}) {
                                     contentDescription = if (showCurrentPassword) "Hide password"
                                     else "Show password",
                                     modifier = Modifier.size(20.dp),
-                                    tint = MaterialTheme.colorScheme.primary
+                                    tint = Greenish
                                 )
                             }
                         }
@@ -191,9 +188,9 @@ fun AdminPrivacyPolicyScreen(onBackClick: () -> Unit = {}) {
                         visualTransformation = if (showNewPassword) VisualTransformation.None
                         else PasswordVisualTransformation(),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = MaterialTheme.colorScheme.primary,
-                            focusedLabelColor = MaterialTheme.colorScheme.primary,
-                            unfocusedBorderColor = MaterialTheme.colorScheme.outline
+                            focusedBorderColor = Greenish,
+                            focusedLabelColor = Greenish,
+                            unfocusedBorderColor = Color(0xFFCCCCCC)
                         ),
                         trailingIcon = {
                             IconButton(
@@ -206,7 +203,7 @@ fun AdminPrivacyPolicyScreen(onBackClick: () -> Unit = {}) {
                                     contentDescription = if (showNewPassword) "Hide password"
                                     else "Show password",
                                     modifier = Modifier.size(20.dp),
-                                    tint = MaterialTheme.colorScheme.primary
+                                    tint = Greenish
                                 )
                             }
                         }
@@ -225,9 +222,9 @@ fun AdminPrivacyPolicyScreen(onBackClick: () -> Unit = {}) {
                         visualTransformation = if (showConfirmPassword) VisualTransformation.None
                         else PasswordVisualTransformation(),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = MaterialTheme.colorScheme.primary,
-                            focusedLabelColor = MaterialTheme.colorScheme.primary,
-                            unfocusedBorderColor = MaterialTheme.colorScheme.outline
+                            focusedBorderColor = Greenish,
+                            focusedLabelColor = Greenish,
+                            unfocusedBorderColor = Color(0xFFCCCCCC)
                         ),
                         trailingIcon = {
                             IconButton(
@@ -240,7 +237,7 @@ fun AdminPrivacyPolicyScreen(onBackClick: () -> Unit = {}) {
                                     contentDescription = if (showConfirmPassword) "Hide password"
                                     else "Show password",
                                     modifier = Modifier.size(20.dp),
-                                    tint = MaterialTheme.colorScheme.primary
+                                    tint = Greenish
                                 )
                             }
                         }
@@ -250,7 +247,7 @@ fun AdminPrivacyPolicyScreen(onBackClick: () -> Unit = {}) {
                     if (errorMessage.isNotEmpty()) {
                         Text(
                             text = errorMessage,
-                            color = MaterialTheme.colorScheme.error,
+                            color = Color.Red,
                             fontSize = 14.sp,
                             modifier = Modifier.padding(top = 8.dp)
                         )
@@ -267,7 +264,7 @@ fun AdminPrivacyPolicyScreen(onBackClick: () -> Unit = {}) {
                         onClick = { showChangePasswordDialog = false },
                         enabled = !isLoading
                     ) {
-                        Text("Cancel", color = MaterialTheme.colorScheme.primary)
+                        Text("Cancel", color = Greenish)
                     }
 
                     Spacer(modifier = Modifier.width(8.dp))
@@ -319,17 +316,17 @@ fun AdminPrivacyPolicyScreen(onBackClick: () -> Unit = {}) {
                         },
                         enabled = !isLoading,
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primary
+                            containerColor = Greenish
                         )
                     ) {
                         if (isLoading) {
                             CircularProgressIndicator(
-                                color = MaterialTheme.colorScheme.onPrimary,
+                                color = Color.White,
                                 modifier = Modifier.size(16.dp),
                                 strokeWidth = 2.dp
                             )
                         } else {
-                            Text("Change Password", color = MaterialTheme.colorScheme.onPrimary)
+                            Text("Change Password", color = Color.White)
                         }
                     }
                 }
@@ -343,12 +340,12 @@ fun AdminSection(title: String) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
+            .background(Greenish.copy(alpha = 0.1f))
             .padding(horizontal = 16.dp, vertical = 12.dp)
     ) {
         Text(
             text = title,
-            color = MaterialTheme.colorScheme.primary,
+            color = Greenish,
             fontWeight = FontWeight.Bold,
             fontSize = 14.sp
         )
@@ -368,18 +365,18 @@ fun AdminPrivacyItem(title: String, onClick: () -> Unit) {
             text = title,
             modifier = Modifier.weight(1f),
             fontSize = 16.sp,
-            color = MaterialTheme.colorScheme.onBackground
+            color = Color(0xFF333333)
         )
         // Using built-in Material icon instead of custom drawable
         Icon(
             imageVector = Icons.Default.ArrowForward,
             contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            tint = Color(0xFF666666),
             modifier = Modifier.size(20.dp)
         )
     }
     Divider(
-        color = MaterialTheme.colorScheme.outlineVariant,
+        color = Color(0xFFE0E0E0),
         thickness = 0.5.dp
     )
 }

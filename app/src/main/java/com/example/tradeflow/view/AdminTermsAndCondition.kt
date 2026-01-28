@@ -28,7 +28,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.tradeflow.R
-import com.example.tradeflow.ui.components.ThemeWrapper
 import com.example.tradeflow.ui.theme.DarkGreen
 import com.example.tradeflow.ui.theme.Greenish
 
@@ -37,15 +36,13 @@ class AdminTermsAndCondition : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            ThemeWrapper {
-                AdminTermsAndConditionScreen(
-                    onBackClick = {
-                        val intent = Intent(this, AdminSettings::class.java)
-                        startActivity(intent)
-                        finish()
-                    }
-                )
-            }
+            AdminTermsAndConditionScreen(
+                onBackClick = {
+                    val intent = Intent(this, AdminSettings::class.java)
+                    startActivity(intent)
+                    finish()
+                }
+            )
         }
     }
 }
@@ -60,16 +57,16 @@ fun AdminTermsAndConditionScreen(onBackClick: () -> Unit = {}) {
         topBar = {
             TopAppBar(
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
-                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimary
+                    containerColor = Greenish,
+                    titleContentColor = Color.White,
+                    navigationIconContentColor = Color.White
                 ),
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
                         Icon(
                             painter = painterResource(id = R.drawable.ic_back),
                             contentDescription = "Back",
-                            tint = MaterialTheme.colorScheme.onPrimary
+                            tint = Color.White
                         )
                     }
                 },
@@ -82,7 +79,7 @@ fun AdminTermsAndConditionScreen(onBackClick: () -> Unit = {}) {
                     ) {
                         Text(
                             text = "Terms and Conditions",
-                            color = MaterialTheme.colorScheme.onPrimary,
+                            color = Color.White,
                             style = MaterialTheme.typography.titleLarge
                         )
                     }
@@ -94,7 +91,7 @@ fun AdminTermsAndConditionScreen(onBackClick: () -> Unit = {}) {
             state = listState,
             modifier = Modifier
                 .fillMaxSize()
-                .background(MaterialTheme.colorScheme.background)
+                .background(Color.White)
                 .padding(padding),
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -114,7 +111,7 @@ fun AdminTermsAndConditionScreen(onBackClick: () -> Unit = {}) {
                                 clip = true
                             )
                             .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.surfaceVariant),
+                            .background(Color(0xFFF0F0F0)),
                         contentAlignment = Alignment.Center
                     ) {
                         Image(
@@ -133,7 +130,7 @@ fun AdminTermsAndConditionScreen(onBackClick: () -> Unit = {}) {
                 Text(
                     text = "By accessing and using TradeFlow, you agree to be bound by these Terms and Conditions. If you disagree with any part of these terms, you may not access the service. These terms apply to all users, including administrators, traders, and visitors.",
                     fontSize = 15.sp,
-                    color = MaterialTheme.colorScheme.onBackground,
+                    color = Color(0xFF333333),
                     lineHeight = 22.sp,
                     textAlign = TextAlign.Justify
                 )
@@ -231,7 +228,7 @@ fun AdminTermsAndConditionScreen(onBackClick: () -> Unit = {}) {
                 Text(
                     text = "TradeFlow is provided \"as is\" without warranties of any kind. We do not guarantee uninterrupted or error-free service. TradeFlow is not liable for any direct, indirect, incidental, or consequential damages arising from your use of the service. This includes but is not limited to loss of data, loss of profits, or damage to items traded on the platform.",
                     fontSize = 15.sp,
-                    color = MaterialTheme.colorScheme.onBackground,
+                    color = Color(0xFF333333),
                     lineHeight = 22.sp,
                     textAlign = TextAlign.Justify
                 )
@@ -268,7 +265,7 @@ fun AdminTermsAndConditionScreen(onBackClick: () -> Unit = {}) {
                 Text(
                     text = "TradeFlow reserves the right to modify these Terms and Conditions at any time. We will notify users of significant changes via email or platform notification. Continued use of the service after changes constitutes acceptance of the new terms. It is your responsibility to review these terms periodically.",
                     fontSize = 15.sp,
-                    color = MaterialTheme.colorScheme.onBackground,
+                    color = Color(0xFF333333),
                     lineHeight = 22.sp,
                     textAlign = TextAlign.Justify
                 )
@@ -293,7 +290,7 @@ fun AdminTermsAndConditionScreen(onBackClick: () -> Unit = {}) {
                 Text(
                     text = "These Terms and Conditions are governed by and construed in accordance with the laws of the jurisdiction in which TradeFlow operates, without regard to its conflict of law provisions. Our failure to enforce any right or provision of these terms will not be considered a waiver of those rights.",
                     fontSize = 15.sp,
-                    color = MaterialTheme.colorScheme.onBackground,
+                    color = Color(0xFF333333),
                     lineHeight = 22.sp,
                     textAlign = TextAlign.Justify
                 )
@@ -306,7 +303,7 @@ fun AdminTermsAndConditionScreen(onBackClick: () -> Unit = {}) {
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
                     colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+                        containerColor = Greenish.copy(alpha = 0.1f)
                     ),
                     elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
                 ) {
@@ -317,13 +314,13 @@ fun AdminTermsAndConditionScreen(onBackClick: () -> Unit = {}) {
                             text = "TradeFlow Support",
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary,
+                            color = DarkGreen,
                             modifier = Modifier.padding(bottom = 8.dp)
                         )
                         Text(
                             text = "📧 Email: support@tradeflow.com\n📞 Phone: +977 9816025914\n📍 Address: TradeFlow Pvt. Ltd., Kathmandu, Nepal",
                             fontSize = 14.sp,
-                            color = MaterialTheme.colorScheme.onBackground,
+                            color = Color(0xFF333333),
                             lineHeight = 20.sp
                         )
                     }
@@ -338,7 +335,7 @@ fun AdminTermsAndConditionScreen(onBackClick: () -> Unit = {}) {
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
                     colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
+                        containerColor = Greenish.copy(alpha = 0.15f)
                     ),
                     elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                 ) {
@@ -349,13 +346,13 @@ fun AdminTermsAndConditionScreen(onBackClick: () -> Unit = {}) {
                             text = "Acceptance of Terms",
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary,
+                            color = DarkGreen,
                             modifier = Modifier.padding(bottom = 8.dp)
                         )
                         Text(
                             text = "By creating an account and using TradeFlow, you acknowledge that you have read, understood, and agree to be bound by these Terms and Conditions. If you do not agree to these terms, you must not use our service.",
                             fontSize = 14.sp,
-                            color = MaterialTheme.colorScheme.onBackground,
+                            color = Color(0xFF333333),
                             lineHeight = 20.sp
                         )
                     }
@@ -366,7 +363,7 @@ fun AdminTermsAndConditionScreen(onBackClick: () -> Unit = {}) {
                 Text(
                     "© 2024 TradeFlow. All rights reserved.",
                     fontSize = 12.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = Color.Gray,
                     textAlign = TextAlign.Center,
                     modifier = Modifier
                         .fillMaxWidth()
@@ -389,7 +386,7 @@ fun TermsSection(title: String) {
             text = title,
             fontSize = 20.sp,
             fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary,
+            color = Greenish,
             textAlign = TextAlign.Start
         )
     }
@@ -404,7 +401,7 @@ fun TermCard(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(
-            containerColor = if (isWarning) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.surface
+            containerColor = if (isWarning) Color(0xFFFFF3E0) else Color(0xFFF8F8F8)
         ),
         elevation = CardDefaults.cardElevation(2.dp)
     ) {
@@ -417,7 +414,7 @@ fun TermCard(
             Text(
                 text = text,
                 fontSize = 14.sp,
-                color = if (isWarning) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onSurface,
+                color = if (isWarning) Color(0xFFE65100) else Color(0xFF333333),
                 lineHeight = 20.sp
             )
         }
