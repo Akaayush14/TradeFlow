@@ -173,7 +173,7 @@ fun ItemDetailsScreen() {
             )
         },
         bottomBar = {
-            if (!isOwner && currentUserId.isNotEmpty() && product != null) {
+            if (!isOwner && currentUserId.isNotEmpty() && product != null && product?.status != "Completed") {
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
                     shadowElevation = 8.dp
@@ -186,7 +186,10 @@ fun ItemDetailsScreen() {
                     ) {
                         OutlinedButton(
                             onClick = {
-                                Toast.makeText(context, "Opening Chat...", Toast.LENGTH_SHORT).show()
+                                val intent = Intent(context, UserDashboard::class.java)
+                                intent.putExtra("start_tab", "inbox")
+                                intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+                                context.startActivity(intent)
                             },
                             modifier = Modifier
                                 .weight(1f)
@@ -202,44 +205,46 @@ fun ItemDetailsScreen() {
                             Text("Message")
                         }
 
-                        Button(
-                            onClick = {
-                                if (owner == null) {
-                                    errorMessage = "Owner information not available. Please try again."
-                                    showErrorDialog = true
-                                } else {
-                                    if (product?.type == "Rent") {
-                                        val intent = Intent(context, RentalRequestActivity::class.java)
-                                        // Pass product ID and owner ID instead of objects
-                                        intent.putExtra("productId", product?.productId ?: "")
-                                        intent.putExtra("ownerId", product?.ownerId ?: "")
-                                        context.startActivity(intent)
+                        if (product?.status != "Rented") {
+                            Button(
+                                onClick = {
+                                    if (owner == null) {
+                                        errorMessage = "Owner information not available. Please try again."
+                                        showErrorDialog = true
                                     } else {
-                                        val intent = Intent(context, BarterRequestActivity::class.java)
-                                        // Pass product ID and owner ID instead of objects
-                                        intent.putExtra("productId", product?.productId ?: "")
-                                        intent.putExtra("ownerId", product?.ownerId ?: "")
-                                        context.startActivity(intent)
+                                        if (product?.type == "Rent") {
+                                            val intent = Intent(context, RentalRequestActivity::class.java)
+                                            // Pass product ID and owner ID instead of objects
+                                            intent.putExtra("productId", product?.productId ?: "")
+                                            intent.putExtra("ownerId", product?.ownerId ?: "")
+                                            context.startActivity(intent)
+                                        } else {
+                                            val intent = Intent(context, BarterRequestActivity::class.java)
+                                            // Pass product ID and owner ID instead of objects
+                                            intent.putExtra("productId", product?.productId ?: "")
+                                            intent.putExtra("ownerId", product?.ownerId ?: "")
+                                            context.startActivity(intent)
+                                        }
                                     }
-                                }
-                            },
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(50.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.primary
-                            ),
-                            shape = RoundedCornerShape(12.dp)
-                        ) {
-                            Text(
-                                text = when (product?.type) {
-                                    "Barter" -> "Barter Now"
-                                    "Rent" -> "Rent Now"
-                                    else -> "Send Request"
                                 },
-                                fontSize = 14.sp,
-                                color = MaterialTheme.colorScheme.onPrimary
-                            )
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(50.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.primary
+                                ),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Text(
+                                    text = when (product?.type) {
+                                        "Barter" -> "Barter Now"
+                                        "Rent" -> "Rent Now"
+                                        else -> "Send Request"
+                                    },
+                                    fontSize = 14.sp,
+                                    color = MaterialTheme.colorScheme.onPrimary
+                                )
+                            }
                         }
                     }
                 }

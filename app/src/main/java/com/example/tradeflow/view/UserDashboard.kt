@@ -86,7 +86,15 @@ fun DashboardPageBody() {
 
     data class NavItem(val label: String, val iconOutlined: Int, val iconFilled: Int)
 
-    var selectedIndex by remember { mutableStateOf(0) }
+    // Check for intent extra to set initial tab
+    val initialTab = activity.intent.getStringExtra("start_tab")
+    val initialIndex = when (initialTab) {
+        "inbox" -> 1
+        "alert" -> 3
+        else -> 0
+    }
+
+    var selectedIndex by remember { mutableStateOf(initialIndex) }
     var addItemMode by remember { mutableStateOf(AddItemMode.ADD) }
     var editingProduct by remember { mutableStateOf<ProductModel?>(null) }
     var showEditSuccess by remember { mutableStateOf(false) }
