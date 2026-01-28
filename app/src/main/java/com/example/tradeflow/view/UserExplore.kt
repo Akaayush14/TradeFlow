@@ -85,12 +85,17 @@ import com.example.tradeflow.R
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import com.example.tradeflow.repository.SavedItemRepoImpl
 import com.example.tradeflow.viewmodel.SavedItemViewModel
+import com.example.tradeflow.repository.SearchHistoryRepoImpl
+import com.example.tradeflow.viewmodel.SearchHistoryViewModel
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Badge
 import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.ImeAction
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -106,6 +111,7 @@ fun UserExploreScreen() {
     val productViewModel: ProductViewModel = remember { ProductViewModel(ProductRepoImpl()) }
     val userViewModel: UserViewModel = remember { UserViewModel(UserRepoImpl()) }
     val savedItemViewModel: SavedItemViewModel = remember { SavedItemViewModel(SavedItemRepoImpl()) }
+    val searchHistoryViewModel: SearchHistoryViewModel = remember { SearchHistoryViewModel(SearchHistoryRepoImpl()) }
 
     val currentUser = FirebaseAuth.getInstance().currentUser
     val userId = currentUser?.uid ?: ""
@@ -117,12 +123,14 @@ fun UserExploreScreen() {
             userViewModel.getUserById(userId) { success, _, user ->
             }
             savedItemViewModel.getSavedItems(userId)
+            searchHistoryViewModel.getSearchHistory(userId)
         }
     }
 
     val allProducts by productViewModel.allProducts.collectAsState()
     val savedItems by savedItemViewModel.savedItems.collectAsState()
     val savedProductIds by savedItemViewModel.savedProductIds.collectAsState()
+    val searchHistory by searchHistoryViewModel.searchHistory.collectAsState()
     val userData by userViewModel.users.collectAsState()
     val allUsers by userViewModel.allUsers.collectAsState()
     val userPoints = userData?.points ?: 0L
@@ -139,13 +147,13 @@ fun UserExploreScreen() {
     }
 
     val availableProducts = allProducts.filter { product ->
-        !product.isDeleted && product.status == "Available" && product.ownerId != userId
+        !product.isDeleted && product.status == "Available" && product.isListed
     }
 
     val filteredProducts = availableProducts.filter { product ->
         val matchesTab = when (selectedTab) {
-            "Rent" -> product.type == "Rent"
-            "Trade" -> product.type == "Barter"
+            "Rent" -> product.type == "Rent" || product.type == "Both"
+            "Barter" -> product.type == "Barter" || product.type == "Both"
             else -> true
         }
         val matchesSearch = product.name.contains(searchQuery, ignoreCase = true) ||
@@ -156,7 +164,25 @@ fun UserExploreScreen() {
     val recommendedAllProducts = if (searchQuery.isNotEmpty()) {
         filteredProducts
     } else {
-        availableProducts.sortedByDescending { it.createdAt }
+        if (searchHistory.isNotEmpty()) {
+            val keywords = searchHistory.map { it.query.lowercase() }.distinct()
+            availableProducts.sortedWith(
+                compareByDescending<ProductModel> { product ->
+                    var score = 0
+                    val title = product.name.lowercase()
+                    val desc = product.description.lowercase()
+                    val cat = product.category.lowercase()
+                    keywords.forEach { keyword ->
+                        if (title.contains(keyword)) score += 3
+                        if (desc.contains(keyword)) score += 1
+                        if (cat.contains(keyword)) score += 2
+                    }
+                    score
+                }.thenByDescending { it.createdAt }
+            )
+        } else {
+            availableProducts.sortedByDescending { it.createdAt }
+        }
     }
 
     val recommendedRowProducts = recommendedAllProducts.take(10)
@@ -305,7 +331,16 @@ fun UserExploreScreen() {
                                 fontSize = 16.sp
                             ),
                             shape = RoundedCornerShape(24.dp),
-                            singleLine = true)
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                            keyboardActions = KeyboardActions(
+                                onSearch = {
+                                    if (searchQuery.isNotBlank() && userId.isNotEmpty()) {
+                                        searchHistoryViewModel.saveSearch(userId, searchQuery)
+                                    }
+                                }
+                            )
+                        )
                     },
                     actions = {
                         IconButton(onClick = {
@@ -330,75 +365,59 @@ fun UserExploreScreen() {
                 .background(MaterialTheme.colorScheme.background)
                 .padding(paddingValues)
         ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 8.dp)
-            ) {
-                ExploreTabs(
-                    selectedTab = selectedTab,
-                    onTabSelected = {
-                        selectedTab = it
-                        showAllRecommended = false
-                    }
-                )
+            // Fixed Filter Tabs Section (Only visible when not searching)
+            if (searchQuery.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 8.dp)
+                ) {
+                    ExploreTabs(
+                        selectedTab = selectedTab,
+                        onTabSelected = {
+                            selectedTab = it
+                            showAllRecommended = false
+                        }
+                    )
+                }
             }
 
-            if (searchQuery.isNotEmpty() && searchedUsers.isNotEmpty()) {
+            if (searchQuery.isNotEmpty()) {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    // Recommendations
-                    if (recommendedRowProducts.isNotEmpty()) {
+                    // Users Section
+                    if (searchedUsers.isNotEmpty()) {
                         item {
-                            RecommendationHeader(
-                                onSeeAllClick = { showAllRecommended = true }
+                            Text(
+                                text = "Users (${searchedUsers.size})",
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.padding(bottom = 8.dp)
                             )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            CompactRecommendationSection(
-                                products = recommendedRowProducts,
-                                onProductClick = { product ->
-                                    val intent = Intent(context, UserItemDetails::class.java)
-                                    intent.putExtra("productId", product.productId)
+                        }
+
+                        items(searchedUsers) { user ->
+                            UserSearchCard(
+                                user = user,
+                                onClick = {
+                                    val intent = Intent(context, UserProfileActivity::class.java)
+                                    intent.putExtra("userId", user.userId)
                                     context.startActivity(intent)
                                 }
                             )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Divider(
-                                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
-                                thickness = 5.dp,
-                                modifier = Modifier.fillMaxWidth()
-                            )
-                            Spacer(modifier = Modifier.height(16.dp))
                         }
                     }
 
-                    item {
-                        Text(
-                            text = "Users (${searchedUsers.size})",
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            modifier = Modifier.padding(bottom = 8.dp)
-                        )
-                    }
-
-                    items(searchedUsers) { user ->
-                        UserSearchCard(
-                            user = user,
-                            onClick = {
-                                val intent = Intent(context, UserProfileActivity::class.java)
-                                intent.putExtra("userId", user.userId)
-                                context.startActivity(intent)
-                            }
-                        )
-                    }
-
+                    // Items Section
                     if (filteredProducts.isNotEmpty()) {
                         item {
-                            Spacer(modifier = Modifier.height(16.dp))
+                            if (searchedUsers.isNotEmpty()) {
+                                Spacer(modifier = Modifier.height(16.dp))
+                            }
                             Text(
                                 text = "Items (${filteredProducts.size})",
                                 fontSize = 16.sp,
@@ -408,7 +427,7 @@ fun UserExploreScreen() {
                             )
                         }
 
-                        items(filteredProducts.chunked(2)) { rowProducts ->
+                        items(filteredProducts.chunked(2)) { rowProducts: List<ProductModel> ->
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -417,6 +436,16 @@ fun UserExploreScreen() {
                                     Box(modifier = Modifier.weight(1f)) {
                                         ExploreItemCard(
                                             product = product,
+                                            isSaved = savedProductIds.contains(product.productId),
+                                            onFavoriteClick = {
+                                                if (userId.isNotEmpty()) {
+                                                    if (savedProductIds.contains(product.productId)) {
+                                                        savedItemViewModel.unsaveItem(userId, product.productId)
+                                                    } else {
+                                                        savedItemViewModel.saveItem(userId, product.productId)
+                                                    }
+                                                }
+                                            },
                                             onClick = {
                                                 val intent = Intent(context, UserItemDetails::class.java)
                                                 intent.putExtra("productId", product.productId)
@@ -428,6 +457,24 @@ fun UserExploreScreen() {
                                 if (rowProducts.size == 1) {
                                     Spacer(modifier = Modifier.weight(1f))
                                 }
+                            }
+                        }
+                    }
+
+                    // No Results Found
+                    if (searchedUsers.isEmpty() && filteredProducts.isEmpty()) {
+                        item {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 32.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "No results found",
+                                    fontSize = 16.sp,
+                                    color = Color.Gray
+                                )
                             }
                         }
                     }

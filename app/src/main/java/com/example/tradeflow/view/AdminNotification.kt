@@ -415,12 +415,23 @@ fun NotificationCard(
 
     // State for product image if it's an item notification
     var product by remember { mutableStateOf<ProductModel?>(null) }
+    // State for user image if it's a user notification
+    var user by remember { mutableStateOf<com.example.tradeflow.model.UserModel?>(null) }
+
     // Use a local ViewModel for fetching to avoid race conditions with shared StateFlow
     val itemViewModel = remember { ProductViewModel(ProductRepoImpl()) }
+    // Use a local UserViewModel for fetching user details
+    val userDetailsViewModel = remember { UserViewModel(UserRepoImpl()) }
 
     LaunchedEffect(notification) {
         if (notification.type.startsWith("item_") && notification.itemId.isNotEmpty()) {
             itemViewModel.getProductById(notification.itemId)
+        } else if (notification.type.startsWith("user_") && notification.userId.isNotEmpty()) {
+            userDetailsViewModel.getUserById(notification.userId) { _, _, fetchedUser ->
+                if (fetchedUser != null) {
+                    user = fetchedUser
+                }
+            }
         }
     }
 
@@ -522,6 +533,36 @@ fun NotificationCard(
                         Icon(
                             painter = painterResource(R.drawable.ic_items),
                             contentDescription = "Product Image",
+                            tint = Color.Gray,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                }
+            } else if ((notification.type.startsWith("user_")) && user != null) {
+                // Display user profile image for user-related notifications
+                Box(
+                    modifier = Modifier
+                        .padding(end = 12.dp)
+                        .size(60.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(Color.LightGray),
+                    contentAlignment = Alignment.Center
+                ) {
+                    val imageUrl = user!!.profileImageUrl
+
+                    if (imageUrl.isNotEmpty()) {
+                        AsyncImage(
+                            model = imageUrl,
+                            contentDescription = "User Image",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop,
+                            placeholder = painterResource(R.drawable.ic_profile),
+                            error = painterResource(R.drawable.ic_profile)
+                        )
+                    } else {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_profile),
+                            contentDescription = "User Image",
                             tint = Color.Gray,
                             modifier = Modifier.size(24.dp)
                         )

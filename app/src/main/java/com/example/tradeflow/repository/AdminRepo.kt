@@ -13,6 +13,7 @@ interface AdminRepo {
     )
 
     fun register(
+        context: Context,
         email:String,
         password:String,
         phone:String,

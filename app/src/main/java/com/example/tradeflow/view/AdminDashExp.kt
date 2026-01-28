@@ -41,7 +41,14 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.Block
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Phone
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -78,6 +85,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.border
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
@@ -223,10 +231,17 @@ fun AdminExp() {
                         BadgedNotificationIconExp(
                             unreadCount = unreadCount,
                             iconPainter = painterResource(R.drawable.notification_filled),
-                            contentDescription = "notification"
+                            contentDescription = "Alerts"
                         )
                     },
-                    label = { Text("notification", color = Color.White) }
+                    label = { 
+                        Text(
+                            "Alerts", 
+                            color = Color.White,
+                            maxLines = 1,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                        ) 
+                    }
                 )
 
                 NavigationBarItem(
@@ -280,6 +295,16 @@ fun AdminExploreScreen(
     var selectedTab by remember { mutableStateOf(1) } // 0 for User, 1 for Metrics, 2 for Items
     var showPasswordDialog by remember { mutableStateOf(false) }
     var passwordInput by remember { mutableStateOf("") }
+
+    val adminViewModel = remember { AdminViewModel(AdminRepoImpl()) }
+    val currentAdmin by adminViewModel.admin.collectAsState()
+
+    LaunchedEffect(Unit) {
+        val currentUser = adminViewModel.getCurrentUser()
+        if (currentUser != null) {
+            adminViewModel.getAdminById(currentUser.uid)
+        }
+    }
 
     Scaffold(
         contentWindowInsets = WindowInsets.systemBars.only(WindowInsetsSides.Horizontal),
@@ -348,7 +373,13 @@ fun AdminExploreScreen(
         },
         floatingActionButton = {
             FloatingActionButton(
-                onClick = { showPasswordDialog = true },
+                onClick = { 
+                    if (currentAdmin?.isRestricted == true) {
+                        Toast.makeText(context, "you don't have the permissions to access the super admin", Toast.LENGTH_SHORT).show()
+                    } else {
+                        showPasswordDialog = true 
+                    }
+                },
                 containerColor = Greenish,
                 contentColor = Color.White
             ) {
@@ -1660,8 +1691,8 @@ fun ItemCardExp(
                         Button(
                             onClick = onUnlistClick,
                             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFC107)),
-                            modifier = Modifier.height(40.dp),
-                            contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp)
+                            modifier = Modifier.height(40.dp).weight(1f),
+                            contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 4.dp)
                         ) {
                             Icon(
                                 painter = painterResource(R.drawable.baseline_visibility_off_24),
@@ -1669,11 +1700,12 @@ fun ItemCardExp(
                                 tint = Color.Black,
                                 modifier = Modifier.size(18.dp)
                             )
-                            Spacer(modifier = Modifier.width(8.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
                             Text(
                                 text = "Unlist",
                                 fontSize = 14.sp,
-                                color = Color.Black
+                                color = Color.Black,
+                                maxLines = 1
                             )
                         }
                     } else {
@@ -1681,8 +1713,8 @@ fun ItemCardExp(
                         Button(
                             onClick = onListClick,
                             colors = ButtonDefaults.buttonColors(containerColor = DarkGreen),
-                            modifier = Modifier.height(40.dp),
-                            contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp)
+                            modifier = Modifier.height(40.dp).weight(1f),
+                            contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 4.dp)
                         ) {
                             Icon(
                                 painter = painterResource(R.drawable.baseline_visibility_24),
@@ -1690,11 +1722,12 @@ fun ItemCardExp(
                                 tint = Color.White,
                                 modifier = Modifier.size(18.dp)
                             )
-                            Spacer(modifier = Modifier.width(8.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
                             Text(
                                 text = "List",
                                 fontSize = 14.sp,
-                                color = Color.White
+                                color = Color.White,
+                                maxLines = 1
                             )
                         }
                     }
@@ -1703,8 +1736,8 @@ fun ItemCardExp(
                     Button(
                         onClick = onDeleteClick,
                         colors = ButtonDefaults.buttonColors(containerColor = Color.Red),
-                        modifier = Modifier.height(40.dp),
-                        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp)
+                        modifier = Modifier.height(40.dp).weight(1f),
+                        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 4.dp)
                     ) {
                         Icon(
                             imageVector = Icons.Filled.Delete,
@@ -1712,11 +1745,12 @@ fun ItemCardExp(
                             tint = Color.White,
                             modifier = Modifier.size(18.dp)
                         )
-                        Spacer(modifier = Modifier.width(8.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
                         Text(
                             text = "Delete",
                             fontSize = 14.sp,
-                            color = Color.White
+                            color = Color.White,
+                            maxLines = 1
                         )
                     }
                 }
@@ -1732,17 +1766,23 @@ fun UserCardExp(
     onBlockClick: () -> Unit,
     onRestrictClick: () -> Unit
 ) {
-    // Determine card color: blocked = light red, restricted = light orange, normal = white
     val cardColor = when {
-        user.isBlocked -> Color(0xFFFFEBEE) // Light red
-        user.isRestricted -> Color(0xFFFFF3E0) // Light orange
+        user.isBlocked -> Color(0xFFFFEBEE)
+        user.isRestricted -> Color(0xFFFFF3E0)
         else -> Color.White
     }
+
+    val context = LocalContext.current
 
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 4.dp),
+            .padding(horizontal = 4.dp)
+            .clickable {
+                val intent = Intent(context, AdminUserDetailActivity::class.java)
+                intent.putExtra("userId", user.userId)
+                context.startActivity(intent)
+            },
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         colors = CardDefaults.cardColors(
             containerColor = cardColor
@@ -1753,43 +1793,162 @@ fun UserCardExp(
                 .fillMaxWidth()
                 .padding(16.dp)
         ) {
-            // Name
-            Text(
-                text = user.name,
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.Black
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            // Email
-            Text(
-                text = user.email,
-                fontSize = 14.sp,
-                color = Color.Gray
-            )
-            // Status labels
-            if (user.isBlocked) {
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = "BLOCKED",
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.Red
-                )
+            Row(
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Profile Picture (Left)
+                Box(
+                    modifier = Modifier
+                        .size(100.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(Color.LightGray)
+                        .border(1.dp, Greenish, RoundedCornerShape(8.dp)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (user.profileImageUrl.isNotEmpty()) {
+                        AsyncImage(
+                            model = user.profileImageUrl,
+                            contentDescription = "Profile Picture",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop,
+                            error = painterResource(R.drawable.ic_profile),
+                            placeholder = painterResource(R.drawable.ic_profile)
+                        )
+                    } else {
+                        Icon(
+                            imageVector = androidx.compose.material.icons.Icons.Default.Person,
+                            contentDescription = "Profile Picture",
+                            modifier = Modifier.size(50.dp),
+                            tint = Color.Gray
+                        )
+                    }
+                }
+                
+                Spacer(modifier = Modifier.width(16.dp))
+
+                // Details Column (Right)
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                    modifier = Modifier.weight(1f)
+                ) {
+                     // Name & Status
+                    Row(
+                         modifier = Modifier.fillMaxWidth(),
+                         horizontalArrangement = Arrangement.SpaceBetween,
+                         verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = user.name.ifEmpty { "Unknown User" },
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.Black
+                        )
+                        
+                         if (user.isBlocked) {
+                            Text(
+                                text = "BLOCKED",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.Red
+                            )
+                        } else if (user.isRestricted) {
+                            Text(
+                                text = "RESTRICTED",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFFFF9800)
+                            )
+                        }
+                    }
+
+                    // Email
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = androidx.compose.material.icons.Icons.Default.Email,
+                            contentDescription = "Email",
+                            modifier = Modifier.size(14.dp),
+                            tint = Color.Gray
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = user.email.ifEmpty { "No email" },
+                            fontSize = 14.sp,
+                            color = Color.Gray
+                        )
+                    }
+
+                    // Phone
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = androidx.compose.material.icons.Icons.Default.Phone,
+                            contentDescription = "Phone",
+                            modifier = Modifier.size(14.dp),
+                            tint = Color.Gray
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = user.phone.ifEmpty { "No phone" },
+                            fontSize = 14.sp,
+                            color = Color.Gray
+                        )
+                    }
+
+                    // Location
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = androidx.compose.material.icons.Icons.Default.LocationOn,
+                            contentDescription = "Location",
+                            modifier = Modifier.size(14.dp),
+                            tint = Color.Gray
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = user.location.ifEmpty { "No location" },
+                            fontSize = 14.sp,
+                            color = Color.Gray
+                        )
+                    }
+                    
+                    // Gender & DOB
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                         // Gender
+                        Icon(
+                            imageVector = androidx.compose.material.icons.Icons.Default.Person,
+                            contentDescription = "Gender",
+                            modifier = Modifier.size(14.dp),
+                            tint = Color.Gray
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = user.gender.ifEmpty { "N/A" },
+                            fontSize = 14.sp,
+                            color = Color.Gray
+                        )
+                        
+                        Spacer(modifier = Modifier.width(12.dp))
+                        
+                        // DOB
+                        Icon(
+                            imageVector = androidx.compose.material.icons.Icons.Default.DateRange,
+                            contentDescription = "DOB",
+                            modifier = Modifier.size(14.dp),
+                            tint = Color.Gray
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = (user.dob ?: "").ifEmpty { "N/A" },
+                            fontSize = 14.sp,
+                            color = Color.Gray
+                        )
+                    }
+                }
             }
-            if (user.isRestricted) {
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = "RESTRICTED",
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFFFF9800) // Orange
-                )
-            }
+
             // Buttons at the bottom
             Spacer(modifier = Modifier.height(12.dp))
             Row(
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxWidth()
             ) {
                 // Block/Unblock button
                 Button(
@@ -1797,11 +1956,20 @@ fun UserCardExp(
                     colors = ButtonDefaults.buttonColors(
                         containerColor = if (user.isBlocked) DarkGreen else Color.Red
                     ),
-                    modifier = Modifier.height(32.dp)
+                    modifier = Modifier.weight(1f).height(36.dp),
+                    shape = RoundedCornerShape(8.dp),
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 4.dp)
                 ) {
+                    Icon(
+                        imageVector = if (user.isBlocked) androidx.compose.material.icons.Icons.Filled.Lock else androidx.compose.material.icons.Icons.Filled.Block,
+                        contentDescription = null,
+                        modifier = Modifier.size(12.dp),
+                        tint = Color.White
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
                     Text(
                         text = if (user.isBlocked) "Unblock" else "Block",
-                        fontSize = 11.sp,
+                        fontSize = 10.sp,
                         color = Color.White
                     )
                 }
@@ -1811,11 +1979,20 @@ fun UserCardExp(
                     colors = ButtonDefaults.buttonColors(
                         containerColor = if (user.isRestricted) DarkGreen else Color(0xFFFF9800) // Orange
                     ),
-                    modifier = Modifier.height(32.dp)
+                    modifier = Modifier.weight(1f).height(36.dp),
+                    shape = RoundedCornerShape(8.dp),
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 4.dp)
                 ) {
+                    Icon(
+                        imageVector = if (user.isRestricted) androidx.compose.material.icons.Icons.Filled.Lock else androidx.compose.material.icons.Icons.Filled.Block,
+                        contentDescription = null,
+                        modifier = Modifier.size(12.dp),
+                        tint = Color.White
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
                     Text(
                         text = if (user.isRestricted) "Unrestrict" else "Restrict",
-                        fontSize = 11.sp,
+                        fontSize = 10.sp,
                         color = Color.White
                     )
                 }
@@ -1823,11 +2000,20 @@ fun UserCardExp(
                 Button(
                     onClick = onDeleteClick,
                     colors = ButtonDefaults.buttonColors(containerColor = Color.Red),
-                    modifier = Modifier.height(32.dp)
+                    modifier = Modifier.weight(1f).height(36.dp),
+                    shape = RoundedCornerShape(8.dp),
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 4.dp)
                 ) {
+                    Icon(
+                        imageVector = androidx.compose.material.icons.Icons.Filled.Delete,
+                        contentDescription = null,
+                        modifier = Modifier.size(12.dp),
+                        tint = Color.White
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
                     Text(
                         text = "Delete",
-                        fontSize = 11.sp,
+                        fontSize = 10.sp,
                         color = Color.White
                     )
                 }

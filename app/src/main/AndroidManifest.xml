@@ -131,7 +131,7 @@
             </intent-filter>
         </activity>
         <activity
-            android:name=".view.AdminDashUser"
+            android:name=".view.AdminDashItem"
             android:exported="true"
             android:theme="@style/Theme.TradeFlow">
             <intent-filter>
@@ -140,6 +140,7 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
         <activity
             android:name=".view.AdminProfile"
             android:exported="true"
@@ -161,6 +162,7 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
         <activity
             android:name=".view.AdminUserMetric"
             android:exported="true"
@@ -202,15 +204,15 @@
             android:exported="false"
             android:theme="@style/Theme.TradeFlow" />
         <activity
-            android:name=".view.AdminDashItem"
-            android:exported="false"
-            android:theme="@style/Theme.TradeFlow" />
-        <activity
             android:name=".view.AdminItemDetailActivity"
             android:exported="false"
             android:theme="@style/Theme.TradeFlow" />
         <activity
             android:name=".view.AdminDetailActivity"
+            android:exported="false"
+            android:theme="@style/Theme.TradeFlow" />
+        <activity
+            android:name=".view.AdminUserDetailActivity"
             android:exported="false"
             android:theme="@style/Theme.TradeFlow" />
         <activity

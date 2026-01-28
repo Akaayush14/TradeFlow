@@ -91,8 +91,10 @@ import androidx.compose.foundation.layout.systemBars
 import com.example.tradeflow.R
 import com.example.tradeflow.model.NotificationModel
 import com.example.tradeflow.model.ProductModel
+import com.example.tradeflow.model.UserNotificationModel
 import com.example.tradeflow.repository.NotificationRepoImpl
 import com.example.tradeflow.repository.ProductRepoImpl
+import com.example.tradeflow.repository.UserNotificationRepoImpl
 import com.example.tradeflow.ui.theme.DarkGreen
 import com.example.tradeflow.ui.theme.Greenish
 import com.example.tradeflow.ui.theme.White
@@ -227,6 +229,7 @@ fun ListedItemsContent() {
     val context = LocalContext.current
     val productViewModel = remember { ProductViewModel(ProductRepoImpl()) }
     val notificationViewModel = remember { NotificationViewModel(NotificationRepoImpl()) }
+    val userNotificationRepo = remember { UserNotificationRepoImpl() }
     val allProducts by productViewModel.allProducts.collectAsState()
 
     var showUnlistDialog by remember { mutableStateOf<ProductModel?>(null) }
@@ -307,14 +310,21 @@ fun ListedItemsContent() {
                     onClick = {
                         productViewModel.listProduct(product.productId, false) { success, message ->
                             if (success) {
-                                // Create notification
-                                val notification = NotificationModel(
-                                    message = "Item '${product.name}' has been unlisted successfully",
-                                    type = "item_unlisted",
-                                    itemId = product.productId
-                                )
-                                notificationViewModel.addNotification(notification) { _, _ -> }
-                                Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+                                // Create notification for user
+                                 val notification = UserNotificationModel(
+                                     type = "ADMIN_UPDATE",
+                                     title = "Product Unlisted by Admin",
+                                     message = "Your product '${product.name}' has been unlisted by an admin.",
+                                     senderName = "Admin",
+                                     receiverId = product.ownerId,
+                                     productId = product.productId,
+                                     productName = product.name,
+                                     productImage = product.imageUrl,
+                                     isRead = false,
+                                     createdAt = System.currentTimeMillis()
+                                 )
+                                 userNotificationRepo.createNotification(notification) { _, _ -> }
+                                Toast.makeText(context, "Item Unlisted", Toast.LENGTH_SHORT).show()
                                 showUnlistDialog = null
                             } else {
                                 Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
@@ -351,14 +361,21 @@ fun ListedItemsContent() {
                     onClick = {
                         productViewModel.deleteProduct(product.productId) { success, message ->
                             if (success) {
-                                // Create notification
-                                val notification = NotificationModel(
-                                    message = "Item '${product.name}' has been deleted successfully",
-                                    type = "item_deleted",
-                                    itemId = product.productId
-                                )
-                                notificationViewModel.addNotification(notification) { _, _ -> }
-                                Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+                                // Create notification for user
+                                 val notification = UserNotificationModel(
+                                     type = "ADMIN_UPDATE",
+                                     title = "Product Deleted by Admin",
+                                     message = "Your product '${product.name}' has been deleted by an admin.",
+                                     senderName = "Admin",
+                                     receiverId = product.ownerId,
+                                     productId = product.productId,
+                                     productName = product.name,
+                                     productImage = product.imageUrl,
+                                     isRead = false,
+                                     createdAt = System.currentTimeMillis()
+                                 )
+                                 userNotificationRepo.createNotification(notification) { _, _ -> }
+                                Toast.makeText(context, "Item Deleted", Toast.LENGTH_SHORT).show()
                                 productViewModel.getAllProduct()
                             } else {
                                 Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
@@ -388,6 +405,7 @@ fun UnlistedItemsContent() {
     val context = LocalContext.current
     val productViewModel = remember { ProductViewModel(ProductRepoImpl()) }
     val notificationViewModel = remember { NotificationViewModel(NotificationRepoImpl()) }
+    val userNotificationRepo = remember { UserNotificationRepoImpl() }
     val allProducts by productViewModel.allProducts.collectAsState()
 
     var showListDialog by remember { mutableStateOf<ProductModel?>(null) }
@@ -468,14 +486,21 @@ fun UnlistedItemsContent() {
                     onClick = {
                         productViewModel.listProduct(product.productId, true) { success, message ->
                             if (success) {
-                                // Create notification
-                                val notification = NotificationModel(
-                                    message = "Item '${product.name}' has been listed successfully",
-                                    type = "item_listed",
-                                    itemId = product.productId
-                                )
-                                notificationViewModel.addNotification(notification) { _, _ -> }
-                                Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+                                // Create notification for user
+                                 val notification = UserNotificationModel(
+                                     type = "ADMIN_UPDATE",
+                                     title = "Product Listed by Admin",
+                                     message = "Your product '${product.name}' has been listed by an admin.",
+                                     senderName = "Admin",
+                                     receiverId = product.ownerId,
+                                     productId = product.productId,
+                                     productName = product.name,
+                                     productImage = product.imageUrl,
+                                     isRead = false,
+                                     createdAt = System.currentTimeMillis()
+                                 )
+                                 userNotificationRepo.createNotification(notification) { _, _ -> }
+                                Toast.makeText(context, "Item Listed", Toast.LENGTH_SHORT).show()
                                 showListDialog = null
                             } else {
                                 Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
@@ -512,14 +537,21 @@ fun UnlistedItemsContent() {
                     onClick = {
                         productViewModel.deleteProduct(product.productId) { success, message ->
                             if (success) {
-                                // Create notification
-                                val notification = NotificationModel(
-                                    message = "Item '${product.name}' has been deleted successfully",
-                                    type = "item_deleted",
-                                    itemId = product.productId
-                                )
-                                notificationViewModel.addNotification(notification) { _, _ -> }
-                                Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+                                // Create notification for user
+                                 val notification = UserNotificationModel(
+                                     type = "ADMIN_UPDATE",
+                                     title = "Product Deleted by Admin",
+                                     message = "Your product '${product.name}' has been deleted by an admin.",
+                                     senderName = "Admin",
+                                     receiverId = product.ownerId,
+                                     productId = product.productId,
+                                     productName = product.name,
+                                     productImage = product.imageUrl,
+                                     isRead = false,
+                                     createdAt = System.currentTimeMillis()
+                                 )
+                                 userNotificationRepo.createNotification(notification) { _, _ -> }
+                                Toast.makeText(context, "Item Deleted", Toast.LENGTH_SHORT).show()
                                 productViewModel.getAllProduct()
                             } else {
                                 Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
@@ -679,8 +711,8 @@ fun ItemCardItem(
                         Button(
                             onClick = onUnlistClick,
                             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFC107)),
-                            modifier = Modifier.height(40.dp),
-                            contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp)
+                            modifier = Modifier.height(40.dp).weight(1f),
+                            contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 4.dp)
                         ) {
                             Icon(
                                 painter = painterResource(R.drawable.baseline_visibility_off_24),
@@ -688,11 +720,12 @@ fun ItemCardItem(
                                 tint = Color.Black,
                                 modifier = Modifier.size(18.dp)
                             )
-                            Spacer(modifier = Modifier.width(8.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
                             Text(
                                 text = "Unlist",
                                 fontSize = 14.sp,
-                                color = Color.Black
+                                color = Color.Black,
+                                maxLines = 1
                             )
                         }
                     } else {
@@ -700,8 +733,8 @@ fun ItemCardItem(
                         Button(
                             onClick = onListClick,
                             colors = ButtonDefaults.buttonColors(containerColor = DarkGreen),
-                            modifier = Modifier.height(40.dp),
-                            contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp)
+                            modifier = Modifier.height(40.dp).weight(1f),
+                            contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 4.dp)
                         ) {
                             Icon(
                                 painter = painterResource(R.drawable.baseline_visibility_24),
@@ -709,11 +742,12 @@ fun ItemCardItem(
                                 tint = Color.White,
                                 modifier = Modifier.size(18.dp)
                             )
-                            Spacer(modifier = Modifier.width(8.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
                             Text(
                                 text = "List",
                                 fontSize = 14.sp,
-                                color = Color.White
+                                color = Color.White,
+                                maxLines = 1
                             )
                         }
                     }
@@ -722,8 +756,8 @@ fun ItemCardItem(
                     Button(
                         onClick = onDeleteClick,
                         colors = ButtonDefaults.buttonColors(containerColor = Color.Red),
-                        modifier = Modifier.height(40.dp),
-                        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp)
+                        modifier = Modifier.height(40.dp).weight(1f),
+                        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 4.dp)
                     ) {
                         Icon(
                             imageVector = Icons.Filled.Delete,
@@ -731,11 +765,12 @@ fun ItemCardItem(
                             tint = Color.White,
                             modifier = Modifier.size(18.dp)
                         )
-                        Spacer(modifier = Modifier.width(8.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
                         Text(
                             text = "Delete",
                             fontSize = 14.sp,
-                            color = Color.White
+                            color = Color.White,
+                            maxLines = 1
                         )
                     }
                 }
