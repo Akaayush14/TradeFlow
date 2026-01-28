@@ -8,6 +8,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -27,6 +28,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.tradeflow.model.PointDealModel
+import com.example.tradeflow.model.UserModel
 import com.example.tradeflow.repository.PointDealRepoImpl
 import com.example.tradeflow.repository.UserRepoImpl
 import com.example.tradeflow.ui.theme.Greenish
@@ -56,12 +58,14 @@ fun AdminPointDealsScreen(onBackClick: () -> Unit) {
 
     //changes for user point deals
     val viewModel = remember { PointDealViewModel(PointDealRepoImpl(), UserRepoImpl()) }
-    val allDeals by viewModel.allDeals.observeAsState(initial = emptyList())
+    val allDeals by viewModel.allDeals.observeAsState(initial = null)
+    val users by viewModel.users.observeAsState(initial = null)
 
     var showAddDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         viewModel.getAllPointDeals()
+        viewModel.getAllUsers()
     }
 
     Scaffold(
@@ -114,9 +118,18 @@ fun AdminPointDealsScreen(onBackClick: () -> Unit) {
 
     if (showAddDialog) {
         AddDealDialog(
+            users = users ?: emptyList(),
             onDismiss = { showAddDialog = false },
             onAdd = { deal ->
                 viewModel.addPointDeal(deal) { success, msg ->
+                    Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+                    if (success) {
+                        showAddDialog = false
+                    }
+                }
+            },
+            onGiftUser = { userId, points, title ->
+                viewModel.giftPointsToUser(userId, points, title) { success, msg ->
                     Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
                     if (success) {
                         showAddDialog = false
@@ -155,13 +168,24 @@ fun AdminDealCard(deal: PointDealModel, onDelete: () -> Unit) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AddDealDialog(onDismiss: () -> Unit, onAdd: (PointDealModel) -> Unit) {
+fun AddDealDialog(
+    users: List<UserModel>,
+    onDismiss: () -> Unit,
+    onAdd: (PointDealModel) -> Unit,
+    onGiftUser: (String, Long, String) -> Unit
+) {
     var tier by remember { mutableStateOf("Bronze") }
     var dealType by remember { mutableStateOf("Gift Free Points") } // "Gift Free Points" or "Discount Deal"
     var pointsInput by remember { mutableStateOf("") }
     var offerDescription by remember { mutableStateOf("") }
     var validDate by remember { mutableStateOf("") }
     var validTillMillis by remember { mutableLongStateOf(System.currentTimeMillis() + 7 * 24 * 60 * 60 * 1000) } // Default 7 days
+    
+    // User Selection State
+    var targetUserId by remember { mutableStateOf("") }
+    var selectedUserName by remember { mutableStateOf("") }
+    var userSearchQuery by remember { mutableStateOf("") }
+    var showUserDropdown by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
     val calendar = Calendar.getInstance()
@@ -205,6 +229,71 @@ fun AddDealDialog(onDismiss: () -> Unit, onAdd: (PointDealModel) -> Unit) {
                                     selectedLabelColor = Color(0xFF3F51B5)
                                 )
                             )
+                        }
+                    }
+                }
+
+                // User Search Section (Only for Gift Free Points)
+                if (dealType == "Gift Free Points") {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text("Target User (Optional - leave empty for all):", fontSize = 14.sp, color = Color.Gray)
+                        OutlinedTextField(
+                            value = userSearchQuery,
+                            onValueChange = {
+                                userSearchQuery = it
+                                showUserDropdown = true
+                            },
+                            label = { Text("Search by Name or Email") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true
+                        )
+                        if (showUserDropdown && userSearchQuery.isNotEmpty()) {
+                            val filteredUsers = users.filter {
+                                it.email.contains(userSearchQuery, ignoreCase = true) ||
+                                it.name.contains(userSearchQuery, ignoreCase = true)
+                            }.take(5)
+                            if (filteredUsers.isNotEmpty()) {
+                                Card(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .heightIn(max = 200.dp),
+                                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                                ) {
+                                    LazyColumn {
+                                        items(filteredUsers) { user ->
+                                            Text(
+                                                text = "${user.name} (${user.email})",
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .clickable {
+                                                        targetUserId = user.userId
+                                                        selectedUserName = user.name
+                                                        userSearchQuery = "${user.name} (${user.email})"
+                                                        showUserDropdown = false
+                                                    }
+                                                    .padding(12.dp)
+                                            )
+                                            HorizontalDivider()
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        if (targetUserId.isNotEmpty()) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text("Selected: $selectedUserName", color = Greenish, fontWeight = FontWeight.Bold)
+                                TextButton(onClick = {
+                                    targetUserId = ""
+                                    selectedUserName = ""
+                                    userSearchQuery = ""
+                                }) {
+                                    Text("Clear", color = Color.Red)
+                                }
+                            }
                         }
                     }
                 }
@@ -285,19 +374,25 @@ fun AddDealDialog(onDismiss: () -> Unit, onAdd: (PointDealModel) -> Unit) {
                     
                     if (points > 0) {
                         val isGift = dealType == "Gift Free Points"
-                        val deal = PointDealModel(
-                            title = if (isGift) "$tier Reward" else "$tier Deal",
-                            offer = if (isGift) "Claim $points Free Points!" else offerDescription.ifEmpty { "Redeem for $points Points" },
-                            tier = tier,
-                            serviceCategory = if (isGift) "Admin Gift" else "Discount",
-                            pointsRequired = if (isGift) 0L else points,
-                            validTill = validTillMillis,
-                            isActive = true,
-                            discountAmount = 0.0,
-                            discountType = "FLAT",
-                            rewardPoints = if (isGift) points else 0L
-                        )
-                        onAdd(deal)
+                        
+                        if (isGift && targetUserId.isNotEmpty()) {
+                            onGiftUser(targetUserId, points, "Admin Gift Points")
+                        } else {
+                            val deal = PointDealModel(
+                                title = if (isGift) "$tier Reward" else "$tier Deal",
+                                offer = if (isGift) "Claim $points Free Points!" else offerDescription.ifEmpty { "Redeem for $points Points" },
+                                tier = tier,
+                                serviceCategory = if (isGift) "Admin Gift" else "Discount",
+                                pointsRequired = if (isGift) 0L else points,
+                                validTill = validTillMillis,
+                                isActive = true,
+                                discountAmount = 0.0,
+                                discountType = "FLAT",
+                                rewardPoints = if (isGift) points else 0L,
+                                targetUserId = "" // Clear targetUserId as direct gifts are handled separately
+                            )
+                            onAdd(deal)
+                        }
                     } else {
                         Toast.makeText(context, "Please enter valid points", Toast.LENGTH_SHORT).show()
                     }

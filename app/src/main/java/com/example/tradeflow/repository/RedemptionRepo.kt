@@ -18,4 +18,16 @@ interface RedemptionRepo {
         dealId: String,
         callback: (Boolean, String, Boolean) -> Unit
     )
+
+    fun createRedemptionPlaceholder(
+        userId: String,
+        dealId: String,
+        callback: (Boolean, String) -> Unit
+    )
+
+    fun removeRedemption(
+        userId: String,
+        dealId: String,
+        callback: (Boolean, String) -> Unit
+    )
 }

@@ -1,4 +1,5 @@
 
+
 package com.example.tradeflow.view
 
 import android.os.Bundle
@@ -29,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.collectAsState
+import androidx.compose.ui.window.Dialog
 import com.example.tradeflow.model.PointDealModel
 import com.example.tradeflow.model.UserModel
 import com.example.tradeflow.repository.PointDealRepoImpl
@@ -128,57 +130,118 @@ fun PointsScreen() {
 
     // Add confirmation dialog
     if (showRedeemConfirmation && selectedDeal != null) {
-        val isFreeDeal = (selectedDeal?.pointsRequired ?: 0L) == 0L
-        AlertDialog(
-            onDismissRequest = {
-                showRedeemConfirmation = false
-                selectedDeal = null
-            },
-            title = { Text(if (isFreeDeal) "Confirm Claim" else "Confirm Redemption") },
-            text = {
-                Text(
-                    if (isFreeDeal) "Are you sure you want to claim ${selectedDeal?.offer}?"
-                    else "Are you sure you want to redeem ${selectedDeal?.offer} for ${selectedDeal?.pointsRequired} points?"
-                )
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        selectedDeal?.let { deal ->
-                            if (isFreeDeal) {
-                                pointDealViewModel.claimPointDeal(
-                                    deal.dealId,
-                                    deal.title,
-                                    deal.offer
-                                )
-                            } else {
-                                pointDealViewModel.redeemPointDeal(
-                                    deal.dealId,
-                                    deal.pointsRequired,
-                                    deal.title,
-                                    deal.offer
-                                )
+        val requiredPoints = selectedDeal?.pointsRequired ?: 0L
+        val isFreeDeal = requiredPoints == 0L
+        val canRedeem = userPoints >= requiredPoints
+
+        if (canRedeem || isFreeDeal) {
+            AlertDialog(
+                onDismissRequest = {
+                    showRedeemConfirmation = false
+                    selectedDeal = null
+                },
+                title = { Text(if (isFreeDeal) "Confirm Claim" else "Confirm Redemption") },
+                text = {
+                    Text(
+                        if (isFreeDeal) "Are you sure you want to claim ${selectedDeal?.offer}?"
+                        else "Are you sure you want to redeem ${selectedDeal?.offer} for $requiredPoints points?"
+                    )
+                },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            selectedDeal?.let { deal ->
+                                if (isFreeDeal) {
+                                    pointDealViewModel.claimPointDeal(
+                                        deal.dealId,
+                                        deal.title,
+                                        deal.offer
+                                    )
+                                } else {
+                                    pointDealViewModel.redeemPointDeal(
+                                        deal.dealId,
+                                        requiredPoints,
+                                        deal.title,
+                                        deal.offer
+                                    )
+                                }
                             }
-                        }
-                        showRedeemConfirmation = false
-                        selectedDeal = null
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = Greenish)
-                ) {
-                    Text(if (isFreeDeal) "Yes, Claim" else "Yes, Redeem")
-                }
-            },
-            dismissButton = {
-                TextButton(
-                    onClick = {
-                        showRedeemConfirmation = false
-                        selectedDeal = null
+                            showRedeemConfirmation = false
+                            selectedDeal = null
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = Greenish)
+                    ) {
+                        Text(if (isFreeDeal) "Yes, Claim" else "Yes, Redeem")
                     }
+                },
+                dismissButton = {
+                    TextButton(
+                        onClick = {
+                            showRedeemConfirmation = false
+                            selectedDeal = null
+                        }
+                    ) {
+                        Text("Cancel")
+                    }
+                }
+            )
+        } else {
+            // Insufficient points - Show Khalti Payment Dialog
+            Dialog(
+                onDismissRequest = {
+                    showRedeemConfirmation = false
+                    selectedDeal = null
+                }
+            ) {
+                Card(
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = White),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp)
                 ) {
-                    Text("Cancel")
+                    Column(
+                        modifier = Modifier.padding(24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        Text(
+                            text = "Insufficient Points",
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.Black
+                        )
+                        
+                        Text(
+                            text = "You need $requiredPoints points for this deal. Buy now to redeem instantly?",
+                            fontSize = 14.sp,
+                            color = Color.Gray,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                        )
+
+                        KhaltiPaymentButton(
+                            onClick = {
+                                selectedDeal?.let { deal ->
+                                    val amountRs = requiredPoints.toDouble()
+                                    pointDealViewModel.buyPoints(userId, requiredPoints, amountRs)
+                                }
+                                showRedeemConfirmation = false
+                                selectedDeal = null
+                            }
+                        )
+                        
+                        TextButton(
+                            onClick = {
+                                showRedeemConfirmation = false
+                                selectedDeal = null
+                            }
+                        ) {
+                            Text("Cancel", color = Color.Gray)
+                        }
+                    }
                 }
             }
-        )
+        }
     }
 
     Scaffold(
@@ -223,7 +286,7 @@ fun PointsScreen() {
 
             // Content based on selected tab
             when (selectedTab) {
-                "Buy point with deals" -> {
+                "Buy Points" -> {
                     item {
                         BuyPointsSection(
                             onPayClick = { points ->
@@ -301,7 +364,7 @@ fun PointsScreen() {
                                 }
                             }
                         }
-                        
+
                         items(txList) { tx ->
                             TransactionItem(
                                 tx = tx,
@@ -476,27 +539,9 @@ private fun BuyPointsSection(
             color = Color(0xFF006CFF)
         )
 
-        Button(
-            onClick = { if (points > 0) onPayClick(points) },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(50.dp),
-            shape = RoundedCornerShape(12.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF6A1B9A))
-        ) {
-            Text(text = "Pay with Khalti", color = Color.White, fontSize = 16.sp)
-        }
-
-        Box(
-            modifier = Modifier.fillMaxWidth(),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = "Secure payment powered by Khalti",
-                fontSize = 12.sp,
-                color = Color.Gray
-            )
-        }
+        KhaltiPaymentButton(
+            onClick = { if (points > 0) onPayClick(points) }
+        )
     }
 }
 @Composable
@@ -504,7 +549,7 @@ private fun NavigationTabs(
     selectedTab: String,
     onTabSelected: (String) -> Unit
 ) {
-    val tabs = listOf("Buy point with deals", "Buy Deals","Point history")
+    val tabs = listOf("Buy Points", "Buy Deals", "Point history")
 
     Row(
         modifier = Modifier
@@ -530,7 +575,7 @@ private fun NavigationTabs(
                     horizontalArrangement = Arrangement.Center
                 ) {
                     when (tab) {
-                        "Buy point with deals" -> {
+                        "Buy Points" -> {
                             Icon(
                                 Icons.Default.Info,
                                 contentDescription = null,
@@ -661,14 +706,12 @@ private fun PointDealCard(
                 // Points Required Button
                 Button(
                     onClick = {
-                        if (canRedeem) {
-                            onRedeemClick(deal)
-                        }
+                        onRedeemClick(deal)
                     },
-                    enabled = canRedeem,
+                    enabled = true,
                     modifier = Modifier.width(100.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = if (canRedeem) Greenish else Color.Gray,
+                        containerColor = Greenish,
                         disabledContainerColor = Color.LightGray
                     ),
                     shape = RoundedCornerShape(8.dp)
@@ -743,6 +786,33 @@ private fun PointInfoItem(number: String, title: String, description: String) {
 }
 
 @Composable
+fun KhaltiPaymentButton(
+    onClick: () -> Unit
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Button(
+            onClick = onClick,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(50.dp),
+            shape = RoundedCornerShape(12.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF6A1B9A))
+        ) {
+            Text(text = "Pay with Khalti", color = Color.White, fontSize = 16.sp)
+        }
+
+        Text(
+            text = "Secure payment powered by Khalti",
+            fontSize = 12.sp,
+            color = Color.Gray
+        )
+    }
+}
+
+@Composable
 private fun TransactionItem(
     tx: com.example.tradeflow.model.PointTransaction,
     onDeleteClick: () -> Unit
@@ -801,7 +871,7 @@ private fun TransactionItem(
                     )
                 }
             }
-            
+
             Column(
                 horizontalAlignment = Alignment.End
             ) {
@@ -811,10 +881,10 @@ private fun TransactionItem(
                     fontWeight = FontWeight.Bold,
                     color = badgeColor
                 )
-                
+
                 IconButton(onClick = onDeleteClick, modifier = Modifier.size(24.dp)) {
                     Icon(
-                        Icons.Default.Delete, 
+                        Icons.Default.Delete,
                         contentDescription = "Delete",
                         tint = Color.Gray.copy(alpha = 0.6f),
                         modifier = Modifier.size(16.dp)

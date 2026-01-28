@@ -3,6 +3,7 @@ package com.example.tradeflow.viewmodel
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import com.example.tradeflow.model.PointDealModel
+import com.example.tradeflow.model.UserModel
 import com.example.tradeflow.model.UserPointRedemModel
 import com.example.tradeflow.repository.PointDealRepo
 import com.example.tradeflow.repository.RedemptionRepo
@@ -23,6 +24,9 @@ class PointDealViewModel(
 
     private val _activeDeals = MutableLiveData<List<PointDealModel>?>()
     val activeDeals: MutableLiveData<List<PointDealModel>?> get() = _activeDeals
+    
+    private val _users = MutableLiveData<List<UserModel>?>()
+    val users: MutableLiveData<List<UserModel>?> get() = _users
 
     private val _redemptionStatus = MutableLiveData<Pair<Boolean, String>?>()
     val redemptionStatus: MutableLiveData<Pair<Boolean, String>?> get() = _redemptionStatus
@@ -63,6 +67,16 @@ class PointDealViewModel(
             }
         }
     }
+    
+    fun getAllUsers() {
+        userRepo.getAllUser { success, message, data ->
+            if (success) {
+                _users.postValue(data)
+            } else {
+                _users.postValue(emptyList())
+            }
+        }
+    }
 
     fun getEligibleDealsForUser(userId: String, userTier: String) {
         repo.getActivePointDeals { success, message, deals ->
@@ -75,13 +89,23 @@ class PointDealViewModel(
                 val filtered = deals?.filter { deal ->
                     val isNotClaimed = deal.dealId !in claimedIds
                     
-                    val isTierMatch = when (userTier.lowercase()) {
-                        "gold" -> true // Gold sees all tiers
-                        "silver" -> !deal.tier.equals("Gold", ignoreCase = true) // Silver sees everything except Gold
-                        else -> deal.tier.equals("Bronze", ignoreCase = true) || deal.tier.equals("All", ignoreCase = true) // Bronze sees Bronze and All
+                    val isTargetUserMatch = if (deal.targetUserId.isNotEmpty()) {
+                        deal.targetUserId == userId
+                    } else {
+                        true // If no target user, proceed to tier check
+                    }
+
+                    val isTierMatch = if (deal.targetUserId.isNotEmpty()) {
+                        true // If target user is set, ignore tier
+                    } else {
+                        when (userTier.lowercase()) {
+                            "gold" -> true // Gold sees all tiers
+                            "silver" -> !deal.tier.equals("Gold", ignoreCase = true) // Silver sees everything except Gold
+                            else -> deal.tier.equals("Bronze", ignoreCase = true) || deal.tier.equals("All", ignoreCase = true) // Bronze sees Bronze and All
+                        }
                     }
                     
-                    isNotClaimed && isTierMatch
+                    isNotClaimed && isTargetUserMatch && isTierMatch
                 } ?: emptyList()
                 _activeDeals.postValue(filtered)
             }
@@ -131,39 +155,52 @@ class PointDealViewModel(
                 userRepo.getUserById(userId) { success, message, user ->
                     if (success && user != null) {
                         if (user.points >= pointsRequired) {
-                            val updatedPoints = user.points - pointsRequired
-                            userRepo.updateUserPoints(userId, updatedPoints) { pointsSuccess, pointsMessage ->
-                                if (pointsSuccess) {
-                                    val redemption = UserPointRedemModel(
-                                        redemptionId = "",
-                                        userId = userId,
-                                        dealId = dealId,
-                                        pointsSpent = pointsRequired,
-                                        dealTitle = dealTitle,
-                                        dealOffer = dealOffer
-                                    )
-                                    redemptionRepo.saveRedemption(redemption) { rSuccess, _ ->
-                                        if (rSuccess) {
-                                            txRepo.saveTransaction(
-                                                PointTransaction(
-                                                    userId = userId,
-                                                    type = "DEBIT",
-                                                    source = "Deal Redemption: ${deal.title}",
-                                                    points = -pointsRequired,
-                                                    amount = 0.0,
-                                                    timestamp = System.currentTimeMillis()
-                                                )
-                                            ) { _, _ -> }
-                                            _processingDealIds.remove(dealId)
-                                            _redemptionStatus.postValue(Pair(true, "Deal redeemed successfully!"))
-                                        } else {
-                                            _processingDealIds.remove(dealId)
-                                            _redemptionStatus.postValue(Pair(false, "Failed to save redemption record"))
-                                        }
-                                    }
-                                } else {
+                            
+                            // Try to reserve the deal (Locking mechanism)
+                            redemptionRepo.createRedemptionPlaceholder(userId, dealId) { lockSuccess, lockMessage ->
+                                if (!lockSuccess) {
                                     _processingDealIds.remove(dealId)
-                                    _redemptionStatus.postValue(Pair(false, pointsMessage))
+                                    _redemptionStatus.postValue(Pair(false, lockMessage))
+                                    return@createRedemptionPlaceholder
+                                }
+
+                                // Deal reserved, now deduct points
+                                val updatedPoints = user.points - pointsRequired
+                                userRepo.updateUserPoints(userId, updatedPoints) { pointsSuccess, pointsMessage ->
+                                    if (pointsSuccess) {
+                                        val redemption = UserPointRedemModel(
+                                            redemptionId = "",
+                                            userId = userId,
+                                            dealId = dealId,
+                                            pointsSpent = pointsRequired,
+                                            dealTitle = dealTitle,
+                                            dealOffer = dealOffer
+                                        )
+                                        redemptionRepo.saveRedemption(redemption) { rSuccess, _ ->
+                                            if (rSuccess) {
+                                                txRepo.saveTransaction(
+                                                    PointTransaction(
+                                                        userId = userId,
+                                                        type = "DEBIT",
+                                                        source = "Deal Redemption: ${deal.title}",
+                                                        points = -pointsRequired,
+                                                        amount = 0.0,
+                                                        timestamp = System.currentTimeMillis()
+                                                    )
+                                                ) { _, _ -> }
+                                                _processingDealIds.remove(dealId)
+                                                _redemptionStatus.postValue(Pair(true, "Deal redeemed successfully!"))
+                                            } else {
+                                                _processingDealIds.remove(dealId)
+                                                _redemptionStatus.postValue(Pair(false, "Failed to save redemption record"))
+                                            }
+                                        }
+                                    } else {
+                                        // Failed to deduct points, rollback reservation
+                                        redemptionRepo.removeRedemption(userId, dealId) { _, _ -> }
+                                        _processingDealIds.remove(dealId)
+                                        _redemptionStatus.postValue(Pair(false, pointsMessage))
+                                    }
                                 }
                             }
                         } else {
@@ -271,7 +308,7 @@ class PointDealViewModel(
                             PointTransaction(
                                 userId = userId,
                                 type = "CREDIT",
-                                source = "Point Purchase",
+                                source = "Congratulations! You got $points points",
                                 points = points,
                                 amount = amount,
                                 timestamp = System.currentTimeMillis()
@@ -284,6 +321,33 @@ class PointDealViewModel(
                 }
             } else {
                 _redemptionStatus.postValue(Pair(false, "User not found"))
+            }
+        }
+    }
+
+    fun giftPointsToUser(targetUserId: String, points: Long, dealTitle: String, callback: (Boolean, String) -> Unit) {
+        userRepo.getUserByIdSingle(targetUserId) { success, message, user ->
+            if (success && user != null) {
+                val updatedPoints = user.points + points
+                userRepo.updateUserPoints(targetUserId, updatedPoints) { pointsSuccess, pointsMessage ->
+                    if (pointsSuccess) {
+                        txRepo.saveTransaction(
+                            PointTransaction(
+                                userId = targetUserId,
+                                type = "CREDIT",
+                                source = "Admin Gift: $dealTitle",
+                                points = points,
+                                amount = 0.0,
+                                timestamp = System.currentTimeMillis()
+                            )
+                        ) { _, _ -> }
+                        callback(true, "Points gifted successfully to ${user.name}!")
+                    } else {
+                        callback(false, pointsMessage)
+                    }
+                }
+            } else {
+                callback(false, message)
             }
         }
     }
