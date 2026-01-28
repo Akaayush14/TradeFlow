@@ -24,14 +24,13 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -44,9 +43,8 @@ import coil.compose.AsyncImage
 import com.example.tradeflow.R
 import com.example.tradeflow.countries
 import com.example.tradeflow.repository.AdminRepoImpl
-import com.example.tradeflow.ui.theme.DarkGreen
-import com.example.tradeflow.ui.theme.Greenish
-import com.example.tradeflow.ui.theme.White
+import com.example.tradeflow.theme.ThemeManager
+import com.example.tradeflow.ui.components.ThemeWrapper
 import com.example.tradeflow.viewmodel.AdminViewModel
 import com.google.firebase.auth.FirebaseAuth
 import java.util.*
@@ -56,13 +54,15 @@ class EditAdminProfile : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            EditAdminProfileScreen(
-                onBackClick = {
-                    val intent = Intent(this, AdminSettings::class.java)
-                    startActivity(intent)
-                    finish()
-                }
-            )
+            ThemeWrapper {
+                EditAdminProfileScreen(
+                    onBackClick = {
+                        val intent = Intent(this, AdminSettings::class.java)
+                        startActivity(intent)
+                        finish()
+                    }
+                )
+            }
         }
     }
 }
@@ -141,12 +141,10 @@ fun EditAdminProfileScreen(onBackClick: () -> Unit = {}) {
         admin?.let { adminData ->
             name = adminData.name
 
-            // Parse phone number (assuming format like "+9779841234567")
+            // Parse phone number
             if (adminData.phone.isNotEmpty()) {
                 val phone = adminData.phone
-                // Simple parsing - you might want to enhance this
                 if (phone.startsWith("+")) {
-                    // Try to find country code
                     for (country in countries) {
                         if (phone.startsWith(country.code)) {
                             selectedCountry = country
@@ -179,34 +177,27 @@ fun EditAdminProfileScreen(onBackClick: () -> Unit = {}) {
     Scaffold(
         topBar = {
             TopAppBar(
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Greenish,
-                    titleContentColor = White,
-                    navigationIconContentColor = White
-                ),
+                title = {
+                    Text(
+                        "Edit Profile",
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        fontWeight = FontWeight.Medium
+                    )
+                },
                 navigationIcon = {
-                    IconButton(onClick = onBackClick) {
+                    IconButton(
+                        onClick = onBackClick
+                    ) {
                         Icon(
-                            painter = painterResource(id = R.drawable.ic_back),
+                            Icons.Filled.ArrowBack,
                             contentDescription = "Back",
-                            tint = White
+                            tint = MaterialTheme.colorScheme.onPrimary
                         )
                     }
                 },
-                title = {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(end = 48.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "Edit Profile",
-                            color = White,
-                            style = MaterialTheme.typography.titleLarge
-                        )
-                    }
-                }
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primary
+                )
             )
         }
     ) { paddingValues ->
@@ -215,7 +206,7 @@ fun EditAdminProfileScreen(onBackClick: () -> Unit = {}) {
                 .fillMaxSize()
                 .padding(paddingValues)
                 .verticalScroll(rememberScrollState())
-                .background(Color.White)
+                .background(MaterialTheme.colorScheme.background)
         ) {
             Box(
                 modifier = Modifier
@@ -224,9 +215,9 @@ fun EditAdminProfileScreen(onBackClick: () -> Unit = {}) {
                     .background(
                         Brush.verticalGradient(
                             colors = listOf(
-                                Greenish,
-                                Greenish.copy(alpha = 0.8f),
-                                Greenish.copy(alpha = 0.3f)
+                                MaterialTheme.colorScheme.primary,
+                                MaterialTheme.colorScheme.primary,
+                                MaterialTheme.colorScheme.primaryContainer
                             )
                         )
                     ),
@@ -242,10 +233,10 @@ fun EditAdminProfileScreen(onBackClick: () -> Unit = {}) {
                         modifier = Modifier
                             .fillMaxSize()
                             .clip(CircleShape)
-                            .background(Color.LightGray)
+                            .background(MaterialTheme.colorScheme.primaryContainer)
                             .border(
                                 width = 5.dp,
-                                color = Color.White,
+                                color = MaterialTheme.colorScheme.surface,
                                 shape = CircleShape
                             )
                             .clickable {
@@ -259,7 +250,7 @@ fun EditAdminProfileScreen(onBackClick: () -> Unit = {}) {
                             // Show loading indicator while uploading
                             CircularProgressIndicator(
                                 modifier = Modifier.align(Alignment.Center),
-                                color = Greenish
+                                color = MaterialTheme.colorScheme.primary
                             )
                         } else if (profileImageUrl.isNotEmpty()) {
                             // Show Cloudinary image
@@ -269,15 +260,15 @@ fun EditAdminProfileScreen(onBackClick: () -> Unit = {}) {
                                 modifier = Modifier.fillMaxSize(),
                                 contentScale = ContentScale.Crop,
                                 placeholder = painterResource(R.drawable.placeholderimage),
-                                error = painterResource(R.drawable.ic_user)
+                                error = painterResource(R.drawable.ic_profile)
                             )
                         } else {
                             // Show default/placeholder
                             Icon(
-                                painter = painterResource(R.drawable.ic_user),
+                                painter = painterResource(R.drawable.ic_profile),
                                 contentDescription = "Profile Picture",
                                 modifier = Modifier.size(80.dp),
-                                tint = Color.Gray
+                                tint = MaterialTheme.colorScheme.onPrimaryContainer
                             )
                         }
                     }
@@ -287,11 +278,11 @@ fun EditAdminProfileScreen(onBackClick: () -> Unit = {}) {
                         modifier = Modifier
                             .size(36.dp)
                             .clip(CircleShape)
-                            .background(DarkGreen)
+                            .background(MaterialTheme.colorScheme.secondary)
                             .align(Alignment.BottomEnd)
                             .border(
                                 width = 3.dp,
-                                color = Color.White,
+                                color = MaterialTheme.colorScheme.surface,
                                 shape = CircleShape
                             )
                             .clickable {
@@ -304,7 +295,7 @@ fun EditAdminProfileScreen(onBackClick: () -> Unit = {}) {
                         Icon(
                             Icons.Filled.Edit,
                             null,
-                            tint = White,
+                            tint = MaterialTheme.colorScheme.onSecondary,
                             modifier = Modifier.size(20.dp)
                         )
                     }
@@ -329,8 +320,8 @@ fun EditAdminProfileScreen(onBackClick: () -> Unit = {}) {
                     enabled = !isLoading,
                     shape = RoundedCornerShape(12.dp),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Greenish,
-                        focusedLabelColor = Greenish
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        focusedLabelColor = MaterialTheme.colorScheme.primary
                     )
                 )
 
@@ -339,7 +330,7 @@ fun EditAdminProfileScreen(onBackClick: () -> Unit = {}) {
                         text = "Phone Number",
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Medium,
-                        color = Color.Gray
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                     )
                     Spacer(modifier = Modifier.height(8.dp))
 
@@ -352,7 +343,7 @@ fun EditAdminProfileScreen(onBackClick: () -> Unit = {}) {
                                 .width(100.dp)
                                 .height(56.dp)
                                 .background(
-                                    color = Color.LightGray,
+                                    color = MaterialTheme.colorScheme.surfaceVariant,
                                     shape = RoundedCornerShape(10.dp)
                                 )
                                 .clickable(enabled = !isLoading) {
@@ -364,7 +355,7 @@ fun EditAdminProfileScreen(onBackClick: () -> Unit = {}) {
                                 text = "${selectedCountry.flag} ${selectedCountry.code}",
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.Medium,
-                                color = Color.DarkGray
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
 
@@ -379,8 +370,8 @@ fun EditAdminProfileScreen(onBackClick: () -> Unit = {}) {
                             placeholder = { Text("Enter phone number") },
                             enabled = !isLoading,
                             colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = Greenish,
-                                focusedLabelColor = Greenish
+                                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                focusedLabelColor = MaterialTheme.colorScheme.primary
                             )
                         )
                     }
@@ -395,8 +386,8 @@ fun EditAdminProfileScreen(onBackClick: () -> Unit = {}) {
                     enabled = !isLoading,
                     shape = RoundedCornerShape(12.dp),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Greenish,
-                        focusedLabelColor = Greenish
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        focusedLabelColor = MaterialTheme.colorScheme.primary
                     )
                 )
 
@@ -409,7 +400,7 @@ fun EditAdminProfileScreen(onBackClick: () -> Unit = {}) {
                             text = "Gender",
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Medium,
-                            color = Color.Gray
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                         )
                         Spacer(modifier = Modifier.height(6.dp))
                         Box {
@@ -425,22 +416,25 @@ fun EditAdminProfileScreen(onBackClick: () -> Unit = {}) {
                                 placeholder = {
                                     Text(
                                         "Select Gender",
-                                        color = Color.Gray
+                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
                                     )
                                 },
                                 trailingIcon = {
                                     Icon(
                                         painter = painterResource(id = android.R.drawable.arrow_down_float),
                                         contentDescription = "Select Gender",
-                                        tint = if (isLoading) Color.Gray else Greenish
+                                        tint = if (isLoading)
+                                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                                        else
+                                            MaterialTheme.colorScheme.primary
                                     )
                                 },
                                 colors = OutlinedTextFieldDefaults.colors(
-                                    focusedBorderColor = Greenish,
-                                    unfocusedBorderColor = Color.Gray,
-                                    disabledBorderColor = Color.Gray,
-                                    disabledTextColor = Color.Black,
-                                    disabledPlaceholderColor = Color.Gray
+                                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                    unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                                    disabledBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
+                                    disabledTextColor = MaterialTheme.colorScheme.onSurface,
+                                    disabledPlaceholderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
                                 ),
                                 enabled = false,
                                 shape = RoundedCornerShape(12.dp)
@@ -455,7 +449,7 @@ fun EditAdminProfileScreen(onBackClick: () -> Unit = {}) {
                                         text = {
                                             Text(
                                                 option,
-                                                color = Color.Black
+                                                color = MaterialTheme.colorScheme.onSurface
                                             )
                                         },
                                         onClick = {
@@ -474,7 +468,7 @@ fun EditAdminProfileScreen(onBackClick: () -> Unit = {}) {
                             text = "Date of Birth",
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Medium,
-                            color = Color.Gray
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                         )
                         Spacer(modifier = Modifier.height(6.dp))
                         OutlinedTextField(
@@ -491,7 +485,11 @@ fun EditAdminProfileScreen(onBackClick: () -> Unit = {}) {
                                     DatePickerDialog(
                                         context,
                                         { _, selectedYear, selectedMonth, selectedDay ->
-                                            dob = "$selectedDay/${selectedMonth + 1}/$selectedYear"
+                                            val monthNames = arrayOf(
+                                                "January", "February", "March", "April", "May", "June",
+                                                "July", "August", "September", "October", "November", "December"
+                                            )
+                                            dob = "$selectedDay ${monthNames[selectedMonth]} $selectedYear"
                                         },
                                         year,
                                         month,
@@ -503,23 +501,26 @@ fun EditAdminProfileScreen(onBackClick: () -> Unit = {}) {
                             readOnly = true,
                             placeholder = {
                                 Text(
-                                    "DD/MM/YYYY",
-                                    color = Color.Gray
+                                    "DD Month YYYY",
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
                                 )
                             },
                             trailingIcon = {
                                 Icon(
                                     painter = painterResource(id = android.R.drawable.arrow_down_float),
                                     contentDescription = "Select Date",
-                                    tint = if (isLoading) Color.Gray else Greenish
+                                    tint = if (isLoading)
+                                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                                    else
+                                        MaterialTheme.colorScheme.primary
                                 )
                             },
                             colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = Greenish,
-                                unfocusedBorderColor = Color.Gray,
-                                disabledBorderColor = Color.Gray,
-                                disabledTextColor = Color.Black,
-                                disabledPlaceholderColor = Color.Gray
+                                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                                disabledBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
+                                disabledTextColor = MaterialTheme.colorScheme.onSurface,
+                                disabledPlaceholderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
                             ),
                             enabled = false,
                             shape = RoundedCornerShape(12.dp)
@@ -529,7 +530,7 @@ fun EditAdminProfileScreen(onBackClick: () -> Unit = {}) {
 
                 Spacer(modifier = Modifier.height(15.dp))
 
-                // Save Button
+                // Save Button with more top spacing
                 Button(
                     onClick = {
                         // Validation
@@ -609,20 +610,20 @@ fun EditAdminProfileScreen(onBackClick: () -> Unit = {}) {
                         .height(58.dp),
                     shape = RoundedCornerShape(14.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = Greenish
+                        containerColor = MaterialTheme.colorScheme.primary
                     ),
                     enabled = !isLoading
                 ) {
                     if (isLoading) {
                         Text(
                             "Saving...",
-                            color = White,
+                            color = MaterialTheme.colorScheme.onPrimary,
                             fontSize = 17.sp
                         )
                     } else {
                         Text(
                             "Save Changes",
-                            color = White,
+                            color = MaterialTheme.colorScheme.onPrimary,
                             fontSize = 17.sp
                         )
                     }
@@ -640,7 +641,7 @@ fun EditAdminProfileScreen(onBackClick: () -> Unit = {}) {
                 shape = RoundedCornerShape(16.dp),
                 modifier = Modifier.fillMaxWidth(0.9f),
                 colors = CardDefaults.cardColors(
-                    containerColor = Color.White
+                    containerColor = MaterialTheme.colorScheme.surface
                 )
             ) {
                 Column(
@@ -648,10 +649,9 @@ fun EditAdminProfileScreen(onBackClick: () -> Unit = {}) {
                 ) {
                     Text(
                         text = "Select Country Code",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(bottom = 16.dp),
-                        color = Color.Black
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.padding(bottom = 16.dp)
                     )
 
                     LazyColumn(
@@ -674,12 +674,12 @@ fun EditAdminProfileScreen(onBackClick: () -> Unit = {}) {
                                     country.name,
                                     modifier = Modifier.weight(1f),
                                     fontSize = 16.sp,
-                                    color = Color.Black
+                                    color = MaterialTheme.colorScheme.onSurface
                                 )
                                 Text(
                                     country.code,
                                     fontSize = 16.sp,
-                                    color = Color.Black
+                                    color = MaterialTheme.colorScheme.onSurface
                                 )
                             }
                         }
@@ -697,13 +697,13 @@ fun EditAdminProfileScreen(onBackClick: () -> Unit = {}) {
                 Text(
                     "Success",
                     fontWeight = FontWeight.Bold,
-                    color = Greenish
+                    color = MaterialTheme.colorScheme.primary
                 )
             },
             text = {
                 Text(
                     "Profile updated successfully!",
-                    color = Color.Black
+                    color = MaterialTheme.colorScheme.onSurface
                 )
             },
             confirmButton = {
@@ -713,12 +713,12 @@ fun EditAdminProfileScreen(onBackClick: () -> Unit = {}) {
                         onBackClick()
                     },
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = Greenish
+                        containerColor = MaterialTheme.colorScheme.primary
                     )
                 ) {
                     Text(
                         "OK",
-                        color = White
+                        color = MaterialTheme.colorScheme.onPrimary
                     )
                 }
             }
@@ -733,25 +733,25 @@ fun EditAdminProfileScreen(onBackClick: () -> Unit = {}) {
                 Text(
                     "Error",
                     fontWeight = FontWeight.Bold,
-                    color = Color.Red
+                    color = MaterialTheme.colorScheme.error
                 )
             },
             text = {
                 Text(
                     errorMessage,
-                    color = Color.Black
+                    color = MaterialTheme.colorScheme.onSurface
                 )
             },
             confirmButton = {
                 Button(
                     onClick = { showErrorDialog = false },
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = Greenish
+                        containerColor = MaterialTheme.colorScheme.primary
                     )
                 ) {
                     Text(
                         "OK",
-                        color = White
+                        color = MaterialTheme.colorScheme.onPrimary
                     )
                 }
             }
@@ -762,5 +762,7 @@ fun EditAdminProfileScreen(onBackClick: () -> Unit = {}) {
 @Preview(showBackground = true)
 @Composable
 fun EditAdminProfilePreview() {
-    EditAdminProfileScreen()
+    MaterialTheme {
+        EditAdminProfileScreen()
+    }
 }
