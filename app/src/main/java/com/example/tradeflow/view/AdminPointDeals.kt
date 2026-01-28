@@ -16,6 +16,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -62,6 +63,7 @@ fun AdminPointDealsScreen(onBackClick: () -> Unit) {
     val users by viewModel.users.observeAsState(initial = null)
 
     var showAddDialog by remember { mutableStateOf(false) }
+    var dealToEdit by remember { mutableStateOf<PointDealModel?>(null) }
 
     LaunchedEffect(Unit) {
         viewModel.getAllPointDeals()
@@ -84,7 +86,10 @@ fun AdminPointDealsScreen(onBackClick: () -> Unit) {
         },
         floatingActionButton = {
             FloatingActionButton(
-                onClick = { showAddDialog = true },
+                onClick = { 
+                    dealToEdit = null
+                    showAddDialog = true 
+                },
                 containerColor = Greenish,
                 contentColor = White
             ) {
@@ -104,12 +109,19 @@ fun AdminPointDealsScreen(onBackClick: () -> Unit) {
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     items(allDeals!!) { deal ->
-                        AdminDealCard(deal = deal, onDelete = {
-                            viewModel.deletePointDeal(deal.dealId) { success, msg ->
-                                Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
-                                if (success) viewModel.getAllPointDeals()
+                        AdminDealCard(
+                            deal = deal, 
+                            onEdit = {
+                                dealToEdit = deal
+                                showAddDialog = true
+                            },
+                            onDelete = {
+                                viewModel.deletePointDeal(deal.dealId) { success, msg ->
+                                    Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+                                    if (success) viewModel.getAllPointDeals()
+                                }
                             }
-                        })
+                        )
                     }
                 }
             }
@@ -119,12 +131,23 @@ fun AdminPointDealsScreen(onBackClick: () -> Unit) {
     if (showAddDialog) {
         AddDealDialog(
             users = users ?: emptyList(),
+            dealToEdit = dealToEdit,
             onDismiss = { showAddDialog = false },
             onAdd = { deal ->
                 viewModel.addPointDeal(deal) { success, msg ->
                     Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
                     if (success) {
                         showAddDialog = false
+                        viewModel.getAllPointDeals()
+                    }
+                }
+            },
+            onUpdate = { deal ->
+                viewModel.updatePointDeal(deal) { success, msg ->
+                    Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+                    if (success) {
+                        showAddDialog = false
+                        viewModel.getAllPointDeals()
                     }
                 }
             },
@@ -141,7 +164,7 @@ fun AdminPointDealsScreen(onBackClick: () -> Unit) {
 }
 
 @Composable
-fun AdminDealCard(deal: PointDealModel, onDelete: () -> Unit) {
+fun AdminDealCard(deal: PointDealModel, onEdit: () -> Unit, onDelete: () -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = Color.White),
@@ -159,8 +182,13 @@ fun AdminDealCard(deal: PointDealModel, onDelete: () -> Unit) {
                 Text(text = "${deal.tier} • ${deal.serviceCategory}", fontSize = 12.sp, color = Color.Gray)
                 Text(text = "${deal.pointsRequired} Points", fontSize = 12.sp, color = Greenish, fontWeight = FontWeight.Bold)
             }
-            IconButton(onClick = onDelete) {
-                Icon(Icons.Default.Delete, "Delete", tint = Color.Red)
+            Row {
+                IconButton(onClick = onEdit) {
+                    Icon(Icons.Default.Edit, "Edit", tint = Color.Gray)
+                }
+                IconButton(onClick = onDelete) {
+                    Icon(Icons.Default.Delete, "Delete", tint = Color.Red)
+                }
             }
         }
     }
@@ -170,16 +198,41 @@ fun AdminDealCard(deal: PointDealModel, onDelete: () -> Unit) {
 @Composable
 fun AddDealDialog(
     users: List<UserModel>,
+    dealToEdit: PointDealModel? = null,
     onDismiss: () -> Unit,
     onAdd: (PointDealModel) -> Unit,
+    onUpdate: (PointDealModel) -> Unit,
     onGiftUser: (String, Long, String) -> Unit
 ) {
-    var tier by remember { mutableStateOf("Bronze") }
-    var dealType by remember { mutableStateOf("Gift Free Points") } // "Gift Free Points" or "Discount Deal"
-    var pointsInput by remember { mutableStateOf("") }
-    var offerDescription by remember { mutableStateOf("") }
-    var validDate by remember { mutableStateOf("") }
-    var validTillMillis by remember { mutableLongStateOf(System.currentTimeMillis() + 7 * 24 * 60 * 60 * 1000) } // Default 7 days
+    var tier by remember { mutableStateOf(dealToEdit?.tier ?: "Bronze") }
+    var dealType by remember { 
+        mutableStateOf(
+            if (dealToEdit != null) {
+                if (dealToEdit.serviceCategory == "Admin Gift" || dealToEdit.rewardPoints > 0) "Gift Free Points" else "Discount Deal"
+            } else "Gift Free Points"
+        ) 
+    }
+    var pointsInput by remember { 
+        mutableStateOf(
+            if (dealToEdit != null) {
+                if (dealToEdit.rewardPoints > 0) dealToEdit.rewardPoints.toString() else dealToEdit.pointsRequired.toString()
+            } else ""
+        ) 
+    }
+    var offerDescription by remember { mutableStateOf(dealToEdit?.offer ?: "") }
+    
+    // Default 7 days if creating new
+    var validTillMillis by remember { 
+        mutableLongStateOf(dealToEdit?.validTill ?: (System.currentTimeMillis() + 7 * 24 * 60 * 60 * 1000)) 
+    }
+    
+    var validDate by remember { 
+         mutableStateOf(
+             if (dealToEdit != null) {
+                 SimpleDateFormat("dd MMM, yyyy", Locale.getDefault()).format(Date(dealToEdit.validTill))
+             } else ""
+         )
+    }
     
     // User Selection State
     var targetUserId by remember { mutableStateOf("") }
@@ -207,7 +260,7 @@ fun AddDealDialog(
         onDismissRequest = onDismiss,
         title = {
             Text(
-                "Create Point Deal",
+                if (dealToEdit != null) "Edit Point Deal" else "Create Point Deal",
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold
             )
@@ -217,7 +270,7 @@ fun AddDealDialog(
                 
                 // Deal Type Section
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Deal Type:", fontSize = 14.sp, color = Color.Gray)
+                    Text("Deal Type:", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color.Black)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         listOf("Gift Free Points", "Discount Deal").forEach { type ->
                             FilterChip(
@@ -233,10 +286,11 @@ fun AddDealDialog(
                     }
                 }
 
-                // User Search Section (Only for Gift Free Points)
-                if (dealType == "Gift Free Points") {
+                // User Search Section (Only for Gift Free Points and New Deals)
+                // If editing, we assume we are not changing the target user for a direct gift transaction
+                if (dealType == "Gift Free Points" && dealToEdit == null) {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text("Target User (Optional - leave empty for all):", fontSize = 14.sp, color = Color.Gray)
+                        Text("User", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color.Black)
                         OutlinedTextField(
                             value = userSearchQuery,
                             onValueChange = {
@@ -300,7 +354,7 @@ fun AddDealDialog(
 
                 // User Tier Section
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("User Tier:", fontSize = 14.sp, color = Color.Gray)
+                    Text("User Tier:", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color.Black)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         listOf("Bronze", "Silver", "Gold").forEach { t ->
                             FilterChip(
@@ -319,9 +373,10 @@ fun AddDealDialog(
                 // Points Input Section
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
-                        text = if (dealType == "Gift Free Points") "Points to Give:" else "Points Cost:",
+                        text = "Points",
                         fontSize = 14.sp,
-                        color = Color.Gray
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color.Black
                     )
                     OutlinedTextField(
                         value = pointsInput,
@@ -338,7 +393,7 @@ fun AddDealDialog(
                 // Offer Description (Only for Discount Deal)
                 if (dealType == "Discount Deal") {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text("Offer Description:", fontSize = 14.sp, color = Color.Gray)
+                        Text("Offer Description:", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color.Black)
                         OutlinedTextField(
                             value = offerDescription,
                             onValueChange = { offerDescription = it },
@@ -351,7 +406,7 @@ fun AddDealDialog(
 
                 // Valid Till Section
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Valid Till:", fontSize = 14.sp, color = Color.Gray)
+                    Text("Valid Till:", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color.Black)
                     OutlinedTextField(
                         value = validDate.ifEmpty { "Select date" },
                         onValueChange = {},
@@ -375,10 +430,14 @@ fun AddDealDialog(
                     if (points > 0) {
                         val isGift = dealType == "Gift Free Points"
                         
-                        if (isGift && targetUserId.isNotEmpty()) {
+                        // Case 1: Direct Gift to User (New Transaction, not a Deal)
+                        if (isGift && targetUserId.isNotEmpty() && dealToEdit == null) {
                             onGiftUser(targetUserId, points, "Admin Gift Points")
-                        } else {
+                        } 
+                        // Case 2: Create/Update Point Deal
+                        else {
                             val deal = PointDealModel(
+                                dealId = dealToEdit?.dealId ?: "", // Preserve ID if editing
                                 title = if (isGift) "$tier Reward" else "$tier Deal",
                                 offer = if (isGift) "Claim $points Free Points!" else offerDescription.ifEmpty { "Redeem for $points Points" },
                                 tier = tier,
@@ -389,9 +448,14 @@ fun AddDealDialog(
                                 discountAmount = 0.0,
                                 discountType = "FLAT",
                                 rewardPoints = if (isGift) points else 0L,
-                                targetUserId = "" // Clear targetUserId as direct gifts are handled separately
+                                targetUserId = "" // Deals are general usually, specific user targeting done via other means or separate logic
                             )
-                            onAdd(deal)
+                            
+                            if (dealToEdit != null) {
+                                onUpdate(deal)
+                            } else {
+                                onAdd(deal)
+                            }
                         }
                     } else {
                         Toast.makeText(context, "Please enter valid points", Toast.LENGTH_SHORT).show()
@@ -401,7 +465,12 @@ fun AddDealDialog(
                 shape = MaterialTheme.shapes.medium,
                 modifier = Modifier.padding(start = 8.dp)
             ) {
-                Text(if (dealType == "Gift Free Points") "Give Points" else "Create Deal", color = White)
+                Text(
+                    text = if (dealType == "Gift Free Points" && targetUserId.isNotEmpty()) "Give Points" 
+                           else if (dealToEdit != null) "Update Deal" 
+                           else "Create Deal", 
+                    color = White
+                )
             }
         },
         dismissButton = {
