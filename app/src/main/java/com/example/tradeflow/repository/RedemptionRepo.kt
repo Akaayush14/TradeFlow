@@ -12,4 +12,10 @@ interface RedemptionRepo {
         userId: String,
         callback: (Boolean, String, List<UserPointRedemModel>?) -> Unit
     )
+
+    fun hasUserClaimedDeal(
+        userId: String,
+        dealId: String,
+        callback: (Boolean, String, Boolean) -> Unit
+    )
 }

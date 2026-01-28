@@ -113,6 +113,8 @@ class PointDealRepoImpl : PointDealRepo {
         callback: (Boolean, String, List<PointDealModel>?) -> Unit
     ) {
         val currentTime = System.currentTimeMillis()
+        val thirtyDaysMillis = 30L * 24 * 60 * 60 * 1000
+        val cutoffCreatedAt = currentTime - thirtyDaysMillis
         ref.addListenerForSingleValueEvent(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 if (snapshot.exists()) {
@@ -122,7 +124,8 @@ class PointDealRepoImpl : PointDealRepo {
                         if (deal != null) {
                             val isActive = deal.isActive
                             val isValid = deal.validTill > currentTime
-                            if (isActive && isValid) {
+                            val isRecent = deal.createdAt >= cutoffCreatedAt
+                            if (isActive && isValid && isRecent) {
                                 activeDeals.add(deal)
                             }
                         }
@@ -149,9 +152,11 @@ class PointDealRepoImpl : PointDealRepo {
                     if (snapshot.exists()) {
                         val tierDeals = mutableListOf<PointDealModel>()
                         val currentTime = System.currentTimeMillis()
+                        val thirtyDaysMillis = 30L * 24 * 60 * 60 * 1000
+                        val cutoffCreatedAt = currentTime - thirtyDaysMillis
                         for (data in snapshot.children) {
                             val deal = data.getValue(PointDealModel::class.java)
-                            if (deal != null && deal.isActive && deal.validTill > currentTime) {
+                            if (deal != null && deal.isActive && deal.validTill > currentTime && deal.createdAt >= cutoffCreatedAt) {
                                 tierDeals.add(deal)
                             }
                         }

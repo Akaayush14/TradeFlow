@@ -160,6 +160,7 @@ fun AddDealDialog(onDismiss: () -> Unit, onAdd: (PointDealModel) -> Unit) {
     var tier by remember { mutableStateOf("Bronze") }
     var category by remember { mutableStateOf("") }
     var points by remember { mutableStateOf("") }
+    var rewardPoints by remember { mutableStateOf("") }
     var discountAmount by remember { mutableStateOf("") }  // ADD THIS
     var discountType by remember { mutableStateOf("FLAT") }  // ADD THIS
     var validDate by remember { mutableStateOf("") }
@@ -223,6 +224,13 @@ fun AddDealDialog(onDismiss: () -> Unit, onAdd: (PointDealModel) -> Unit) {
                     modifier = Modifier.fillMaxWidth()
                 )
 
+                OutlinedTextField(
+                    value = rewardPoints,
+                    onValueChange = { if (it.all { char -> char.isDigit() }) rewardPoints = it },
+                    label = { Text("Reward Points (optional)") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+
                 // ADD DISCOUNT FIELDS HERE - BETWEEN POINTS AND VALID TILL
                 OutlinedTextField(
                     value = discountAmount,
@@ -270,7 +278,8 @@ fun AddDealDialog(onDismiss: () -> Unit, onAdd: (PointDealModel) -> Unit) {
                             validTill = validTillMillis,
                             isActive = true,
                             discountAmount = discountAmount.toDoubleOrNull() ?: 0.0,  // ADD THIS
-                            discountType = discountType  // ADD THIS
+                            discountType = discountType,  // ADD THIS
+                            rewardPoints = rewardPoints.toLongOrNull() ?: 0L
                         )
                         onAdd(deal)
                     } else {

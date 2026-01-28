@@ -73,7 +73,7 @@ fun PointsScreen() {
     LaunchedEffect(Unit) {
         if (userId.isNotEmpty()) {
             userViewModel.getUserById(userId)
-            pointDealViewModel.getActivePointDeals()
+            pointDealViewModel.getEligibleDealsForUser(userId)
         }
     }
 
@@ -83,7 +83,7 @@ fun PointsScreen() {
             Toast.makeText(context, message, Toast.LENGTH_LONG).show()
             if (success) {
                 userViewModel.getUserById(userId)
-                pointDealViewModel.getActivePointDeals()
+                pointDealViewModel.getEligibleDealsForUser(userId)
             }
             pointDealViewModel.clearRedemptionStatus()
         }
@@ -206,6 +206,21 @@ fun PointsScreen() {
 
             // Content based on selected tab
             when (selectedTab) {
+                "Buy point with deals" -> {
+                    item {
+                        BuyPointsSection(
+                            onPayClick = { points ->
+                                val amountRs = points
+                                Toast.makeText(
+                                    context,
+                                    "Initiate Khalti payment: Rs $amountRs for $points point(s)",
+                                    Toast.LENGTH_LONG
+                                ).show()
+                                // TODO: Integrate Khalti SDK here when available
+                            }
+                        )
+                    }
+                }
                 "Buy Deals" -> {
                     val dealsList = activeDeals ?: emptyList()
                     if (dealsList.isEmpty()) {
@@ -346,11 +361,93 @@ private fun PointsSummaryCard(
 }
 
 @Composable
+private fun BuyPointsSection(
+    onPayClick: (Int) -> Unit
+) {
+    var pointsInput by remember { mutableStateOf("500") }
+    val increments = listOf(100, 250, 500, 1000)
+    val points = pointsInput.toIntOrNull() ?: 0
+    val ratePerPoint = 1 // Rs 1 per point
+    val totalPayable = points * ratePerPoint
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Text(text = "Points to buy", fontSize = 14.sp, fontWeight = FontWeight.Medium)
+        OutlinedTextField(
+            value = pointsInput,
+            onValueChange = { new ->
+                if (new.all { it.isDigit() }) pointsInput = new
+            },
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(10.dp),
+            singleLine = true
+        )
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            increments.forEach { inc ->
+                FilledTonalButton(
+                    onClick = {
+                        val current = pointsInput.toIntOrNull() ?: 0
+                        pointsInput = (current + inc).toString()
+                    },
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text(text = "+$inc")
+                }
+            }
+        }
+
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text(text = "1 Point = Rs $ratePerPoint", color = Color.Gray, fontSize = 12.sp)
+        }
+
+        Text(
+            text = "Total Payable: Rs $totalPayable",
+            fontSize = 16.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color(0xFF006CFF)
+        )
+
+        Button(
+            onClick = { if (points > 0) onPayClick(points) },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(50.dp),
+            shape = RoundedCornerShape(12.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF6A1B9A))
+        ) {
+            Text(text = "Pay with Khalti", color = Color.White, fontSize = 16.sp)
+        }
+
+        Box(
+            modifier = Modifier.fillMaxWidth(),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = "Secure payment powered by Khalti",
+                fontSize = 12.sp,
+                color = Color.Gray
+            )
+        }
+    }
+}
+@Composable
 private fun NavigationTabs(
     selectedTab: String,
     onTabSelected: (String) -> Unit
 ) {
-    val tabs = listOf("How it works?", "Point history", "Buy Deals")
+    val tabs = listOf("Buy point with deals", "Buy Deals","Point history")
 
     Row(
         modifier = Modifier
@@ -376,7 +473,7 @@ private fun NavigationTabs(
                     horizontalArrangement = Arrangement.Center
                 ) {
                     when (tab) {
-                        "How it works?" -> {
+                        "Buy point with deals" -> {
                             Icon(
                                 Icons.Default.Info,
                                 contentDescription = null,

@@ -11,6 +11,7 @@ data class PointDealModel(
     var isActive: Boolean = true,
     var discountAmount: Double = 0.0,
     var discountType: String = "", // "FLAT" or "UPTO"
+    var rewardPoints: Long = 0L,
     var createdAt: Long = System.currentTimeMillis(),
     var updatedAt: Long = System.currentTimeMillis()
 ) {
@@ -26,6 +27,7 @@ data class PointDealModel(
             "isActive" to isActive,
             "discountAmount" to discountAmount,
             "discountType" to discountType,
+            "rewardPoints" to rewardPoints,
             "createdAt" to createdAt,
             "updatedAt" to updatedAt
         )
@@ -43,6 +45,7 @@ data class PointDealModel(
             "isActive" to isActive,
             "discountAmount" to discountAmount,
             "discountType" to discountType,
+            "rewardPoints" to rewardPoints,
             "updatedAt" to updatedAt
         )
     }

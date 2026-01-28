@@ -50,4 +50,32 @@ class RedemptionRepoImpl : RedemptionRepo {
                 }
             })
     }
+
+    override fun hasUserClaimedDeal(
+        userId: String,
+        dealId: String,
+        callback: (Boolean, String, Boolean) -> Unit
+    ) {
+        ref.orderByChild("userId").equalTo(userId)
+            .addListenerForSingleValueEvent(object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    if (!snapshot.exists()) {
+                        callback(true, "No claims for user", false)
+                        return
+                    }
+                    for (data in snapshot.children) {
+                        val redemption = data.getValue(UserPointRedemModel::class.java)
+                        if (redemption?.dealId == dealId) {
+                            callback(true, "Already claimed", true)
+                            return
+                        }
+                    }
+                    callback(true, "Not claimed", false)
+                }
+
+                override fun onCancelled(error: DatabaseError) {
+                    callback(false, error.message, false)
+                }
+            })
+    }
 }

@@ -5,13 +5,14 @@ import androidx.lifecycle.ViewModel
 import com.example.tradeflow.model.PointDealModel
 import com.example.tradeflow.model.UserPointRedemModel
 import com.example.tradeflow.repository.PointDealRepo
+import com.example.tradeflow.repository.RedemptionRepo
 import com.example.tradeflow.repository.RedemptionRepoImpl
 import com.example.tradeflow.repository.UserRepo
 import com.google.firebase.auth.FirebaseAuth
 
 class PointDealViewModel(
     val repo: PointDealRepo,
-    val userRepo: UserRepo  // ADD THIS
+    val userRepo: UserRepo
 ) : ViewModel() {
 
     private val _allDeals = MutableLiveData<List<PointDealModel>?>()
@@ -22,6 +23,7 @@ class PointDealViewModel(
 
     private val _redemptionStatus = MutableLiveData<Pair<Boolean, String>?>()
     val redemptionStatus: MutableLiveData<Pair<Boolean, String>?> get() = _redemptionStatus
+    private val redemptionRepo: RedemptionRepo = RedemptionRepoImpl()
 
     fun addPointDeal(model: PointDealModel, callback: (Boolean, String) -> Unit) {
         repo.addPointDeal(model, callback)
@@ -55,6 +57,20 @@ class PointDealViewModel(
         }
     }
 
+    fun getEligibleDealsForUser(userId: String) {
+        repo.getActivePointDeals { success, message, deals ->
+            if (!success) {
+                _activeDeals.postValue(emptyList())
+                return@getActivePointDeals
+            }
+            redemptionRepo.getRedemptionsByUserId(userId) { rSuccess, _, redemptions ->
+                val claimedIds = redemptions?.map { it.dealId }?.toSet() ?: emptySet()
+                val filtered = deals?.filter { it.dealId !in claimedIds } ?: emptyList()
+                _activeDeals.postValue(filtered)
+            }
+        }
+    }
+
     fun getPointDealsByTier(tier: String) {
         repo.getPointDealsByTier(tier) { success, message, data ->
             if (success) {
@@ -69,37 +85,76 @@ class PointDealViewModel(
         val currentUser = FirebaseAuth.getInstance().currentUser
         val userId = currentUser?.uid ?: return
 
-        userRepo.getUserById(userId) { success, message, user ->
-            if (success && user != null) {
-                if (user.points >= pointsRequired) {
-                    val updatedPoints = user.points - pointsRequired
-                    userRepo.updateUserPoints(userId, updatedPoints) { pointsSuccess, pointsMessage ->
-                        if (pointsSuccess) {
-                            val redemption = UserPointRedemModel(
-                                redemptionId = "",
-                                userId = userId,
-                                dealId = dealId,
-                                pointsSpent = pointsRequired,
-                                dealTitle = dealTitle,
-                                dealOffer = dealOffer
-                            )
-                            saveRedemptionRecord(redemption)
-                            _redemptionStatus.postValue(Pair(true, "Deal redeemed successfully!"))
-                        } else {
-                            _redemptionStatus.postValue(Pair(false, pointsMessage))
-                        }
-                    }
-                } else {
-                    _redemptionStatus.postValue(Pair(false, "Insufficient points!"))
+        redemptionRepo.hasUserClaimedDeal(userId, dealId) { claimedSuccess, _, alreadyClaimed ->
+            if (!claimedSuccess) {
+                _redemptionStatus.postValue(Pair(false, "Failed to verify claim status"))
+                return@hasUserClaimedDeal
+            }
+            if (alreadyClaimed) {
+                _redemptionStatus.postValue(Pair(false, "You have already claimed this deal"))
+                return@hasUserClaimedDeal
+            }
+
+            // Fetch deal to determine reward or cost
+            repo.getPointDealById(dealId) { dealSuccess, _, deal ->
+                if (!dealSuccess || deal == null) {
+                    _redemptionStatus.postValue(Pair(false, "Deal not found"))
+                    return@getPointDealById
                 }
-            } else {
-                _redemptionStatus.postValue(Pair(false, message))
+
+                userRepo.getUserById(userId) { success, message, user ->
+                    if (success && user != null) {
+                        val reward = deal.rewardPoints
+                        if (reward > 0L) {
+                            val updatedPoints = user.points + reward
+                            userRepo.updateUserPoints(userId, updatedPoints) { pointsSuccess, pointsMessage ->
+                                if (pointsSuccess) {
+                                    val redemption = UserPointRedemModel(
+                                        redemptionId = "",
+                                        userId = userId,
+                                        dealId = dealId,
+                                        pointsSpent = 0L,
+                                        dealTitle = dealTitle,
+                                        dealOffer = dealOffer
+                                    )
+                                    saveRedemptionRecord(redemption)
+                                    _redemptionStatus.postValue(Pair(true, "Free points claimed successfully!"))
+                                } else {
+                                    _redemptionStatus.postValue(Pair(false, pointsMessage))
+                                }
+                            }
+                        } else {
+                            if (user.points >= pointsRequired) {
+                                val updatedPoints = user.points - pointsRequired
+                                userRepo.updateUserPoints(userId, updatedPoints) { pointsSuccess, pointsMessage ->
+                                    if (pointsSuccess) {
+                                        val redemption = UserPointRedemModel(
+                                            redemptionId = "",
+                                            userId = userId,
+                                            dealId = dealId,
+                                            pointsSpent = pointsRequired,
+                                            dealTitle = dealTitle,
+                                            dealOffer = dealOffer
+                                        )
+                                        saveRedemptionRecord(redemption)
+                                        _redemptionStatus.postValue(Pair(true, "Deal redeemed successfully!"))
+                                    } else {
+                                        _redemptionStatus.postValue(Pair(false, pointsMessage))
+                                    }
+                                }
+                            } else {
+                                _redemptionStatus.postValue(Pair(false, "Insufficient points!"))
+                            }
+                        }
+                    } else {
+                        _redemptionStatus.postValue(Pair(false, message))
+                    }
+                }
             }
         }
     }
 
     private fun saveRedemptionRecord(redemption: UserPointRedemModel) {
-        val redemptionRepo = RedemptionRepoImpl()
         redemptionRepo.saveRedemption(redemption) { _, _ -> }
     }
 
