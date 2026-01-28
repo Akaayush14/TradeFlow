@@ -5,42 +5,31 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.tradeflow.R
+import com.example.tradeflow.ui.components.ThemeWrapper
 import com.example.tradeflow.ui.theme.Greenish
 
 
@@ -49,13 +38,15 @@ class AdminAboutUs : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            AboutUsScreen(
-                onBackClick = {
-                    val intent = Intent(this, AdminSettings::class.java)
-                    startActivity(intent)
-                    finish()
-                }
-            )
+            ThemeWrapper {
+                AboutUsScreen(
+                    onBackClick = {
+                        val intent = Intent(this, AdminSettings::class.java)
+                        startActivity(intent)
+                        finish()
+                    }
+                )
+            }
         }
     }
 }
@@ -64,22 +55,22 @@ class AdminAboutUs : ComponentActivity() {
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
 fun AboutUsScreen(onBackClick: () -> Unit = {}) {
-    val scrollState = rememberScrollState()
+    val listState = rememberLazyListState()
 
     Scaffold(
         topBar = {
             TopAppBar(
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Greenish,
-                    titleContentColor = Color.White,
-                    navigationIconContentColor = Color.White
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimary
                 ),
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
                         Icon(
                             painter = painterResource(id = R.drawable.ic_back),
                             contentDescription = "Back",
-                            tint = Color.White
+                            tint = MaterialTheme.colorScheme.onPrimary
                         )
                     }
                 },
@@ -92,7 +83,7 @@ fun AboutUsScreen(onBackClick: () -> Unit = {}) {
                     ) {
                         Text(
                             text = "About Us",
-                            color = Color.White,
+                            color = MaterialTheme.colorScheme.onPrimary,
                             style = MaterialTheme.typography.titleLarge
                         )
                     }
@@ -100,176 +91,197 @@ fun AboutUsScreen(onBackClick: () -> Unit = {}) {
             )
         }
     ) { padding ->
-        Column(
+        LazyColumn(
+            state = listState,
             modifier = Modifier
-                .padding(padding)
                 .fillMaxSize()
-                .background(Color.White)
-                .verticalScroll(scrollState)
-                .padding(24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+                .background(MaterialTheme.colorScheme.background)
+                .padding(padding),
+            contentPadding = PaddingValues(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Logo/Title
-            Text(
-                text = "TradeFlow",
-                fontSize = 32.sp,
-                fontWeight = FontWeight.Bold,
-                color = Greenish
-            )
+            item {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    // Logo Container
+                    Box(
+                        modifier = Modifier
+                            .size(120.dp)
+                            .shadow(
+                                elevation = 8.dp,
+                                shape = CircleShape,
+                                clip = true
+                            )
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.surfaceVariant), // Light gray background
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Image(
+                            painter = painterResource(id = R.drawable.house_rent_logo),
+                            contentDescription = "TradeFlow Logo",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Fit
+                        )
+                    }
 
-            Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
 
-            // Tagline
-            Text(
-                text = "Trade Smarter, Live Better",
-                fontSize = 16.sp,
-                fontStyle = FontStyle.Italic,
-                color = Color.Gray
-            )
+                    Text(
+                        "TradeFlow",
+                        color = MaterialTheme.colorScheme.primary,
+                        textAlign = TextAlign.Center,
+                        fontSize = 28.sp,
+                        fontWeight = FontWeight.Bold
+                    )
 
-            Spacer(modifier = Modifier.height(32.dp))
+                    Text(
+                        "Trade Smarter, Live Better",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium,
+                        fontStyle = FontStyle.Italic
+                    )
+                }
+            }
 
-            // About Us Section
-            SectionTitle1(text = "About Us")
+            item { SectionTitle("About Us") }
 
-            ParagraphText(
-                text = "Welcome to TradeFlow! We are revolutionizing the way people exchange goods and services by creating a seamless platform where users can trade and rent items using our unique credit system."
-            )
-
-            ParagraphText(
-                text = "Our mission is to build a sustainable sharing economy where everyone benefits. Instead of letting valuable items sit unused, TradeFlow empowers you to turn them into opportunities. Whether you're looking to trade electronics, rent equipment, or exchange services, our platform makes it simple, safe, and rewarding."
-            )
-
-            ParagraphText(
-                text = "With TradeFlow Credits as our currency, you can participate in a vibrant marketplace without the need for traditional money. Earn credits by renting out your items or providing services, then use those credits to access what you need. It's that simple!",
-                bottomPadding = 32.dp
-            )
-
-            // What We Offer Section
-            SectionTitle1(text = "What We Offer")
-
-            FeatureCard(
-                emoji = "🔄",
-                title = "Easy Trading",
-                description = "Trade items effortlessly with our user-friendly platform"
-            )
-
-            FeatureCard(
-                emoji = "🏠",
-                title = "Flexible Rentals",
-                description = "Rent what you need, when you need it"
-            )
-
-            FeatureCard(
-                emoji = "💎",
-                title = "Credit System",
-                description = "Our unique currency makes transactions smooth and fair"
-            )
-
-            FeatureCard(
-                emoji = "🔒",
-                title = "Safe & Secure",
-                description = "Your transactions and data are protected",
-                bottomPadding = 32.dp
-            )
-
-            // Our Vision Section
-            SectionTitle1(text = "Our Vision")
-
-            ParagraphText(
-                text = "We envision a world where resources are shared efficiently, reducing waste and building stronger communities. TradeFlow isn't just an app—it's a movement towards conscious consumption and collaborative living.",
-                bottomPadding = 32.dp
-            )
-
-            // Footer
-            Text(
-                text = "© 2024 TradeFlow. All rights reserved.",
-                fontSize = 12.sp,
-                color = Color.Gray,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.padding(top = 16.dp)
-            )
-        }
-    }
-}
-
-@Composable
-fun SectionTitle1(text: String) {
-    Text(
-        text = text,
-        fontSize = 24.sp,
-        fontWeight = FontWeight.Bold,
-        color = Greenish,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(bottom = 16.dp)
-    )
-}
-
-@Composable
-fun ParagraphText(
-    text: String,
-    bottomPadding: Dp = 16.dp
-) {
-    Text(
-        text = text,
-        fontSize = 16.sp,
-        color = Color(0xFF333333),
-        lineHeight = 24.sp,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(bottom = bottomPadding)
-    )
-}
-
-@Composable
-fun FeatureCard(
-    emoji: String,
-    title: String,
-    description: String,
-    bottomPadding: Dp = 12.dp
-) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(bottom = bottomPadding),
-        shape = RoundedCornerShape(8.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.Start,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // Emoji
-            Text(
-                text = emoji,
-                fontSize = 32.sp,
-                modifier = Modifier.padding(end = 12.dp)
-            )
-
-            // Text content
-            Column(
-                modifier = Modifier.weight(1f)
-            ) {
+            item {
                 Text(
-                    text = title,
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Greenish,
-                    modifier = Modifier.padding(bottom = 4.dp)
+                    text = "Welcome to TradeFlow! We are revolutionizing the way people exchange goods and services by creating a seamless platform where users can trade and rent items using our unique credit system.",
+                    fontSize = 15.sp,
+                    color = MaterialTheme.colorScheme.onBackground,
+                    lineHeight = 22.sp,
+                    textAlign = TextAlign.Justify
                 )
+            }
 
+            item {
                 Text(
-                    text = description,
-                    fontSize = 14.sp,
-                    color = Color(0xFF666666)
+                    text = "Our mission is to build a sustainable sharing economy where everyone benefits. Instead of letting valuable items sit unused, TradeFlow empowers you to turn them into opportunities. Whether you're looking to trade electronics, rent equipment, or exchange services, our platform makes it simple, safe, and rewarding.",
+                    fontSize = 15.sp,
+                    color = MaterialTheme.colorScheme.onBackground,
+                    lineHeight = 22.sp,
+                    textAlign = TextAlign.Justify
+                )
+            }
+
+            item {
+                Text(
+                    text = "With TradeFlow Credits as our currency, you can participate in a vibrant marketplace without the need for traditional money. Earn credits by renting out your items or providing services, then use those credits to access what you need. It's that simple!",
+                    fontSize = 15.sp,
+                    color = MaterialTheme.colorScheme.onBackground,
+                    lineHeight = 22.sp,
+                    textAlign = TextAlign.Justify
+                )
+            }
+
+            item { SectionTitle("What We Offer") }
+
+            items(
+                listOf(
+                    "🔄 Easy Trading" to "Trade items effortlessly with our user-friendly platform",
+                    "🏠 Flexible Rentals" to "Rent what you need, when you need it",
+                    "💎 Credit System" to "Our unique currency makes transactions smooth and fair",
+                    "🔒 Safe & Secure" to "Your transactions and data are protected"
+                )
+            ) { FeatureCard(it.first, it.second) }
+
+            item { SectionTitle("Our Vision") }
+
+            item {
+                Text(
+                    text = "We envision a world where resources are shared efficiently, reducing waste and building stronger communities. TradeFlow isn't just an app it's a movement towards conscious consumption and collaborative living.",
+                    fontSize = 15.sp,
+                    color = MaterialTheme.colorScheme.onBackground,
+                    lineHeight = 22.sp,
+                    textAlign = TextAlign.Justify
+                )
+            }
+
+            item { SectionTitle("Our Mission") }
+
+            item {
+                Text(
+                    text = "To create a seamless platform for barter and rental transactions that empowers communities and promotes sustainable consumption.",
+                    fontSize = 15.sp,
+                    color = MaterialTheme.colorScheme.onBackground,
+                    lineHeight = 22.sp,
+                    textAlign = TextAlign.Justify
+                )
+            }
+
+            item {
+                Text(
+                    "© 2024 TradeFlow. All rights reserved.",
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
                 )
             }
         }
     }
 }
 
+@Composable
+fun SectionTitle(title: String) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp),
+        horizontalAlignment = Alignment.Start
+    ) {
+        Text(
+            text = title,
+            fontSize = 20.sp,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.primary,
+            textAlign = TextAlign.Start
+        )
+    }
+}
+
+@Composable
+fun FeatureCard(title: String, description: String) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface // Light gray background
+        ),
+        elevation = CardDefaults.cardElevation(4.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Emoji/Icon
+            Text(
+                text = title.takeWhile { !it.isWhitespace() },
+                fontSize = 24.sp,
+                modifier = Modifier.padding(end = 16.dp)
+            )
+
+            Column {
+                Text(
+                    text = title.dropWhile { !it.isWhitespace() }.trim(),
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontSize = 16.sp
+                )
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    description,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontSize = 14.sp
+                )
+            }
+        }
+    }
+}
