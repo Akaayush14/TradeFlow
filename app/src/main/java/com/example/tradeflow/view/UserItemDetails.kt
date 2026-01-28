@@ -471,12 +471,23 @@ fun ItemDetailsScreen() {
                                     ),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Image(
-                                    painter = painterResource(id = R.drawable.ic_launcher_foreground),
-                                    contentDescription = "Owner Profile",
-                                    modifier = Modifier.size(40.dp),
-                                    contentScale = ContentScale.Fit
-                                )
+                                if (!owner?.profileImageUrl.isNullOrEmpty()) {
+                                    AsyncImage(
+                                        model = owner?.profileImageUrl,
+                                        contentDescription = "Owner Profile",
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentScale = ContentScale.Crop,
+                                        placeholder = painterResource(R.drawable.ic_launcher_foreground),
+                                        error = painterResource(R.drawable.ic_launcher_foreground)
+                                    )
+                                } else {
+                                    Image(
+                                        painter = painterResource(id = R.drawable.ic_launcher_foreground),
+                                        contentDescription = "Owner Profile",
+                                        modifier = Modifier.size(40.dp),
+                                        contentScale = ContentScale.Fit
+                                    )
+                                }
                             }
                             Spacer(modifier = Modifier.width(12.dp))
                             Column(modifier = Modifier.weight(1f)) {
