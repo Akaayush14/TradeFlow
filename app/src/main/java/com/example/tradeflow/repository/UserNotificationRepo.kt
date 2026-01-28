@@ -55,6 +55,12 @@ interface UserNotificationRepo {
         callback: (Boolean, String, List<RequestModel>?) -> Unit
     )
 
+    fun updateNotificationStatus(
+        notificationId: String,
+        status: String,
+        callback: (Boolean, String) -> Unit
+    )
+
     fun deleteNotification(
         notificationId: String,
         callback: (Boolean, String) -> Unit

@@ -17,6 +17,7 @@ import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Email
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -48,9 +49,10 @@ import java.util.*
 fun UserNotificationScreen(
     onBackClick: () -> Unit = {},
     onNotificationClick: (UserNotificationModel) -> Unit = {},
-    onViewDetails: (String) -> Unit = {}
+    onViewDetails: (String) -> Unit = {},
+    onMessageClick: () -> Unit = {}
 ) {
-    val viewModel = remember { UserNotificationViewModel(UserNotificationRepoImpl()) }
+    val viewModel = remember { UserNotificationViewModel(UserNotificationRepoImpl(), ProductRepoImpl()) }
     val notifications by viewModel.notifications.collectAsState()
     val myRequests by viewModel.myRequests.collectAsState()
     val currentUser = FirebaseAuth.getInstance().currentUser
@@ -285,7 +287,7 @@ fun UserNotificationScreen(
                                             showRejectDialog = true
                                         },
                                         onViewDetails = { onViewDetails(notification.requestId) },
-                                        onMessage = {}
+                                        onMessage = onMessageClick
                                     )
                                 }
                             }
@@ -713,12 +715,20 @@ fun EnhancedNotificationCard(
                                 color = MaterialTheme.colorScheme.onSurface
                             )
                         }
-                        IconButton(
+                        OutlinedButton(
                             onClick = onMessage,
-                            modifier = Modifier.size(40.dp)
+                            modifier = Modifier
+                                .width(40.dp)
+                                .height(40.dp),
+                            shape = RoundedCornerShape(8.dp),
+                            contentPadding = PaddingValues(0.dp),
+                            border = BorderStroke(
+                                1.dp,
+                                MaterialTheme.colorScheme.outline
+                            )
                         ) {
                             Icon(
-                                painter = painterResource(R.drawable.placeholderimage), // Use message icon
+                                imageVector = Icons.Default.Email,
                                 contentDescription = "Message",
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant
                             )

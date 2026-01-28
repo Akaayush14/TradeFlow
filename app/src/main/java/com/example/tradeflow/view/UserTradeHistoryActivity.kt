@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.example.tradeflow.R
 import com.example.tradeflow.model.RequestModel
+import com.example.tradeflow.repository.ProductRepoImpl
 import com.example.tradeflow.repository.UserNotificationRepoImpl
 import com.example.tradeflow.repository.UserRepoImpl
 import com.example.tradeflow.ui.theme.Greenish
@@ -57,7 +58,7 @@ class UserTradeHistoryActivity : ComponentActivity() {
 @Composable
 fun UserTradeHistoryScreen(onBackClick: () -> Unit) {
     val context = LocalContext.current
-    val notificationViewModel = remember { UserNotificationViewModel(UserNotificationRepoImpl()) }
+    val notificationViewModel = remember { UserNotificationViewModel(UserNotificationRepoImpl(), ProductRepoImpl()) }
     val userViewModel = remember { UserViewModel(UserRepoImpl()) }
     val currentUser = userViewModel.getCurrentUser()
     

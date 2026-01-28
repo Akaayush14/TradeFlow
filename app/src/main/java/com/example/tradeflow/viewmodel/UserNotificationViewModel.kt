@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.tradeflow.model.UserNotificationModel
 import com.example.tradeflow.model.RequestModel
+import com.example.tradeflow.repository.ProductRepo
 import com.example.tradeflow.repository.UserNotificationRepoImpl
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -13,7 +14,10 @@ import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
 
-class UserNotificationViewModel(private val repository: UserNotificationRepoImpl) : ViewModel() {
+class UserNotificationViewModel(
+    private val repository: UserNotificationRepoImpl,
+    private val productRepository: ProductRepo
+) : ViewModel() {
 
     private val _notifications = MutableStateFlow<List<UserNotificationModel>>(emptyList())
     val notifications: StateFlow<List<UserNotificationModel>> = _notifications
@@ -292,9 +296,18 @@ class UserNotificationViewModel(private val repository: UserNotificationRepoImpl
                         // Update request status
                         repository.updateRequestStatus(requestId, "ACCEPTED") { updateSuccess, _ ->
                             if (updateSuccess) {
-                                // Update local notification status
+                                // Update product status to Completed
+                                productRepository.updateProductStatus(request.productId, "Completed") { _, _ -> }
+                                
+                                if (request.productType == "BARTER" && request.offerProductId.isNotEmpty()) {
+                                    productRepository.updateProductStatus(request.offerProductId, "Completed") { _, _ -> }
+                                }
+
+                                // Update local notification status and sync with DB
                                 _notifications.value = _notifications.value.map { notif ->
                                     if (notif.requestId == requestId) {
+                                        // Update status in DB
+                                        repository.updateNotificationStatus(notif.notificationId, "ACCEPTED") { _, _ -> }
                                         notif.copy(status = "ACCEPTED")
                                     } else {
                                         notif
@@ -358,9 +371,18 @@ class UserNotificationViewModel(private val repository: UserNotificationRepoImpl
                         // Update request status
                         repository.updateRequestStatus(requestId, "REJECTED") { updateSuccess, _ ->
                             if (updateSuccess) {
-                                // Update local notification status
+                                // Update product status to Available
+                                productRepository.updateProductStatus(request.productId, "Available") { _, _ -> }
+                                
+                                if (request.productType == "BARTER" && request.offerProductId.isNotEmpty()) {
+                                    productRepository.updateProductStatus(request.offerProductId, "Available") { _, _ -> }
+                                }
+
+                                // Update local notification status and sync with DB
                                 _notifications.value = _notifications.value.map { notif ->
                                     if (notif.requestId == requestId) {
+                                        // Update status in DB
+                                        repository.updateNotificationStatus(notif.notificationId, "REJECTED") { _, _ -> }
                                         notif.copy(status = "REJECTED")
                                     } else {
                                         notif

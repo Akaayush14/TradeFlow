@@ -282,6 +282,27 @@ class UserNotificationRepoImpl : UserNotificationRepo {
         }
     }
 
+    override fun updateNotificationStatus(
+        notificationId: String,
+        status: String,
+        callback: (Boolean, String) -> Unit
+    ) {
+        try {
+            ref.child(notificationId).child("status").setValue(status)
+                .addOnSuccessListener {
+                    Log.d("TF_NOTIFICATION", "Notification status updated: $notificationId -> $status")
+                    callback(true, "Status updated")
+                }
+                .addOnFailureListener { e ->
+                    Log.e("TF_NOTIFICATION", "Error updating notification status: ${e.message}")
+                    callback(false, "Error: ${e.message}")
+                }
+        } catch (e: Exception) {
+            Log.e("TF_NOTIFICATION", "Exception updating notification status: ${e.message}")
+            callback(false, "Error: ${e.message}")
+        }
+    }
+
     override fun deleteNotification(
         notificationId: String,
         callback: (Boolean, String) -> Unit

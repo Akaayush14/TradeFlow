@@ -61,7 +61,7 @@ fun BarterRequestScreen() {
 
     // Initialize ViewModels
     val notificationViewModel = remember {
-        UserNotificationViewModel(UserNotificationRepoImpl())
+        UserNotificationViewModel(UserNotificationRepoImpl(), ProductRepoImpl())
     }
     val productViewModel = remember {
         ProductViewModel(ProductRepoImpl())
