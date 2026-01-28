@@ -49,7 +49,10 @@ class NotificationViewModel(private val repo: NotificationRepo) : ViewModel() {
     fun getAllNotifications() {
         repo.getAllNotifications { notificationsList ->
             viewModelScope.launch {
-                _notifications.value = notificationsList
+                // Filter out User Notifications (ADMIN_UPDATE, REQUEST, etc.)
+                // Only show system/admin logs
+                val excludedTypes = listOf("ADMIN_UPDATE", "REQUEST", "ACCEPTED", "REJECTED", "MESSAGE", "COMPLETED")
+                _notifications.value = notificationsList?.filter { it.type !in excludedTypes }
             }
         }
     }
