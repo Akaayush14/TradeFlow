@@ -402,9 +402,19 @@ fun ItemDetailsScreen() {
                             )
                         }
                         Spacer(modifier = Modifier.height(8.dp))
+                        //product status
+                        Text(
+                            text = "Status: ${productItem.status}",
+                            fontSize = 14.sp,
+                            color = Color.Gray
+                        )
+
+                        Spacer(modifier = Modifier.height(16.dp))
+                        HorizontalDivider(color = Color.LightGray, thickness = 0.5.dp)
                         Spacer(modifier = Modifier.height(8.dp))
 
-                       // Product Location
+
+                        // Product Location
                         if (!productItem.location.isNullOrBlank()) {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
@@ -433,15 +443,6 @@ fun ItemDetailsScreen() {
                             }
                         }
 
-                        Text(
-                            text = "Status: ${productItem.status}",
-                            fontSize = 14.sp,
-                            color = Color.Gray
-                        )
-
-                        Spacer(modifier = Modifier.height(16.dp))
-                        HorizontalDivider(color = Color.LightGray, thickness = 0.5.dp)
-                        Spacer(modifier = Modifier.height(16.dp))
 
                         // 3. Owner Info
                         Text(
