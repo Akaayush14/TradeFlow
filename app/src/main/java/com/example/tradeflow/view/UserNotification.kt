@@ -37,6 +37,7 @@ import com.example.tradeflow.model.RequestModel
 import com.example.tradeflow.model.ProductModel
 import com.example.tradeflow.repository.ProductRepoImpl
 import com.example.tradeflow.repository.UserNotificationRepoImpl
+import com.example.tradeflow.repository.UserRepoImpl
 import com.example.tradeflow.viewmodel.UserNotificationViewModel
 import com.google.firebase.auth.FirebaseAuth
 import java.text.SimpleDateFormat
@@ -765,6 +766,18 @@ fun SentRequestCard(
     request: RequestModel,
     onCancel: () -> Unit
 ) {
+    var ownerImage by remember { mutableStateOf(request.ownerImage) }
+
+    LaunchedEffect(request.ownerId) {
+        if (request.ownerId.isNotEmpty()) {
+            UserRepoImpl().getUserById(request.ownerId) { success, _, user ->
+                if (success && user != null) {
+                    ownerImage = user.profileImageUrl
+                }
+            }
+        }
+    }
+
     val statusColor = when (request.status) {
         "PENDING" -> MaterialTheme.colorScheme.secondary
         "ACCEPTED" -> MaterialTheme.colorScheme.tertiary
@@ -825,8 +838,8 @@ fun SentRequestCard(
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 AsyncImage(
-                    model = request.ownerImage.ifEmpty { R.drawable.placeholderimage },
-                    contentDescription = "Owner",
+                model = ownerImage.ifEmpty { R.drawable.placeholderimage },
+                contentDescription = "Owner",
                     modifier = Modifier
                         .size(40.dp)
                         .clip(CircleShape),
