@@ -125,9 +125,9 @@ class ProductRepoImpl: ProductRepo {
                         if (product != null) {
                             // Handle isListed safely
                             product.isListed = if (data.hasChild("isListed")) {
-                                data.child("isListed").getValue(Boolean::class.java) ?: true
+                                data.child("isListed").getValue(Boolean::class.java) ?: false
                             } else {
-                                true // default if field does not exist
+                                false // default if field does not exist
                             }
 
                             allProducts.add(product)
@@ -309,7 +309,13 @@ class ProductRepoImpl: ProductRepo {
         isListed: Boolean,
         callback: (Boolean, String) -> Unit
     ) {
-        ref.child(productId).child("isListed").setValue(isListed).addOnCompleteListener {
+        val updates = HashMap<String, Any>()
+        updates["isListed"] = isListed
+        if (isListed) {
+            updates["status"] = "Available"
+        }
+
+        ref.child(productId).updateChildren(updates).addOnCompleteListener {
             if(it.isSuccessful){
                 val message = if(isListed) "Product listed successfully" else "Product unlisted successfully"
                 callback(true, message)

@@ -71,7 +71,7 @@ fun UserAddItemScreen(
     var description by remember { mutableStateOf(initialProduct?.description ?: "") }
     var selectedPurpose by remember { mutableStateOf(initialProduct?.type ?: "Select purpose") }
     var category by remember { mutableStateOf(initialProduct?.category ?: "") }
-    var status by remember { mutableStateOf(initialProduct?.status ?: "Available") }
+    var status by remember { mutableStateOf(initialProduct?.status ?: "Pending") }
     var agreedToTerms by remember { mutableStateOf(false) }
     var isDropdownExpanded by remember { mutableStateOf(false) }
 
@@ -143,7 +143,7 @@ fun UserAddItemScreen(
         selectedPurpose = "Select purpose"
         category = ""
         agreedToTerms = false
-        status = "Available"
+        status = "Pending"
         imageUri = null
         imageUri2 = null
         imageUri3 = null
@@ -199,7 +199,8 @@ fun UserAddItemScreen(
                 imageUrl = mainUrl,
                 imageUrl2 = subUrl2,
                 imageUrl3 = subUrl3,
-                imageUrl4 = subUrl4
+                imageUrl4 = subUrl4,
+                isListed = false // Always false for new/updated items until admin approves
             )
 
             val callback: (Boolean, String) -> Unit = { success, message ->
