@@ -296,8 +296,11 @@ class UserNotificationViewModel(
                         // Update request status
                         repository.updateRequestStatus(requestId, "ACCEPTED") { updateSuccess, _ ->
                             if (updateSuccess) {
-                                // Update product status to Completed
-                                productRepository.updateProductStatus(request.productId, "Completed") { _, _ -> }
+                                // Determine new product status based on request type
+                                val newProductStatus = if (request.productType == "RENT") "Rented" else "Completed"
+                                
+                                // Update product status
+                                productRepository.updateProductStatus(request.productId, newProductStatus) { _, _ -> }
                                 
                                 if (request.productType == "BARTER" && request.offerProductId.isNotEmpty()) {
                                     productRepository.updateProductStatus(request.offerProductId, "Completed") { _, _ -> }
