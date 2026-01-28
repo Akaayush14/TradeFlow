@@ -1,6 +1,11 @@
 package com.example.tradeflow.view
 
 import android.app.DatePickerDialog
+import android.net.Uri as AndroidUri
+import android.util.Log
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -32,57 +37,111 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
+import coil.compose.AsyncImage
 import com.example.tradeflow.R
 import com.example.tradeflow.countries
 import com.example.tradeflow.viewmodel.UserViewModel
 import com.example.tradeflow.repository.UserRepoImpl
 import com.google.firebase.auth.FirebaseAuth
 import java.util.*
+import com.example.tradeflow.ui.components.ThemeWrapper
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun UserSettingEditProfileScreen(navController: NavController) {
+    ThemeWrapper {
+        EditProfileContent(navController)
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun EditProfileContent(navController: NavController) {
     val context = LocalContext.current
-
     val userViewModel = remember { UserViewModel(UserRepoImpl()) }
-
     val currentUser = FirebaseAuth.getInstance().currentUser
     val userId = currentUser?.uid ?: ""
-
     val userData by userViewModel.users.collectAsState()
 
+    // Form fields
     var name by remember { mutableStateOf("") }
     var phoneNumber by remember { mutableStateOf("") }
     var location by remember { mutableStateOf("") }
     var gender by remember { mutableStateOf("") }
     var dob by remember { mutableStateOf("") }
-
     val genderOptions = listOf("Male", "Female")
     var showGenderMenu by remember { mutableStateOf(false) }
     var selectedCountry by remember { mutableStateOf(countries.first { it.name == "Nepal" }) }
     var showCountryDialog by remember { mutableStateOf(false) }
+
+    // UI state
     var isLoading by remember { mutableStateOf(false) }
     var showSuccessDialog by remember { mutableStateOf(false) }
     var showErrorDialog by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf("") }
 
-    LaunchedEffect(userId) {
-        if (userId.isNotEmpty()) {
-            userViewModel.getUserById(userId) { success, msg, data ->
-                if (!success) {
-                    println("Failed to load user: $msg")
+    // Image state
+    var profileImageUrl by remember { mutableStateOf("") }
+    var isUploadingImage by remember { mutableStateOf(false) }
+
+    // Image picker launcher
+    val imagePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: AndroidUri? ->
+        if (uri != null) {
+            Log.d("TF_PROFILE_IMAGE", "Image selected: $uri")
+            isUploadingImage = true
+
+            userViewModel.uploadImage(context, uri) { cloudinaryUrl ->
+                isUploadingImage = false
+
+                if (cloudinaryUrl != null) {
+                    Log.d("TF_PROFILE_IMAGE", "Cloudinary upload successful: $cloudinaryUrl")
+
+                    val updates = mapOf("profileImageUrl" to cloudinaryUrl)
+                    userViewModel.updateUserProfile(userId, updates) { success, message ->
+                        if (success) {
+                            profileImageUrl = cloudinaryUrl
+                            userViewModel.getUserById(userId) { _, _, _ ->
+                            }
+                            Toast.makeText(context, "Profile photo updated!", Toast.LENGTH_SHORT).show()
+                        } else {
+                            Toast.makeText(context, "Uploaded but failed to save: $message", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                } else {
+                    Log.e("TF_PROFILE_IMAGE", "Cloudinary upload failed")
+                    Toast.makeText(context, "Failed to upload photo", Toast.LENGTH_SHORT).show()
                 }
             }
         }
     }
 
+    // Load user data
+    LaunchedEffect(userId) {
+        if (userId.isNotEmpty()) {
+            userViewModel.getUserById(userId) { success, msg, data ->
+                if (!success) {
+                    Log.e("TF_PROFILE", "Failed to load user: $msg")
+                }
+            }
+        }
+    }
+
+    // Update form fields when user data changes
     LaunchedEffect(userData) {
         userData?.let { user ->
             name = user.name
             if (user.phone.isNotEmpty()) {
-                val (country, number) = PhoneParser.parseFullPhone(user.phone)
-                selectedCountry = country
-                phoneNumber = number
+                try {
+                    val (country, number) = PhoneParser.parseFullPhone(user.phone)
+                    selectedCountry = country
+                    phoneNumber = number
+                } catch (e: Exception) {
+                    Log.e("TF_PROFILE", "Error parsing phone: ${user.phone}")
+                    selectedCountry = countries.first { it.name == "Nepal" }
+                    phoneNumber = user.phone
+                }
             } else {
                 selectedCountry = countries.first { it.name == "Nepal" }
                 phoneNumber = ""
@@ -90,6 +149,8 @@ fun UserSettingEditProfileScreen(navController: NavController) {
             location = user.location ?: ""
             gender = user.gender ?: ""
             dob = user.dob ?: ""
+            profileImageUrl = user.profileImageUrl ?: ""
+            Log.d("TF_PROFILE", "Loaded profile image URL: $profileImageUrl")
         }
     }
 
@@ -131,17 +192,28 @@ fun UserSettingEditProfileScreen(navController: NavController) {
 
     fun validateForm(): Boolean {
         return when {
-            name.isBlank() -> false
-            phoneNumber.isBlank() -> false
-            !phoneNumber.all { it.isDigit() } -> false
-            phoneNumber.length < 7 -> false
+            name.isBlank() -> {
+                errorMessage = "Name is required"
+                false
+            }
+            phoneNumber.isBlank() -> {
+                errorMessage = "Phone number is required"
+                false
+            }
+            !phoneNumber.all { it.isDigit() } -> {
+                errorMessage = "Phone number should contain only digits"
+                false
+            }
+            !PhoneParser.isValidPhoneNumber(phoneNumber) -> {
+                errorMessage = "Phone number must be at least 7 digits"
+                false
+            }
             else -> true
         }
     }
 
     fun saveProfile() {
         if (!validateForm()) {
-            errorMessage = "Please fill all required fields correctly"
             showErrorDialog = true
             return
         }
@@ -155,7 +227,7 @@ fun UserSettingEditProfileScreen(navController: NavController) {
             updates["name"] = name.trim()
         }
 
-        // Phone - Update ONLY if FULL phone number changed
+        // Phone
         val newFullPhone = "${selectedCountry.code}${phoneNumber.trim()}"
         if (userData?.phone != newFullPhone) {
             updates["phone"] = newFullPhone
@@ -176,14 +248,22 @@ fun UserSettingEditProfileScreen(navController: NavController) {
             updates["dob"] = dob
         }
 
+        // Profile Image
+        if (profileImageUrl.isNotEmpty() && userData?.profileImageUrl != profileImageUrl) {
+            updates["profileImageUrl"] = profileImageUrl
+            Log.d("TF_PROFILE_SAVE", "Including profileImageUrl: $profileImageUrl")
+        }
+
+        Log.d("TF_PROFILE_SAVE", "Updating user profile with: $updates")
+
         if (updates.isNotEmpty()) {
             userViewModel.updateUserProfile(userId, updates) { success, message ->
                 isLoading = false
                 if (success) {
-                    userViewModel.getUserById(userId) { refreshSuccess, refreshMessage, refreshUser ->
-                        showSuccessDialog = true
-                    }
+                    Log.d("TF_PROFILE_SAVE", "Profile updated successfully")
+                    showSuccessDialog = true
                 } else {
+                    Log.e("TF_PROFILE_SAVE", "Profile update failed: $message")
                     errorMessage = message
                     showErrorDialog = true
                 }
@@ -218,7 +298,7 @@ fun UserSettingEditProfileScreen(navController: NavController) {
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color(0xFF005F56)
+                    containerColor = MaterialTheme.colorScheme.primary
                 )
             )
         }
@@ -228,7 +308,7 @@ fun UserSettingEditProfileScreen(navController: NavController) {
                 .fillMaxSize()
                 .padding(paddingValues)
                 .verticalScroll(rememberScrollState())
-                .background(Color.White)
+                .background(MaterialTheme.colorScheme.background)
         ) {
             Box(
                 modifier = Modifier
@@ -237,9 +317,9 @@ fun UserSettingEditProfileScreen(navController: NavController) {
                     .background(
                         Brush.verticalGradient(
                             colors = listOf(
-                                Color(0xFF005F56),
-                                Color(0xFF007D70),
-                                Color(0xFF4DB6AC)
+                                MaterialTheme.colorScheme.primary,
+                                MaterialTheme.colorScheme.primary,
+                                MaterialTheme.colorScheme.primaryContainer
                             )
                         )
                     ),
@@ -250,43 +330,74 @@ fun UserSettingEditProfileScreen(navController: NavController) {
                         .size(140.dp)
                         .offset(y = 60.dp)
                 ) {
-                    // Profile image
+                    // Profile image container
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
                             .clip(CircleShape)
-                            .background(Color.LightGray)
+                            .background(MaterialTheme.colorScheme.primaryContainer)
                             .border(
                                 width = 5.dp,
-                                color = Color.White,
+                                color = MaterialTheme.colorScheme.surface,
                                 shape = CircleShape
                             )
+                            .clickable {
+                                if (!isUploadingImage) {
+                                    imagePickerLauncher.launch("image/*")
+                                }
+                            },
+                        contentAlignment = Alignment.Center
                     ) {
-                        Image(
-                            painter = painterResource(id = R.drawable.house_rent_logo),
-                            contentDescription = "Profile Picture",
-                            modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Crop
-                        )
+                        if (isUploadingImage) {
+                            // Show loading indicator while uploading
+                            CircularProgressIndicator(
+                                modifier = Modifier.align(Alignment.Center),
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        } else if (profileImageUrl.isNotEmpty()) {
+                            // Show Cloudinary image
+                            AsyncImage(
+                                model = profileImageUrl,
+                                contentDescription = "Profile Picture",
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop,
+                                placeholder = painterResource(R.drawable.placeholderimage),
+                                error = painterResource(R.drawable.ic_profile)
+                            )
+                        } else {
+                            // Show default/placeholder
+                            Icon(
+                                painter = painterResource(R.drawable.ic_profile),
+                                contentDescription = "Profile Picture",
+                                modifier = Modifier.size(80.dp),
+                                tint = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                        }
                     }
 
+                    // Edit icon overlay
                     Box(
                         modifier = Modifier
                             .size(36.dp)
                             .clip(CircleShape)
-                            .background(Color(0xFF1E88E5))
+                            .background(MaterialTheme.colorScheme.secondary)
                             .align(Alignment.BottomEnd)
                             .border(
-                                width = 3.dp, // Thicker border
-                                color = Color.White,
+                                width = 3.dp,
+                                color = MaterialTheme.colorScheme.surface,
                                 shape = CircleShape
-                            ),
+                            )
+                            .clickable {
+                                if (!isUploadingImage) {
+                                    imagePickerLauncher.launch("image/*")
+                                }
+                            },
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             Icons.Filled.Edit,
                             null,
-                            tint = Color.White,
+                            tint = MaterialTheme.colorScheme.onSecondary,
                             modifier = Modifier.size(20.dp)
                         )
                     }
@@ -309,7 +420,11 @@ fun UserSettingEditProfileScreen(navController: NavController) {
                     label = { Text("Name") },
                     modifier = Modifier.fillMaxWidth(),
                     enabled = !isLoading,
-                    shape = RoundedCornerShape(12.dp)
+                    shape = RoundedCornerShape(12.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        focusedLabelColor = MaterialTheme.colorScheme.primary
+                    )
                 )
 
                 Column {
@@ -317,7 +432,7 @@ fun UserSettingEditProfileScreen(navController: NavController) {
                         text = "Phone Number",
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Medium,
-                        color = Color.Gray
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                     )
                     Spacer(modifier = Modifier.height(8.dp))
 
@@ -330,7 +445,7 @@ fun UserSettingEditProfileScreen(navController: NavController) {
                                 .width(100.dp)
                                 .height(56.dp)
                                 .background(
-                                    color = Color(0xFFF5F5F5),
+                                    color = MaterialTheme.colorScheme.surfaceVariant,
                                     shape = RoundedCornerShape(10.dp)
                                 )
                                 .clickable(enabled = !isLoading) {
@@ -341,7 +456,8 @@ fun UserSettingEditProfileScreen(navController: NavController) {
                             Text(
                                 text = "${selectedCountry.flag} ${selectedCountry.code}",
                                 fontSize = 16.sp,
-                                fontWeight = FontWeight.Medium
+                                fontWeight = FontWeight.Medium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
 
@@ -354,7 +470,11 @@ fun UserSettingEditProfileScreen(navController: NavController) {
                             modifier = Modifier.weight(1f),
                             shape = RoundedCornerShape(10.dp),
                             placeholder = { Text("Enter phone number") },
-                            enabled = !isLoading
+                            enabled = !isLoading,
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                focusedLabelColor = MaterialTheme.colorScheme.primary
+                            )
                         )
                     }
                 }
@@ -366,19 +486,23 @@ fun UserSettingEditProfileScreen(navController: NavController) {
                     modifier = Modifier.fillMaxWidth(),
                     placeholder = { Text("Enter your location") },
                     enabled = !isLoading,
-                    shape = RoundedCornerShape(12.dp)
+                    shape = RoundedCornerShape(12.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        focusedLabelColor = MaterialTheme.colorScheme.primary
+                    )
                 )
 
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(16.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Column(modifier = Modifier.weight(1f)) {
+                    Column(modifier = Modifier.weight(0.8f)) {
                         Text(
                             text = "Gender",
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Medium,
-                            color = Color.Gray
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                         )
                         Spacer(modifier = Modifier.height(6.dp))
                         Box {
@@ -391,20 +515,28 @@ fun UserSettingEditProfileScreen(navController: NavController) {
                                         showGenderMenu = true
                                     },
                                 readOnly = true,
-                                placeholder = { Text("Select Gender", color = Color.Gray) },
+                                placeholder = {
+                                    Text(
+                                        "Select Gender",
+                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                                    )
+                                },
                                 trailingIcon = {
                                     Icon(
                                         painter = painterResource(id = android.R.drawable.arrow_down_float),
                                         contentDescription = "Select Gender",
-                                        tint = if (isLoading) Color.Gray else Color(0xFF1E88E5)
+                                        tint = if (isLoading)
+                                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                                        else
+                                            MaterialTheme.colorScheme.primary
                                     )
                                 },
                                 colors = OutlinedTextFieldDefaults.colors(
-                                    focusedBorderColor = Color(0xFF1E88E5),
-                                    unfocusedBorderColor = Color.Gray.copy(alpha = 0.5f),
-                                    disabledBorderColor = Color.Gray.copy(alpha = 0.5f),
-                                    disabledTextColor = Color.Black,
-                                    disabledPlaceholderColor = Color.Gray
+                                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                    unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                                    disabledBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
+                                    disabledTextColor = MaterialTheme.colorScheme.onSurface,
+                                    disabledPlaceholderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
                                 ),
                                 enabled = false,
                                 shape = RoundedCornerShape(12.dp)
@@ -416,7 +548,12 @@ fun UserSettingEditProfileScreen(navController: NavController) {
                             ) {
                                 genderOptions.forEach { option ->
                                     DropdownMenuItem(
-                                        text = { Text(option) },
+                                        text = {
+                                            Text(
+                                                option,
+                                                color = MaterialTheme.colorScheme.onSurface
+                                            )
+                                        },
                                         onClick = {
                                             gender = option
                                             showGenderMenu = false
@@ -433,9 +570,9 @@ fun UserSettingEditProfileScreen(navController: NavController) {
                             text = "Date of Birth",
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Medium,
-                            color = Color.Gray
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                         )
-                        Spacer(modifier = Modifier.height(6.dp)) // Increased from 4dp
+                        Spacer(modifier = Modifier.height(6.dp))
                         OutlinedTextField(
                             value = dob,
                             onValueChange = {},
@@ -464,20 +601,28 @@ fun UserSettingEditProfileScreen(navController: NavController) {
                                     }.show()
                                 },
                             readOnly = true,
-                            placeholder = { Text("DD Month YYYY", color = Color.Gray) },
+                            placeholder = {
+                                Text(
+                                    "DD Month YYYY",
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                                )
+                            },
                             trailingIcon = {
                                 Icon(
                                     painter = painterResource(id = android.R.drawable.arrow_down_float),
                                     contentDescription = "Select Date",
-                                    tint = if (isLoading) Color.Gray else Color(0xFF1E88E5)
+                                    tint = if (isLoading)
+                                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                                    else
+                                        MaterialTheme.colorScheme.primary
                                 )
                             },
                             colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = Color(0xFF1E88E5),
-                                unfocusedBorderColor = Color.Gray.copy(alpha = 0.5f),
-                                disabledBorderColor = Color.Gray.copy(alpha = 0.5f),
-                                disabledTextColor = Color.Black,
-                                disabledPlaceholderColor = Color.Gray
+                                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                                disabledBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
+                                disabledTextColor = MaterialTheme.colorScheme.onSurface,
+                                disabledPlaceholderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
                             ),
                             enabled = false,
                             shape = RoundedCornerShape(12.dp)
@@ -485,56 +630,49 @@ fun UserSettingEditProfileScreen(navController: NavController) {
                     }
                 }
 
-                // Age display with more spacing
-                if (dob.isNotEmpty()) {
-                    val age = calculateAge(dob)
-                    if (age > 0) {
-                        Column {
-                            Spacer(modifier = Modifier.height(8.dp)) // Added spacing
-                            Text(
-                                text = "Age: $age years",
-                                fontSize = 15.sp, // Slightly larger
-                                color = Color(0xFF1E88E5),
-                                fontWeight = FontWeight.Medium
-                            )
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(15.dp)) // Increased from 24dp
+                Spacer(modifier = Modifier.height(15.dp))
 
                 // Save Button with more top spacing
                 Button(
                     onClick = { saveProfile() },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(58.dp), // Slightly taller
+                        .height(58.dp),
                     shape = RoundedCornerShape(14.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF005F56)
+                        containerColor = MaterialTheme.colorScheme.primary
                     ),
                     enabled = !isLoading
                 ) {
                     if (isLoading) {
-                        Text("Saving...", color = Color.White, fontSize = 17.sp) // Slightly larger
+                        Text(
+                            "Saving...",
+                            color = MaterialTheme.colorScheme.onPrimary,
+                            fontSize = 17.sp
+                        )
                     } else {
-                        Text("Save Changes", color = Color.White, fontSize = 17.sp) // Slightly larger
+                        Text(
+                            "Save Changes",
+                            color = MaterialTheme.colorScheme.onPrimary,
+                            fontSize = 17.sp
+                        )
                     }
                 }
 
-                Spacer(modifier = Modifier.height(24.dp)) // Increased from 20dp
+                Spacer(modifier = Modifier.height(24.dp))
             }
         }
-    }
-
-    // Dialogs (outside Scaffold)
+   }
 
     // Country Dialog
     if (showCountryDialog) {
         Dialog(onDismissRequest = { showCountryDialog = false }) {
             Card(
                 shape = RoundedCornerShape(16.dp),
-                modifier = Modifier.fillMaxWidth(0.9f)
+                modifier = Modifier.fillMaxWidth(0.9f),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surface
+                )
             ) {
                 Column(
                     modifier = Modifier.padding(16.dp)
@@ -543,7 +681,8 @@ fun UserSettingEditProfileScreen(navController: NavController) {
                         text = "Select Country Code",
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(bottom = 16.dp)
+                        modifier = Modifier.padding(bottom = 16.dp),
+                        color = MaterialTheme.colorScheme.onSurface
                     )
 
                     LazyColumn(
@@ -565,9 +704,14 @@ fun UserSettingEditProfileScreen(navController: NavController) {
                                 Text(
                                     country.name,
                                     modifier = Modifier.weight(1f),
-                                    fontSize = 16.sp
+                                    fontSize = 16.sp,
+                                    color = MaterialTheme.colorScheme.onSurface
                                 )
-                                Text(country.code, fontSize = 16.sp)
+                                Text(
+                                    country.code,
+                                    fontSize = 16.sp,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
                             }
                         }
                     }
@@ -584,10 +728,15 @@ fun UserSettingEditProfileScreen(navController: NavController) {
                 Text(
                     "Success",
                     fontWeight = FontWeight.Bold,
-                    color = Color(0xFF005F56)
+                    color = MaterialTheme.colorScheme.primary
                 )
             },
-            text = { Text("Profile updated successfully!") },
+            text = {
+                Text(
+                    "Profile updated successfully!",
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            },
             confirmButton = {
                 Button(
                     onClick = {
@@ -595,10 +744,13 @@ fun UserSettingEditProfileScreen(navController: NavController) {
                         navController.popBackStack()
                     },
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF005F56)
+                        containerColor = MaterialTheme.colorScheme.primary
                     )
                 ) {
-                    Text("OK", color = Color.White)
+                    Text(
+                        "OK",
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
                 }
             }
         )
@@ -612,18 +764,26 @@ fun UserSettingEditProfileScreen(navController: NavController) {
                 Text(
                     "Error",
                     fontWeight = FontWeight.Bold,
-                    color = Color.Red
+                    color = MaterialTheme.colorScheme.error
                 )
             },
-            text = { Text(errorMessage) },
+            text = {
+                Text(
+                    errorMessage,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            },
             confirmButton = {
                 Button(
                     onClick = { showErrorDialog = false },
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF005F56)
+                        containerColor = MaterialTheme.colorScheme.primary
                     )
                 ) {
-                    Text("OK", color = Color.White)
+                    Text(
+                        "OK",
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
                 }
             }
         )
@@ -634,5 +794,7 @@ fun UserSettingEditProfileScreen(navController: NavController) {
 @Composable
 fun EditProfilePreview() {
     val navController = rememberNavController()
-    UserSettingEditProfileScreen(navController)
+    com.example.tradeflow.ui.theme.TradeFlowTheme {
+        EditProfileContent(navController)
+    }
 }

@@ -52,8 +52,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import com.example.tradeflow.ui.theme.Greenish
-import com.example.tradeflow.ui.theme.White
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.sp
 import androidx.compose.runtime.LaunchedEffect
@@ -65,7 +63,6 @@ import com.example.tradeflow.viewmodel.ProductViewModel
 import com.example.tradeflow.viewmodel.UserViewModel
 import com.example.tradeflow.model.UserModel
 import com.google.firebase.auth.FirebaseAuth
-
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.items
@@ -74,7 +71,6 @@ import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Card
@@ -86,10 +82,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import coil.compose.AsyncImage
 import com.example.tradeflow.R
-
-
 import androidx.compose.foundation.lazy.grid.GridItemSpan
-
 import com.example.tradeflow.repository.SavedItemRepoImpl
 import com.example.tradeflow.viewmodel.SavedItemViewModel
 import com.example.tradeflow.repository.SearchHistoryRepoImpl
@@ -99,6 +92,7 @@ import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Badge
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.input.ImeAction
@@ -124,10 +118,9 @@ fun UserExploreScreen() {
 
     LaunchedEffect(Unit) {
         productViewModel.getAllProduct()
-        userViewModel.getAllUser() // Fetch all users
+        userViewModel.getAllUser()
         if (userId.isNotEmpty()) {
             userViewModel.getUserById(userId) { success, _, user ->
-                // User data loaded
             }
             savedItemViewModel.getSavedItems(userId)
             searchHistoryViewModel.getSearchHistory(userId)
@@ -142,7 +135,6 @@ fun UserExploreScreen() {
     val allUsers by userViewModel.allUsers.collectAsState()
     val userPoints = userData?.points ?: 0L
 
-    // Search for users when query is not empty
     val searchedUsers = if (searchQuery.isNotEmpty()) {
         allUsers?.filter { user ->
             (user.name.contains(searchQuery, ignoreCase = true) ||
@@ -229,8 +221,8 @@ fun UserExploreScreen() {
                 Box {
                     FloatingActionButton(
                         onClick = { showSavedScreen = true },
-                        containerColor = Greenish,
-                        contentColor = White,
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary,
                         shape = CircleShape
                     ) {
                         Icon(
@@ -243,19 +235,18 @@ fun UserExploreScreen() {
                             .align(Alignment.TopEnd)
                             .padding(top = 0.dp, end = 0.dp)
                             .offset(x = 4.dp, y = (-4).dp)
-                    ) { 
-                        Text(savedItems.size.toString()) 
+                    ) {
+                        Text(savedItems.size.toString())
                     }
                 }
             }
         },
         topBar = {
             Column {
-                // Points display row
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(Greenish)
+                        .background(MaterialTheme.colorScheme.primary)
                         .padding(horizontal = 16.dp, vertical = 8.dp),
                     horizontalArrangement = Arrangement.End,
                     verticalAlignment = Alignment.CenterVertically
@@ -263,7 +254,7 @@ fun UserExploreScreen() {
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(8.dp))
-                            .background(Color.White.copy(alpha = 0.2f))
+                            .background(MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.2f))
                             .clickable {
                                 val intent = Intent(activity, UserPointsActivity::class.java)
                                 activity.startActivity(intent)
@@ -276,20 +267,19 @@ fun UserExploreScreen() {
                         ) {
                             Text(
                                 text = "$userPoints Points",
-                                color = White,
+                                color = MaterialTheme.colorScheme.onPrimary,
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.Bold
                             )
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(
                                 text = "Use >",
-                                color = White,
+                                color = MaterialTheme.colorScheme.onPrimary,
                                 fontSize = 12.sp
                             )
                         }
                     }
                 }
-                // Search bar
                 TradeFlowTopBar(
                     title = {
                         TextField(
@@ -301,7 +291,7 @@ fun UserExploreScreen() {
                             placeholder = {
                                 Text(
                                     "Search items or users...",
-                                    color = Color.White.copy(alpha = 0.7f),
+                                    color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f),
                                     fontSize = 16.sp
                                 )
                             },
@@ -309,7 +299,7 @@ fun UserExploreScreen() {
                                 Icon(
                                     imageVector = Icons.Default.Search,
                                     contentDescription = "Search Icon",
-                                    tint = White
+                                    tint = MaterialTheme.colorScheme.onPrimary
                                 )
                             },
                             trailingIcon = {
@@ -318,7 +308,7 @@ fun UserExploreScreen() {
                                         Icon(
                                             imageVector = Icons.Default.Close,
                                             contentDescription = "Clear Search",
-                                            tint = White
+                                            tint = MaterialTheme.colorScheme.onPrimary
                                         )
                                     }
                                 }
@@ -327,17 +317,17 @@ fun UserExploreScreen() {
                                 .fillMaxWidth()
                                 .padding(end = 8.dp),
                             colors = TextFieldDefaults.colors(
-                                focusedContainerColor = Color.White.copy(alpha = 0.2f),
-                                unfocusedContainerColor = Color.White.copy(alpha = 0.15f),
-                                disabledContainerColor = Color.White.copy(alpha = 0.15f),
+                                focusedContainerColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.2f),
+                                unfocusedContainerColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.15f),
+                                disabledContainerColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.15f),
                                 focusedIndicatorColor = Color.Transparent,
                                 unfocusedIndicatorColor = Color.Transparent,
-                                cursorColor = White,
-                                focusedTextColor = White,
-                                unfocusedTextColor = White
+                                cursorColor = MaterialTheme.colorScheme.onPrimary,
+                                focusedTextColor = MaterialTheme.colorScheme.onPrimary,
+                                unfocusedTextColor = MaterialTheme.colorScheme.onPrimary
                             ),
                             textStyle = TextStyle(
-                                color = White,
+                                color = MaterialTheme.colorScheme.onPrimary,
                                 fontSize = 16.sp
                             ),
                             shape = RoundedCornerShape(24.dp),
@@ -359,7 +349,8 @@ fun UserExploreScreen() {
                         }) {
                             Icon(
                                 imageVector = Icons.Default.Settings,
-                                contentDescription = null
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onPrimary
                             )
                         }
                     }
@@ -371,6 +362,7 @@ fun UserExploreScreen() {
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background)
                 .padding(paddingValues)
         ) {
             // Fixed Filter Tabs Section (Only visible when not searching)
@@ -403,6 +395,7 @@ fun UserExploreScreen() {
                                 text = "Users (${searchedUsers.size})",
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface,
                                 modifier = Modifier.padding(bottom = 8.dp)
                             )
                         }
@@ -429,11 +422,12 @@ fun UserExploreScreen() {
                                 text = "Items (${filteredProducts.size})",
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface,
                                 modifier = Modifier.padding(bottom = 8.dp)
                             )
                         }
 
-                        items(filteredProducts.chunked(2)) { rowProducts ->
+                        items(filteredProducts.chunked(2)) { rowProducts: List<ProductModel> ->
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -493,9 +487,6 @@ fun UserExploreScreen() {
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    // Tabs removed from here
-
-                    // Recommendations
                     if (recommendedRowProducts.isNotEmpty()) {
                         item(span = { GridItemSpan(maxLineSpan) }) {
                             Column {
@@ -514,7 +505,7 @@ fun UserExploreScreen() {
                                 )
                                 Spacer(modifier = Modifier.height(4.dp))
                                 Divider(
-                                    color = Color(0xFFCCCCCC),
+                                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
                                     thickness = 5.dp,
                                     modifier = Modifier.fillMaxWidth()
                                 )
@@ -554,11 +545,10 @@ fun ExploreTabs(selectedTab: String, onTabSelected: (String) -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            // Removed vertical padding here to tighten spacing
             .clip(RoundedCornerShape(12.dp))
             .border(
                 width = 1.dp,
-                color = Color.LightGray,
+                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
                 shape = RoundedCornerShape(12.dp)
             ),
         verticalAlignment = Alignment.CenterVertically
@@ -570,13 +560,17 @@ fun ExploreTabs(selectedTab: String, onTabSelected: (String) -> Unit) {
                 modifier = Modifier
                     .weight(1f)
                     .height(48.dp)
-                    .background(if (isSelected) White else Color(0xFFF0F0F0))
+                    .background(
+                        if (isSelected) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.surfaceVariant
+                    )
                     .clickable { onTabSelected(tabName) },
                 contentAlignment = Alignment.Center
             ) {
                 Text(
                     text = tabName,
-                    color = if (isSelected) Color.Black else Color.Gray
+                    color = if (isSelected) MaterialTheme.colorScheme.onPrimary
+                    else MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
@@ -597,25 +591,26 @@ fun RecommendationHeader(onSeeAllClick: () -> Unit) {
             Image(
                 painter = painterResource(id = R.drawable.shines),
                 contentDescription = null,
-                modifier = Modifier.size(18.dp)
+                modifier = Modifier.size(18.dp),
+                colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.primary)
             )
             Spacer(modifier = Modifier.width(6.dp))
             Text(
                 text = "Recommended for you",
                 fontSize = 16.sp,
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
             )
         }
         Text(
             text = "See All >",
             fontSize = 14.sp,
-            color = Greenish,
+            color = MaterialTheme.colorScheme.primary,
             fontWeight = FontWeight.Medium,
             modifier = Modifier.clickable { onSeeAllClick() }
         )
     }
 }
-
 
 @Composable
 fun CompactRecommendationSection(
@@ -624,10 +619,6 @@ fun CompactRecommendationSection(
 ) {
     val configuration = androidx.compose.ui.platform.LocalConfiguration.current
     val screenWidth = configuration.screenWidthDp.dp
-    // Calculate card width to fit 4 items
-    // Padding: 16dp * 2 = 32dp
-    // Spacing: 8dp * 3 = 24dp
-    // Total non-card space: 56dp
     val cardWidth = (screenWidth - 56.dp) / 4
 
     LazyRow(
@@ -657,13 +648,14 @@ fun CompactRecommendationCard(
             .clickable(onClick = onClick),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Square Card with soft shadow and light background
         Card(
             shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.White),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface
+            ),
             elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
             modifier = Modifier
-                .size(width) // Square
+                .size(width)
         ) {
             Box(modifier = Modifier.fillMaxSize()) {
                 val displayImage = if (product.imageUrl.isNotEmpty()) {
@@ -686,14 +678,14 @@ fun CompactRecommendationCard(
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
-                            .background(Color(0xFFF0F0F0)),
+                            .background(MaterialTheme.colorScheme.surfaceVariant),
                         contentAlignment = Alignment.Center
                     ) {
                         // Fallback icon if no image
                         Icon(
                             imageVector = Icons.Default.Star, // Generic icon
                             contentDescription = null,
-                            tint = Color.Gray,
+                            tint = MaterialTheme.colorScheme.outline,
                             modifier = Modifier.size(24.dp)
                         )
                     }
@@ -708,7 +700,7 @@ fun CompactRecommendationCard(
             text = product.name,
             fontSize = 10.sp,
             fontWeight = FontWeight.Medium,
-            color = Color.Black,
+            color = MaterialTheme.colorScheme.onSurface,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.fillMaxWidth(),
@@ -724,7 +716,9 @@ fun UserSearchCard(user: UserModel, onClick: () -> Unit) {
             .fillMaxWidth()
             .clickable { onClick() },
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Row(
@@ -738,13 +732,13 @@ fun UserSearchCard(user: UserModel, onClick: () -> Unit) {
                 modifier = Modifier
                     .size(56.dp)
                     .clip(CircleShape)
-                    .background(Greenish.copy(alpha = 0.2f)),
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = Icons.Default.Person,
                     contentDescription = "Default Profile",
-                    tint = Greenish,
+                    tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(32.dp)
                 )
             }
@@ -759,6 +753,7 @@ fun UserSearchCard(user: UserModel, onClick: () -> Unit) {
                     text = user.name.ifEmpty { "Unknown User" },
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -767,7 +762,7 @@ fun UserSearchCard(user: UserModel, onClick: () -> Unit) {
                     Text(
                         text = user.email,
                         fontSize = 14.sp,
-                        color = Color.Gray,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -777,7 +772,7 @@ fun UserSearchCard(user: UserModel, onClick: () -> Unit) {
                     Text(
                         text = user.phone,
                         fontSize = 12.sp,
-                        color = Color.Gray,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -788,7 +783,7 @@ fun UserSearchCard(user: UserModel, onClick: () -> Unit) {
             Icon(
                 imageVector = Icons.Default.Person,
                 contentDescription = "View Profile",
-                tint = Greenish,
+                tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(24.dp)
             )
         }
@@ -797,10 +792,10 @@ fun UserSearchCard(user: UserModel, onClick: () -> Unit) {
 
 @Composable
 fun ExploreItemCard(
-    product: ProductModel, 
-    compact: Boolean = false, 
-    isSaved: Boolean = false, 
-    onFavoriteClick: () -> Unit = {}, 
+    product: ProductModel,
+    compact: Boolean = false,
+    isSaved: Boolean = false,
+    onFavoriteClick: () -> Unit = {},
     onClick: () -> Unit
 ) {
     Card(
@@ -808,7 +803,9 @@ fun ExploreItemCard(
             .fillMaxWidth()
             .clickable { onClick() },
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Column(
@@ -819,7 +816,7 @@ fun ExploreItemCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(if (compact) 120.dp else 140.dp)
-                    .background(Color.LightGray)
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
             ) {
                 val displayImage = if (product.imageUrl.isNotEmpty()) {
                     product.imageUrl
@@ -843,7 +840,8 @@ fun ExploreItemCard(
                         painter = painterResource(R.drawable.placeholderimage),
                         contentDescription = null,
                         modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
+                        contentScale = ContentScale.Crop,
+                        colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.outline)
                     )
                 }
 
@@ -853,14 +851,17 @@ fun ExploreItemCard(
                         .align(Alignment.TopEnd)
                         .padding(8.dp)
                         .size(28.dp)
-                        .background(Color.White.copy(alpha = 0.7f), CircleShape)
+                        .background(
+                            MaterialTheme.colorScheme.surface.copy(alpha = 0.7f),
+                            CircleShape
+                        )
                         .clickable { onFavoriteClick() },
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = if (isSaved) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
                         contentDescription = "Favorite",
-                        tint = if (isSaved) Color.Red else Color.Gray,
+                        tint = if (isSaved) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.outline,
                         modifier = Modifier.size(16.dp)
                     )
                 }
@@ -872,7 +873,6 @@ fun ExploreItemCard(
                     .fillMaxWidth()
                     .padding(8.dp)
             ) {
-                // Status Row: Type (Left) and Status Badge (Right)
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -881,15 +881,15 @@ fun ExploreItemCard(
                     Text(
                         text = product.type,
                         fontSize = 12.sp,
-                        color = Greenish,
+                        color = MaterialTheme.colorScheme.primary,
                         fontWeight = FontWeight.Bold
                     )
 
                     val statusColor = when (product.status) {
-                        "Available" -> Greenish
-                        "Completed" -> Color(0xFF2196F3)
-                        "Pending" -> Color(0xFFFF9800)
-                        else -> Color.Gray
+                        "Available" -> MaterialTheme.colorScheme.primary
+                        "Completed" -> MaterialTheme.colorScheme.tertiary
+                        "Pending" -> MaterialTheme.colorScheme.secondary
+                        else -> MaterialTheme.colorScheme.outline
                     }
 
                     Box(
@@ -901,7 +901,7 @@ fun ExploreItemCard(
                         Text(
                             text = product.status,
                             fontSize = 10.sp,
-                            color = Color.White,
+                            color = MaterialTheme.colorScheme.onPrimary,
                             fontWeight = FontWeight.Medium
                         )
                     }
@@ -913,6 +913,7 @@ fun ExploreItemCard(
                     text = product.name,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -922,7 +923,7 @@ fun ExploreItemCard(
                 Text(
                     text = product.description,
                     fontSize = 12.sp,
-                    color = Color.Gray,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -941,7 +942,7 @@ fun ExploreItemCard(
                             "Rs${product.price}"
                         },
                         fontSize = 14.sp,
-                        color = Greenish,
+                        color = MaterialTheme.colorScheme.primary,
                         fontWeight = FontWeight.SemiBold
                     )
 
@@ -950,13 +951,14 @@ fun ExploreItemCard(
                             Image(
                                 painter = painterResource(R.drawable.location_on),
                                 contentDescription = "Location",
-                                modifier = Modifier.size(16.dp)
+                                modifier = Modifier.size(16.dp),
+                                colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.outline)
                             )
                             Spacer(modifier = Modifier.width(2.dp))
                             Text(
                                 text = product.location,
                                 fontSize = 10.sp,
-                                color = Color.Gray,
+                                color = MaterialTheme.colorScheme.outline,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                                 modifier = Modifier.widthIn(max = 60.dp)

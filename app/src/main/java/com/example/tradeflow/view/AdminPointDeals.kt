@@ -57,18 +57,18 @@ class AdminPointDeals : ComponentActivity() {
 fun AdminPointDealsScreen() {
     val context = LocalContext.current
     val activity = context as? ComponentActivity
-    
+
     val pointDealViewModel = remember { PointDealViewModel(PointDealRepoImpl()) }
-    
+
     var showAddDialog by remember { mutableStateOf(false) }
     var editingDeal by remember { mutableStateOf<PointDealModel?>(null) }
-    
+
     LaunchedEffect(Unit) {
         pointDealViewModel.getAllPointDeals()
     }
-    
+
     val allDeals by pointDealViewModel.allDeals.observeAsState(initial = emptyList())
-    
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -86,9 +86,9 @@ fun AdminPointDealsScreen() {
                     containerColor = Greenish
                 ),
                 actions = {
-                    IconButton(onClick = { 
+                    IconButton(onClick = {
                         editingDeal = null
-                        showAddDialog = true 
+                        showAddDialog = true
                     }) {
                         Icon(Icons.Default.Add, "Add Deal", tint = White)
                     }
@@ -121,11 +121,11 @@ fun AdminPointDealsScreen() {
                 )
             }
         }
-        
+
         if (showAddDialog) {
             AddEditPointDealDialog(
                 deal = editingDeal,
-                onDismiss = { 
+                onDismiss = {
                     showAddDialog = false
                     editingDeal = null
                 },
@@ -160,7 +160,7 @@ fun AdminPointDealCard(
 ) {
     val dateFormat = SimpleDateFormat("dd MMM, yyyy", Locale.getDefault())
     val validTillDate = dateFormat.format(Date(deal.validTill))
-    
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
@@ -212,7 +212,7 @@ fun AdminPointDealCard(
                         color = if (deal.isActive) Greenish else Color.Red
                     )
                 }
-                
+
                 Row {
                     IconButton(onClick = onEdit) {
                         Icon(Icons.Default.Edit, "Edit", tint = Greenish)
@@ -242,12 +242,12 @@ fun AddEditPointDealDialog(
     var discountType by remember { mutableStateOf(deal?.discountType ?: "FLAT") }
     var validTillDays by remember { mutableStateOf("30") }
     var isActive by remember { mutableStateOf(deal?.isActive ?: true) }
-    
+
     val tiers = listOf("Bronze", "Silver", "Gold")
     val discountTypes = listOf("FLAT", "UPTO")
     var tierExpanded by remember { mutableStateOf(false) }
     var discountTypeExpanded by remember { mutableStateOf(false) }
-    
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(if (deal == null) "Add Point Deal" else "Edit Point Deal", fontWeight = FontWeight.Bold) },
@@ -265,7 +265,7 @@ fun AddEditPointDealDialog(
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
-                
+
                 OutlinedTextField(
                     value = offer,
                     onValueChange = { offer = it },
@@ -274,7 +274,7 @@ fun AddEditPointDealDialog(
                     singleLine = true,
                     placeholder = { Text("Enter offer text with $ or Rs. amount") }
                 )
-                
+
                 // Tier Dropdown
                 ExposedDropdownMenuBox(
                     expanded = tierExpanded,
@@ -305,7 +305,7 @@ fun AddEditPointDealDialog(
                         }
                     }
                 }
-                
+
                 OutlinedTextField(
                     value = serviceCategory,
                     onValueChange = { serviceCategory = it },
@@ -313,7 +313,7 @@ fun AddEditPointDealDialog(
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
-                
+
                 OutlinedTextField(
                     value = pointsRequired,
                     onValueChange = { pointsRequired = it },
@@ -322,7 +322,7 @@ fun AddEditPointDealDialog(
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     singleLine = true
                 )
-                
+
                 // Discount Type Dropdown
                 ExposedDropdownMenuBox(
                     expanded = discountTypeExpanded,
@@ -353,7 +353,7 @@ fun AddEditPointDealDialog(
                         }
                     }
                 }
-                
+
                 OutlinedTextField(
                     value = discountAmount,
                     onValueChange = { discountAmount = it },
@@ -362,7 +362,7 @@ fun AddEditPointDealDialog(
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     singleLine = true,
                     placeholder = { Text("e.g., 15.0 (will show as $15)") },
-                    supportingText = { 
+                    supportingText = {
                         Text(
                             "Note: Since your items use dollar pricing, discounts are in dollars ($)",
                             fontSize = 10.sp,
@@ -370,7 +370,7 @@ fun AddEditPointDealDialog(
                         )
                     }
                 )
-                
+
                 OutlinedTextField(
                     value = validTillDays,
                     onValueChange = { validTillDays = it },
@@ -379,7 +379,7 @@ fun AddEditPointDealDialog(
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     singleLine = true
                 )
-                
+
                 Row(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -405,7 +405,7 @@ fun AddEditPointDealDialog(
                     } else {
                         offer
                     }
-                    
+
                     val dealModel = PointDealModel(
                         dealId = deal?.dealId ?: "",
                         title = title.ifBlank { "${tier} Deal" },
@@ -434,4 +434,3 @@ fun AddEditPointDealDialog(
         }
     )
 }
-

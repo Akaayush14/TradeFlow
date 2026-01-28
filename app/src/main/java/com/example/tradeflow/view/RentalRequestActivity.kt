@@ -29,10 +29,11 @@ import coil.compose.AsyncImage
 import com.example.tradeflow.R
 import com.example.tradeflow.model.ProductModel
 import com.example.tradeflow.model.UserModel
+import com.example.tradeflow.repository.ProductRepoImpl
 import com.example.tradeflow.repository.UserNotificationRepoImpl
 import com.example.tradeflow.repository.UserRepoImpl
-import com.example.tradeflow.ui.theme.Greenish
-import com.example.tradeflow.ui.theme.White
+import com.example.tradeflow.ui.components.ThemeWrapper
+import com.example.tradeflow.viewmodel.ProductViewModel
 import com.example.tradeflow.viewmodel.UserNotificationViewModel
 import com.example.tradeflow.viewmodel.UserViewModel
 import com.google.firebase.auth.FirebaseAuth
@@ -44,7 +45,9 @@ class RentalRequestActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            RentalRequestScreen()
+            ThemeWrapper {
+                RentalRequestScreen()
+            }
         }
     }
 }
@@ -56,12 +59,15 @@ fun RentalRequestScreen() {
     val activity = context as? RentalRequestActivity
 
     // Get passed data from intent
-    val product = activity?.intent?.getSerializableExtra("product") as? ProductModel
-    val owner = activity?.intent?.getSerializableExtra("owner") as? UserModel
+    val productId = activity?.intent?.getStringExtra("productId") ?: ""
+    val ownerId = activity?.intent?.getStringExtra("ownerId") ?: ""
 
     // Initialize ViewModels
     val notificationViewModel = remember {
         UserNotificationViewModel(UserNotificationRepoImpl())
+    }
+    val productViewModel = remember {
+        ProductViewModel(ProductRepoImpl())
     }
     val userViewModel = remember {
         UserViewModel(UserRepoImpl())
@@ -82,6 +88,28 @@ fun RentalRequestScreen() {
     var showErrorDialog by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf("") }
 
+    // Load product and owner data
+    var productData by remember { mutableStateOf<ProductModel?>(null) }
+    var ownerData by remember { mutableStateOf<UserModel?>(null) }
+
+    // Load product details
+    LaunchedEffect(productId) {
+        if (productId.isNotEmpty()) {
+            productViewModel.getProductById(productId)
+        }
+    }
+
+    // Load owner details
+    LaunchedEffect(ownerId) {
+        if (ownerId.isNotEmpty()) {
+            userViewModel.getUserById(ownerId) { success, _, user ->
+                if (success) {
+                    ownerData = user
+                }
+            }
+        }
+    }
+
     // Load current user data
     LaunchedEffect(currentUserId) {
         if (currentUserId.isNotEmpty()) {
@@ -93,11 +121,17 @@ fun RentalRequestScreen() {
         }
     }
 
+    // Observe product data
+    val productDetails by productViewModel.product.collectAsState()
+    LaunchedEffect(productDetails) {
+        productData = productDetails
+    }
+
     // Calculate rental details when dates change
-    LaunchedEffect(selectedStartDate, selectedEndDate) {
+    LaunchedEffect(selectedStartDate, selectedEndDate, productData) {
         if (selectedStartDate != null && selectedEndDate != null) {
             rentalDays = ((selectedEndDate!! - selectedStartDate!!) / (1000 * 60 * 60 * 24)).toInt() + 1
-            totalPrice = (product?.price ?: 0.0) * rentalDays
+            totalPrice = (productData?.price ?: 0.0) * rentalDays
         }
     }
 
@@ -142,17 +176,21 @@ fun RentalRequestScreen() {
                 title = {
                     Text(
                         "Rental Request",
-                        color = White,
+                        color = MaterialTheme.colorScheme.onPrimary,
                         fontWeight = FontWeight.Bold
                     )
                 },
                 navigationIcon = {
                     IconButton(onClick = { activity?.finish() }) {
-                        Icon(Icons.Default.ArrowBack, "Back", tint = White)
+                        Icon(
+                            Icons.Default.ArrowBack,
+                            "Back",
+                            tint = MaterialTheme.colorScheme.onPrimary
+                        )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Greenish
+                    containerColor = MaterialTheme.colorScheme.primary
                 )
             )
         }
@@ -161,12 +199,15 @@ fun RentalRequestScreen() {
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
+                .background(MaterialTheme.colorScheme.background)
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
             // Product Summary
             item {
-                ProductSummaryCard(product = product)
+                productData?.let { product ->
+                    ProductSummaryCard(product = product)
+                }
             }
 
             // Duration Selection
@@ -176,6 +217,7 @@ fun RentalRequestScreen() {
                     selectedEndDate = selectedEndDate,
                     rentalDays = rentalDays,
                     totalPrice = totalPrice,
+                    pricePerDay = productData?.price ?: 0.0,
                     onStartDateClick = { startDatePicker.show() },
                     onEndDateClick = {
                         if (selectedStartDate != null) {
@@ -201,18 +243,17 @@ fun RentalRequestScreen() {
                     rentalDays = rentalDays,
                     totalPrice = totalPrice,
                     onClick = {
-                        val productData = product
-                        val ownerData = owner
-                        val userData = currentUserData
+                        val product = productData
+                        val owner = ownerData
+                        val user = currentUserData
 
-                        // Null checks before sending request
-                        if (productData == null) {
+                        if (product == null) {
                             errorMessage = "Product information not available"
                             showErrorDialog = true
-                        } else if (ownerData == null) {
+                        } else if (owner == null) {
                             errorMessage = "Owner information not available"
                             showErrorDialog = true
-                        } else if (userData == null) {
+                        } else if (user == null) {
                             errorMessage = "User information not available. Please try again."
                             showErrorDialog = true
                         } else if (selectedStartDate == null || selectedEndDate == null) {
@@ -221,14 +262,14 @@ fun RentalRequestScreen() {
                         } else {
                             isLoading = true
                             notificationViewModel.createItemRequest(
-                                product = productData,
-                                owner = ownerData,
-                                requester = userData,
+                                product = product,
+                                owner = owner,
+                                requester = user,
                                 requestType = "RENT",
                                 message = message,
                                 rentalStartDate = selectedStartDate!!,
                                 rentalEndDate = selectedEndDate!!,
-                                rentalPricePerDay = productData.price
+                                rentalPricePerDay = product.price
                             ) { success, msg ->
                                 isLoading = false
                                 if (success) {
@@ -255,11 +296,15 @@ fun RentalRequestScreen() {
             title = {
                 Text(
                     "Request Sent!",
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
             },
             text = {
-                Text("Your rental request has been sent to the owner. You'll be notified when they respond.")
+                Text(
+                    "Your rental request has been sent to the owner. You'll be notified when they respond.",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             },
             confirmButton = {
                 Button(
@@ -268,12 +313,16 @@ fun RentalRequestScreen() {
                         activity?.finish()
                     },
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = Greenish
+                        containerColor = MaterialTheme.colorScheme.primary
                     )
                 ) {
-                    Text("OK")
+                    Text(
+                        "OK",
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
                 }
-            }
+            },
+            containerColor = MaterialTheme.colorScheme.surface
         )
     }
 
@@ -285,42 +334,52 @@ fun RentalRequestScreen() {
                 Text(
                     "Error",
                     fontWeight = FontWeight.Bold,
-                    color = Color.Red
+                    color = MaterialTheme.colorScheme.error
                 )
             },
-            text = { Text(errorMessage) },
+            text = {
+                Text(
+                    errorMessage,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            },
             confirmButton = {
                 Button(
                     onClick = { showErrorDialog = false },
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = Greenish
+                        containerColor = MaterialTheme.colorScheme.primary
                     )
                 ) {
-                    Text("OK")
+                    Text(
+                        "OK",
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
                 }
-            }
+            },
+            containerColor = MaterialTheme.colorScheme.surface
         )
     }
 }
 
 @Composable
-fun ProductSummaryCard(product: ProductModel?) {
+fun ProductSummaryCard(product: ProductModel) {
     val allImages = remember(product) {
-        product?.let {
-            val list = mutableListOf<String>()
-            if (it.imageUrl.isNotEmpty()) list.add(it.imageUrl)
-            if (it.imageUrls.isNotEmpty()) list.addAll(it.imageUrls)
-            if (it.imageUrl2.isNotEmpty()) list.add(it.imageUrl2)
-            if (it.imageUrl3.isNotEmpty()) list.add(it.imageUrl3)
-            if (it.imageUrl4.isNotEmpty()) list.add(it.imageUrl4)
-            list.filter { url -> url.isNotEmpty() }.distinct()
-        } ?: emptyList()
+        val list = mutableListOf<String>()
+        if (product.imageUrl.isNotEmpty()) list.add(product.imageUrl)
+        if (product.imageUrls.isNotEmpty()) list.addAll(product.imageUrls)
+        if (product.imageUrl2.isNotEmpty()) list.add(product.imageUrl2)
+        if (product.imageUrl3.isNotEmpty()) list.add(product.imageUrl3)
+        if (product.imageUrl4.isNotEmpty()) list.add(product.imageUrl4)
+        list.filter { url -> url.isNotEmpty() }.distinct()
     }
 
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
-        elevation = CardDefaults.cardElevation(4.dp)
+        elevation = CardDefaults.cardElevation(4.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        )
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(
@@ -328,7 +387,7 @@ fun ProductSummaryCard(product: ProductModel?) {
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 AsyncImage(
-                    model = product?.imageUrl ?: "",
+                    model = product.imageUrl,
                     contentDescription = "Product",
                     modifier = Modifier
                         .size(80.dp)
@@ -339,21 +398,22 @@ fun ProductSummaryCard(product: ProductModel?) {
 
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = product?.name ?: "",
+                        text = product.name,
                         fontWeight = FontWeight.Bold,
-                        fontSize = 16.sp
+                        fontSize = 16.sp,
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = "$${product?.price ?: 0}/day",
-                        color = Greenish,
+                        text = "Rs${product.price}/day",
+                        color = MaterialTheme.colorScheme.primary,
                         fontWeight = FontWeight.SemiBold
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = product?.description ?: "",
+                        text = product.description,
                         fontSize = 12.sp,
-                        color = Color.Gray,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 2
                     )
                 }
@@ -371,7 +431,11 @@ fun ProductSummaryCard(product: ProductModel?) {
                             modifier = Modifier
                                 .size(60.dp)
                                 .clip(RoundedCornerShape(4.dp))
-                                .border(1.dp, Color.LightGray, RoundedCornerShape(4.dp)),
+                                .border(
+                                    1.dp,
+                                    MaterialTheme.colorScheme.outline,
+                                    RoundedCornerShape(4.dp)
+                                ),
                             contentScale = androidx.compose.ui.layout.ContentScale.Crop,
                             error = painterResource(R.drawable.placeholderimage)
                         )
@@ -388,12 +452,16 @@ fun DurationSelectionSection(
     selectedEndDate: Long?,
     rentalDays: Int,
     totalPrice: Double,
+    pricePerDay: Double,
     onStartDateClick: () -> Unit,
     onEndDateClick: () -> Unit
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp)
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        )
     ) {
         Column(
             modifier = Modifier
@@ -404,7 +472,8 @@ fun DurationSelectionSection(
             Text(
                 text = "Select Rental Duration",
                 fontWeight = FontWeight.Bold,
-                fontSize = 18.sp
+                fontSize = 18.sp,
+                color = MaterialTheme.colorScheme.onSurface
             )
 
             // Start Date
@@ -428,7 +497,7 @@ fun DurationSelectionSection(
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(
-                        containerColor = Color(0xFFF0F8FF)
+                        containerColor = MaterialTheme.colorScheme.primaryContainer
                     )
                 ) {
                     Column(
@@ -441,18 +510,43 @@ fun DurationSelectionSection(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Text("Duration:")
-                            Text("$rentalDays days", fontWeight = FontWeight.SemiBold)
+                            Text(
+                                "Duration:",
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                            Text(
+                                "$rentalDays days",
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
                         }
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Text("Total Price:")
                             Text(
-                                "$${String.format("%.2f", totalPrice)}",
-                                color = Greenish,
-                                fontWeight = FontWeight.Bold
+                                "Price per day:",
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                            Text(
+                                "Rs${String.format("%.2f", pricePerDay)}",
+                                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(
+                                "Total Price:",
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                            Text(
+                                "Rs${String.format("%.2f", totalPrice)}",
+                                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 16.sp
                             )
                         }
                     }
@@ -476,7 +570,12 @@ fun DateSelectionRow(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(8.dp))
-            .background(if (isEnabled) Color(0xFFF8F9FA) else Color(0xFFE9ECEF))
+            .background(
+                if (isEnabled)
+                    MaterialTheme.colorScheme.surfaceVariant
+                else
+                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+            )
             .clickable(enabled = isEnabled) { onClick() }
             .padding(16.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -486,19 +585,25 @@ fun DateSelectionRow(
             Text(
                 text = label,
                 fontSize = 12.sp,
-                color = Color.Gray
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Text(
                 text = dateStr,
                 fontWeight = FontWeight.SemiBold,
-                color = if (isEnabled) Color.Black else Color.Gray
+                color = if (isEnabled)
+                    MaterialTheme.colorScheme.onSurface
+                else
+                    MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
 
         Icon(
             Icons.Default.CalendarToday,
             contentDescription = "Calendar",
-            tint = if (isEnabled) Greenish else Color.Gray
+            tint = if (isEnabled)
+                MaterialTheme.colorScheme.primary
+            else
+                MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
 }
@@ -510,7 +615,10 @@ fun MessageSection(
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp)
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        )
     ) {
         Column(
             modifier = Modifier
@@ -521,19 +629,33 @@ fun MessageSection(
                 text = "Message to Owner (Optional)",
                 fontWeight = FontWeight.Bold,
                 fontSize = 16.sp,
+                color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.padding(bottom = 12.dp)
             )
 
             OutlinedTextField(
                 value = message,
                 onValueChange = onMessageChange,
-                placeholder = { Text("Add a message for the owner...") },
+                placeholder = {
+                    Text(
+                        "Add a message for the owner...",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                },
                 modifier = Modifier.fillMaxWidth(),
                 minLines = 3,
                 maxLines = 5,
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = Greenish,
-                    cursorColor = Greenish
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                    cursorColor = MaterialTheme.colorScheme.primary,
+                    focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                    unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                    focusedLabelColor = MaterialTheme.colorScheme.primary,
+                    unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
+                ),
+                textStyle = androidx.compose.ui.text.TextStyle(
+                    color = MaterialTheme.colorScheme.onSurface
                 )
             )
         }
@@ -555,27 +677,29 @@ fun ActionButton(
             .fillMaxWidth()
             .height(56.dp),
         colors = ButtonDefaults.buttonColors(
-            containerColor = Greenish,
-            disabledContainerColor = Color.Gray
+            containerColor = MaterialTheme.colorScheme.primary,
+            disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant
         ),
         shape = RoundedCornerShape(12.dp)
     ) {
         if (isLoading) {
             CircularProgressIndicator(
                 modifier = Modifier.size(24.dp),
-                color = White
+                color = MaterialTheme.colorScheme.onPrimary
             )
         } else {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(
                     text = "Send Rental Request",
                     fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onPrimary
                 )
                 if (rentalDays > 0) {
                     Text(
-                        text = "$rentalDays days • $${String.format("%.2f", totalPrice)}",
-                        fontSize = 12.sp
+                        text = "$rentalDays days • Rs${String.format("%.2f", totalPrice)}",
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f)
                     )
                 }
             }

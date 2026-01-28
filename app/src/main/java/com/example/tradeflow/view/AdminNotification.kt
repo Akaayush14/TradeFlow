@@ -59,7 +59,15 @@ import androidx.compose.ui.unit.sp
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.systemBars
 import com.example.tradeflow.R
+import coil.compose.AsyncImage
+import androidx.compose.ui.layout.ContentScale
+import com.example.tradeflow.model.ProductModel
+import androidx.compose.ui.draw.clip
 import com.example.tradeflow.model.NotificationModel
 import com.example.tradeflow.repository.NotificationRepoImpl
 import com.example.tradeflow.repository.ProductRepoImpl
@@ -95,26 +103,14 @@ class AdminNotification : ComponentActivity() {
 @OptIn(ExperimentalMaterial3Api::class)
 fun AdminNotificationScreen(onBackClick: () -> Unit = {}) {
     val context = LocalContext.current
-    var selectedIndex by remember { mutableStateOf(4) } // Notification tab selected
     var showDeleteAllDialog by remember { mutableStateOf(false) }
     val notificationViewModel = remember { NotificationViewModel(NotificationRepoImpl()) }
     val notifications by notificationViewModel.notifications.collectAsState()
     val selectedIds = remember { mutableStateListOf<String>() }
     val isSelectionMode = selectedIds.isNotEmpty()
 
-    BackHandler {
-        if (isSelectionMode) {
-            selectedIds.clear()
-        } else {
-            val intent = Intent(context, AdminDashExp::class.java)
-            context.startActivity(intent)
-            if (context is ComponentActivity) {
-                context.finish()
-            }
-        }
-    }
-
     Scaffold(
+        contentWindowInsets = WindowInsets.systemBars.only(WindowInsetsSides.Horizontal),
         topBar = {
             TopAppBar(
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -123,13 +119,7 @@ fun AdminNotificationScreen(onBackClick: () -> Unit = {}) {
                     navigationIconContentColor = DarkGreen
                 ),
                 navigationIcon = {
-                    IconButton(onClick = onBackClick) {
-                        Icon(
-                            painter = painterResource(id = R.drawable.ic_back),
-                            contentDescription = "Back",
-                            tint = Color.White
-                        )
-                    }
+                    // Optional back button
                 },
                 title = {
                     Box(
@@ -146,98 +136,6 @@ fun AdminNotificationScreen(onBackClick: () -> Unit = {}) {
                     }
                 },
             )
-        },
-        bottomBar = {
-            NavigationBar(containerColor = Greenish) {
-                NavigationBarItem(
-                    selected = selectedIndex == 0,
-                    onClick = {
-                        val intent = Intent(context, AdminDashExp::class.java)
-                        context.startActivity(intent)
-                        if (context is ComponentActivity) {
-                            context.finish()
-                        }
-                    },
-                    icon = {
-                        Icon(
-                            painter = painterResource(R.drawable.ic_explore),
-                            contentDescription = "Explore",
-                            tint = Color.White
-                        )
-                    },
-                    label = { Text("Explore", color = Color.White) }
-                )
-
-                NavigationBarItem(
-                    selected = selectedIndex == 1,
-                    onClick = {
-                        val intent = Intent(context, AdminDashUser::class.java)
-                        context.startActivity(intent)
-                        if (context is ComponentActivity) {
-                            context.finish()
-                        }
-                    },
-                    icon = {
-                        Icon(
-                            painter = painterResource(R.drawable.ic_user),
-                            contentDescription = "Users",
-                            tint = Color.White
-                        )
-                    },
-                    label = { Text("Users", color = Color.White) }
-                )
-
-                NavigationBarItem(
-                    selected = selectedIndex == 3,
-                    onClick = {
-                        val intent = Intent(context, AdminDashItem::class.java)
-                        context.startActivity(intent)
-                        if (context is ComponentActivity) {
-                            context.finish()
-                        }
-                    },
-                    icon = {
-                        Icon(
-                            painter = painterResource(R.drawable.ic_items),
-                            contentDescription = "Items",
-                            tint = Color.White
-                        )
-                    },
-                    label = { Text("Items", color = Color.White) }
-                )
-
-                NavigationBarItem(
-                    selected = selectedIndex == 4,
-                    onClick = { selectedIndex = 4 },
-                    icon = {
-                        Icon(
-                            painter = painterResource(R.drawable.notification_filled),
-                            contentDescription = "Notification",
-                            tint = Color.White
-                        )
-                    },
-                    label = { Text("Notification", color = Color.White) }
-                )
-
-                NavigationBarItem(
-                    selected = selectedIndex == 2,
-                    onClick = {
-                        val intent = Intent(context, AdminProfile::class.java)
-                        context.startActivity(intent)
-                        if (context is ComponentActivity) {
-                            context.finish()
-                        }
-                    },
-                    icon = {
-                        Icon(
-                            painter = painterResource(R.drawable.ic_profile),
-                            contentDescription = "Profile",
-                            tint = Color.White
-                        )
-                    },
-                    label = { Text("Profile", color = Color.White) }
-                )
-            }
         }
     ) { padding ->
         Column(
@@ -515,6 +413,38 @@ fun NotificationCard(
         }
     }
 
+    // State for product image if it's an item notification
+    var product by remember { mutableStateOf<ProductModel?>(null) }
+    // State for user image if it's a user notification
+    var user by remember { mutableStateOf<com.example.tradeflow.model.UserModel?>(null) }
+
+    // Use a local ViewModel for fetching to avoid race conditions with shared StateFlow
+    val itemViewModel = remember { ProductViewModel(ProductRepoImpl()) }
+    // Use a local UserViewModel for fetching user details
+    val userDetailsViewModel = remember { UserViewModel(UserRepoImpl()) }
+
+    LaunchedEffect(notification) {
+        if (notification.type.startsWith("item_") && notification.itemId.isNotEmpty()) {
+            itemViewModel.getProductById(notification.itemId)
+        } else if (notification.type.startsWith("user_") && notification.userId.isNotEmpty()) {
+            userDetailsViewModel.getUserById(notification.userId) { _, _, fetchedUser ->
+                if (fetchedUser != null) {
+                    user = fetchedUser
+                }
+            }
+        }
+    }
+
+    // Observe product data
+    val fetchedProduct by itemViewModel.product.collectAsState()
+
+    // Update local product state when fetched product matches current notification item
+    LaunchedEffect(fetchedProduct) {
+        if (fetchedProduct?.productId == notification.itemId) {
+            product = fetchedProduct
+        }
+    }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -567,6 +497,74 @@ fun NotificationCard(
                             contentDescription = "Selected",
                             tint = Greenish,
                             modifier = Modifier.size(16.dp)
+                        )
+                    }
+                }
+            }
+
+            // Display item image if available and type is listed/unlisted
+            if ((notification.type == "item_listed" || notification.type == "item_unlisted") && product != null) {
+                Box(
+                    modifier = Modifier
+                        .padding(end = 12.dp)
+                        .size(60.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(Color.LightGray),
+                    contentAlignment = Alignment.Center
+                ) {
+                    val imageUrl = if (product!!.imageUrl.isNotEmpty()) {
+                        product!!.imageUrl
+                    } else if (product!!.imageUrls.isNotEmpty()) {
+                        product!!.imageUrls.first()
+                    } else {
+                        ""
+                    }
+
+                    if (imageUrl.isNotEmpty()) {
+                        AsyncImage(
+                            model = imageUrl,
+                            contentDescription = "Product Image",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop,
+                            placeholder = painterResource(R.drawable.ic_items),
+                            error = painterResource(R.drawable.ic_items)
+                        )
+                    } else {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_items),
+                            contentDescription = "Product Image",
+                            tint = Color.Gray,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                }
+            } else if ((notification.type.startsWith("user_")) && user != null) {
+                // Display user profile image for user-related notifications
+                Box(
+                    modifier = Modifier
+                        .padding(end = 12.dp)
+                        .size(60.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(Color.LightGray),
+                    contentAlignment = Alignment.Center
+                ) {
+                    val imageUrl = user!!.profileImageUrl
+
+                    if (imageUrl.isNotEmpty()) {
+                        AsyncImage(
+                            model = imageUrl,
+                            contentDescription = "User Image",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop,
+                            placeholder = painterResource(R.drawable.ic_profile),
+                            error = painterResource(R.drawable.ic_profile)
+                        )
+                    } else {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_profile),
+                            contentDescription = "User Image",
+                            tint = Color.Gray,
+                            modifier = Modifier.size(24.dp)
                         )
                     }
                 }

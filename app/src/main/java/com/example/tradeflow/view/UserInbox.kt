@@ -1,5 +1,6 @@
 package com.example.tradeflow.view
 
+import android.content.Intent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -19,14 +20,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.Badge
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -35,12 +29,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.tradeflow.ui.theme.Greenish
-import com.example.tradeflow.ui.theme.White
+import com.example.tradeflow.R
 
 // Data model for messages
 data class MessagePreview(
@@ -53,29 +47,54 @@ data class MessagePreview(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun UserInboxScreen(onBackClick: () -> Unit = {}) {
+    val context = LocalContext.current
     var searchQuery by remember { mutableStateOf("") }
     val messages = remember { getMockMessages() }
 
     Scaffold(
         topBar = {
             InboxTopAppBar(onBackClick = onBackClick)
+        },
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = {
+                    // Open Chat Bot
+                    val intent = Intent(context, ChatActivity::class.java)
+                    intent.putExtra("receiverId", "chat_bot")
+                    intent.putExtra("receiverName", "TradeFlow Assistant")
+                    context.startActivity(intent)
+                },
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary
+            ) {
+                Icon(
+                    painter = painterResource(id = R.drawable.ic_chatbot),
+                    contentDescription = "Chat Bot",
+                    modifier = Modifier.size(24.dp)
+                )
+            }
         }
     ) { innerPadding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
+                .background(MaterialTheme.colorScheme.background)
         ) {
-
             OutlinedTextField(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
-                placeholder = { Text("Search", color = Color.Gray) },
+                placeholder = {
+                    Text(
+                        "Search",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                },
                 leadingIcon = {
                     Icon(
                         Icons.Default.Search,
                         contentDescription = "Search Icon",
-                        tint = Color.Gray
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 },
                 trailingIcon = {
@@ -84,7 +103,7 @@ fun UserInboxScreen(onBackClick: () -> Unit = {}) {
                             Icon(
                                 imageVector = Icons.Default.Close,
                                 contentDescription = "Clear Search",
-                                tint = Color.Gray
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
@@ -93,16 +112,17 @@ fun UserInboxScreen(onBackClick: () -> Unit = {}) {
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 12.dp),
                 colors = TextFieldDefaults.colors(
-                    focusedContainerColor = Color(0xFFF0F0F0),
-                    unfocusedContainerColor = Color(0xFFF0F0F0),
-                    disabledContainerColor = Color(0xFFF0F0F0),
-                    focusedIndicatorColor = Color.Transparent,
-                    unfocusedIndicatorColor = Color.Transparent,
-                    cursorColor = Greenish
+                    focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                    disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                    focusedIndicatorColor = MaterialTheme.colorScheme.primary,
+                    unfocusedIndicatorColor = MaterialTheme.colorScheme.outline,
+                    cursorColor = MaterialTheme.colorScheme.primary,
+                    focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                    unfocusedTextColor = MaterialTheme.colorScheme.onSurface
                 ),
                 shape = RoundedCornerShape(50.dp)
             )
-
 
             LazyColumn(
                 modifier = Modifier.fillMaxWidth()
@@ -123,7 +143,7 @@ fun InboxTopAppBar(onBackClick: () -> Unit = {}) {
         title = {
             Text(
                 "Inbox",
-                color = White
+                color = MaterialTheme.colorScheme.onPrimary
             )
         },
         onBackClick = onBackClick
@@ -140,18 +160,17 @@ fun MessageItem(message: MessagePreview, onClick: () -> Unit) {
             .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-
         Box(
             modifier = Modifier
                 .size(50.dp)
                 .clip(CircleShape)
-                .background(Color(0xFFE0F2FE))
+                .background(MaterialTheme.colorScheme.primaryContainer)
         ) {
             Icon(
                 Icons.Default.Person,
                 contentDescription = "Avatar",
                 modifier = Modifier.align(Alignment.Center),
-                tint = Color(0xFF0288D1)
+                tint = MaterialTheme.colorScheme.onPrimaryContainer
             )
         }
 
@@ -162,25 +181,24 @@ fun MessageItem(message: MessagePreview, onClick: () -> Unit) {
                 text = message.senderName,
                 fontWeight = FontWeight.Bold,
                 fontSize = 16.sp,
-                color = Color.Black
+                color = MaterialTheme.colorScheme.onSurface
             )
             Text(
                 text = message.lastMessage,
                 fontSize = 14.sp,
-                color = Color.Gray,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
             )
         }
 
         if (message.unreadCount > 0) {
             Spacer(modifier = Modifier.width(8.dp))
-            // The blue circle badge exactly as in the image
             Badge(
-                containerColor = Color(0xFF3B82F6)
+                containerColor = MaterialTheme.colorScheme.primary
             ) {
                 Text(
                     text = message.unreadCount.toString(),
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.onPrimary,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(4.dp)
@@ -189,7 +207,6 @@ fun MessageItem(message: MessagePreview, onClick: () -> Unit) {
         }
     }
 }
-
 
 fun getMockMessages(): List<MessagePreview> {
     return listOf(

@@ -11,27 +11,23 @@ data class RequestModel(
     val ownerId: String = "",
     val ownerName: String = "",
 
-    // ✅ NEW: Owner details
     val ownerImage: String = "",
 
     val requesterId: String = "",
     val requesterName: String = "",
     val requesterImage: String = "",
 
-    // ✅ NEW: Requester reputation
     val requesterRating: Double = 0.0,
     val requesterReviewCount: Int = 0,
 
     val requesterMessage: String = "",
 
-    // ✅ NEW: Barter exchange details
     val offerProductId: String = "",
     val offerProductName: String = "",
     val offerProductImage: String = "",
     val offerProductPrice: Double = 0.0,
     val offeredItems: List<OfferedItem> = emptyList(),
 
-    // ✅ NEW: Rental details
     val rentalStartDate: Long = 0L,
     val rentalEndDate: Long = 0L,
     val rentalPeriod: String = "",
