@@ -14,6 +14,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -29,12 +30,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.example.tradeflow.R
-import com.example.tradeflow.model.ProductModel
-import com.example.tradeflow.repository.ProductRepoImpl
+import com.example.tradeflow.model.RequestModel
+import com.example.tradeflow.repository.UserNotificationRepoImpl
 import com.example.tradeflow.repository.UserRepoImpl
 import com.example.tradeflow.ui.theme.Greenish
 import com.example.tradeflow.ui.theme.White
-import com.example.tradeflow.viewmodel.ProductViewModel
+import com.example.tradeflow.viewmodel.UserNotificationViewModel
 import com.example.tradeflow.viewmodel.UserViewModel
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -56,35 +57,52 @@ class UserTradeHistoryActivity : ComponentActivity() {
 @Composable
 fun UserTradeHistoryScreen(onBackClick: () -> Unit) {
     val context = LocalContext.current
-    val productViewModel = remember { ProductViewModel(ProductRepoImpl()) }
+    val notificationViewModel = remember { UserNotificationViewModel(UserNotificationRepoImpl()) }
     val userViewModel = remember { UserViewModel(UserRepoImpl()) }
     val currentUser = userViewModel.getCurrentUser()
     
-    val allProducts by productViewModel.allProducts.collectAsState()
+    val tradeHistory by notificationViewModel.tradeHistory.collectAsState()
     var selectedFilter by remember { mutableStateOf("All") }
 
     LaunchedEffect(currentUser) {
         currentUser?.let {
-            productViewModel.getProductsByOwner(it.uid)
+            notificationViewModel.loadTradeHistory(it.uid)
         }
     }
 
-    // Filter for completed trades only
-    val completedTrades = remember(allProducts) {
-        allProducts.filter { it.status == "Completed" }
-    }
-
     // Calculate stats
-    val totalTrades = completedTrades.size
-    val barterCount = completedTrades.count { it.type.equals("Barter", ignoreCase = true) || it.type.equals("Both", ignoreCase = true) }
-    val rentalCount = completedTrades.count { it.type.equals("Rent", ignoreCase = true) }
+    val totalTrades = tradeHistory.size
+    val barterCount = tradeHistory.count { it.productType.equals("BARTER", ignoreCase = true) || it.productType.equals("BOTH", ignoreCase = true) }
+    val rentalCount = tradeHistory.count { it.productType.equals("RENT", ignoreCase = true) }
 
     // Filter list based on selection
-    val displayedTrades = remember(completedTrades, selectedFilter) {
+    val displayedTrades = remember(tradeHistory, selectedFilter) {
         when (selectedFilter) {
-            "Barter" -> completedTrades.filter { it.type.equals("Barter", ignoreCase = true) || it.type.equals("Both", ignoreCase = true) }
-            "Rental" -> completedTrades.filter { it.type.equals("Rent", ignoreCase = true) }
-            else -> completedTrades
+            "Barter" -> tradeHistory.filter { it.productType.equals("BARTER", ignoreCase = true) || it.productType.equals("BOTH", ignoreCase = true) }
+            "Rental" -> tradeHistory.filter { it.productType.equals("RENT", ignoreCase = true) }
+            else -> tradeHistory
+        }
+    }
+
+    // Group trades by date
+    val groupedTrades = remember(displayedTrades) {
+        displayedTrades.groupBy { trade ->
+            val date = if (trade.completedAt > 0) Date(trade.completedAt) else Date(trade.createdAt)
+            val today = Date()
+            val calendar = java.util.Calendar.getInstance()
+            calendar.add(java.util.Calendar.DAY_OF_YEAR, -1)
+            val yesterday = calendar.time
+            
+            val sdf = SimpleDateFormat("yyyyMMdd", Locale.getDefault())
+            val tradeDate = sdf.format(date)
+            val todayDate = sdf.format(today)
+            val yesterdayDate = sdf.format(yesterday)
+            
+            when (tradeDate) {
+                todayDate -> "Today"
+                yesterdayDate -> "Yesterday"
+                else -> "Older"
+            }
         }
     }
 
@@ -208,7 +226,7 @@ fun UserTradeHistoryScreen(onBackClick: () -> Unit) {
             }
 
             // Trades List
-            if (displayedTrades.isEmpty()) {
+            if (groupedTrades.isEmpty()) {
                 item {
                     Box(
                         modifier = Modifier
@@ -223,8 +241,25 @@ fun UserTradeHistoryScreen(onBackClick: () -> Unit) {
                     }
                 }
             } else {
-                items(displayedTrades) { product ->
-                    TradeHistoryItem(product)
+                // Define order: Today, Yesterday, Older
+                val order = listOf("Today", "Yesterday", "Older")
+                val sortedGroups = groupedTrades.toSortedMap(compareBy { 
+                    order.indexOf(it) 
+                })
+
+                sortedGroups.forEach { (dateLabel, trades) ->
+                    item {
+                        Text(
+                            text = dateLabel,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.Black,
+                            modifier = Modifier.padding(vertical = 8.dp)
+                        )
+                    }
+                    items(trades) { trade ->
+                        TradeHistoryItem(trade, currentUser?.uid ?: "")
+                    }
                 }
             }
         }
@@ -265,46 +300,189 @@ fun SummaryCard(
 }
 
 @Composable
-fun TradeHistoryItem(product: ProductModel) {
+fun TradeHistoryItem(request: RequestModel, currentUserId: String) {
+    val isOwner = request.ownerId == currentUserId
+    val otherUserName = if (isOwner) request.requesterName else request.ownerName
+    val otherUserImage = if (isOwner) request.requesterImage else request.ownerImage
+    
+    // Determine what to show based on type
+    val isBarter = request.productType.equals("BARTER", ignoreCase = true) || request.productType.equals("BOTH", ignoreCase = true)
+    
+    // For Barter: 
+    // If Owner: I gave 'productName', I got 'offerProductName'
+    // If Requester: I gave 'offerProductName', I got 'productName'
+    
+    val itemGivenName = if (isOwner) request.productName else request.offerProductName
+    val itemGivenImage = if (isOwner) request.productImage else request.offerProductImage
+    
+    val itemReceivedName = if (isOwner) request.offerProductName else request.productName
+    val itemReceivedImage = if (isOwner) request.offerProductImage else request.productImage
+    
+    // For Rent:
+    // If Owner: I rented out 'productName'
+    // If Requester: I rented 'productName'
+    
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
-        Row(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(12.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .padding(12.dp)
         ) {
-            AsyncImage(
-                model = product.imageUrl,
-                contentDescription = product.name,
-                modifier = Modifier
-                    .size(60.dp)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(Color.Gray),
-                contentScale = ContentScale.Crop
-            )
+            // Header: User Info and Date
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                // Avatar (Initials if no image)
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(Color.LightGray),
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (otherUserImage.isNotEmpty()) {
+                        AsyncImage(
+                            model = otherUserImage,
+                            contentDescription = otherUserName,
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                    } else {
+                        Text(
+                            text = otherUserName.take(1).uppercase(),
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
+                    }
+                }
+                
+                Spacer(modifier = Modifier.width(8.dp))
+                
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = otherUserName,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = if (request.completedAt > 0) formatDate(request.completedAt) else formatDate(request.createdAt),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color.Gray
+                    )
+                }
+                
+                // Status Badge
+                Surface(
+                    color = Greenish.copy(alpha = 0.1f),
+                    shape = RoundedCornerShape(4.dp)
+                ) {
+                    Text(
+                        text = if (request.status == "COMPLETED") "Completed" else request.status,
+                        color = Greenish,
+                        style = MaterialTheme.typography.labelSmall,
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                    )
+                }
+            }
             
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = product.name,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    text = "Completed: ${formatDate(product.completedAt ?: product.createdAt)}", // Fallback if completedAt null
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Color.Gray
-                )
-                Text(
-                    text = product.type,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = if (product.type == "Rent") Color(0xFFFFA000) else Greenish
-                )
+            Spacer(modifier = Modifier.height(12.dp))
+            
+            // Content
+            if (isBarter) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Given Item
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        AsyncImage(
+                            model = itemGivenName.takeIf { it.isNotEmpty() } ?: "", // Fallback or handle empty
+                            contentDescription = itemGivenName,
+                            modifier = Modifier
+                                .size(50.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(Color.Gray),
+                            contentScale = ContentScale.Crop
+                        )
+                        Text(
+                            text = itemGivenName,
+                            style = MaterialTheme.typography.bodySmall,
+                            maxLines = 1,
+                            modifier = Modifier.padding(top = 4.dp)
+                        )
+                        Text(text = "You traded", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+                    }
+                    
+                    Icon(
+                        imageVector = Icons.Default.ArrowForward,
+                        contentDescription = "Traded with",
+                        tint = Color.Gray,
+                        modifier = Modifier.size(24.dp)
+                    )
+                    
+                    // Received Item
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        AsyncImage(
+                            model = itemReceivedImage,
+                            contentDescription = itemReceivedName,
+                            modifier = Modifier
+                                .size(50.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(Color.Gray),
+                            contentScale = ContentScale.Crop
+                        )
+                        Text(
+                            text = itemReceivedName,
+                            style = MaterialTheme.typography.bodySmall,
+                            maxLines = 1,
+                            modifier = Modifier.padding(top = 4.dp)
+                        )
+                        Text(text = "You received", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+                    }
+                }
+            } else {
+                // Rental
+                Row(modifier = Modifier.fillMaxWidth()) {
+                     AsyncImage(
+                        model = request.productImage,
+                        contentDescription = request.productName,
+                        modifier = Modifier
+                            .size(60.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(Color.Gray),
+                        contentScale = ContentScale.Crop
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column {
+                        Text(
+                            text = request.productName,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = if (isOwner) "Rented to $otherUserName" else "Rented from $otherUserName",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color.Gray
+                        )
+                        Text(
+                            text = "${request.rentalPriceFormatted} • ${request.rentalPeriod}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = Color(0xFFFFA000)
+                        )
+                    }
+                }
             }
         }
     }

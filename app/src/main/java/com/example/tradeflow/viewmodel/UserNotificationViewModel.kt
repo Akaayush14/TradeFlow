@@ -21,6 +21,9 @@ class UserNotificationViewModel(private val repository: UserNotificationRepoImpl
     private val _myRequests = MutableStateFlow<List<RequestModel>>(emptyList())
     val myRequests: StateFlow<List<RequestModel>> = _myRequests
 
+    private val _tradeHistory = MutableStateFlow<List<RequestModel>>(emptyList())
+    val tradeHistory: StateFlow<List<RequestModel>> = _tradeHistory
+
     private val _unreadCount = MutableStateFlow(0)
     val unreadCount: StateFlow<Int> = _unreadCount
 
@@ -195,6 +198,28 @@ class UserNotificationViewModel(private val repository: UserNotificationRepoImpl
             repository.getRequestsByRequester(userId) { success, _, requests ->
                 if (success) {
                     _myRequests.value = requests?.sortedByDescending { it.createdAt } ?: emptyList()
+                }
+            }
+        }
+    }
+
+    fun loadTradeHistory(userId: String) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            repository.getRequestsByRequester(userId) { success1, _, myRequests ->
+                repository.getRequestsByOwner(userId) { success2, _, incomingRequests ->
+                    val allRequests = mutableListOf<RequestModel>()
+                    if (success1 && myRequests != null) allRequests.addAll(myRequests)
+                    if (success2 && incomingRequests != null) allRequests.addAll(incomingRequests)
+
+                    // Filter for COMPLETED status and distinct by requestId to avoid duplicates
+                    val completed = allRequests
+                        .filter { it.status.equals("COMPLETED", ignoreCase = true) }
+                        .distinctBy { it.requestId }
+                        .sortedByDescending { it.completedAt }
+
+                    _tradeHistory.value = completed
+                    _isLoading.value = false
                 }
             }
         }

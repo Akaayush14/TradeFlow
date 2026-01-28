@@ -574,7 +574,7 @@ fun ProductItemCard(
 ) {
     // Determine background color based on status and type
     val cardBackgroundColor = when {
-        product.status == "Completed" -> MaterialTheme.colorScheme.tertiaryContainer
+        product.status == "Completed" -> MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.3f)
         product.type == "Barter" -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
         product.type == "Rent" -> MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.3f)
         else -> MaterialTheme.colorScheme.surfaceVariant
