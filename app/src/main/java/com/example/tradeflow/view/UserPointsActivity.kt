@@ -14,6 +14,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.*
@@ -35,6 +36,7 @@ import com.example.tradeflow.repository.UserRepoImpl
 import com.example.tradeflow.ui.theme.Greenish
 import com.example.tradeflow.ui.theme.White
 import com.example.tradeflow.viewmodel.PointDealViewModel
+import com.example.tradeflow.viewmodel.PointHistoryViewModel
 import com.example.tradeflow.viewmodel.UserViewModel
 import com.google.firebase.auth.FirebaseAuth
 import java.text.SimpleDateFormat
@@ -60,6 +62,7 @@ fun PointsScreen() {
     val userViewModel = remember { UserViewModel(UserRepoImpl()) }
     // FIX: Add UserRepoImpl() as second parameter
     val pointDealViewModel = remember { PointDealViewModel(PointDealRepoImpl(), UserRepoImpl()) }
+    val pointHistoryViewModel = remember { PointHistoryViewModel() }
 
     val currentUser = FirebaseAuth.getInstance().currentUser
     val userId = currentUser?.uid ?: ""
@@ -70,27 +73,9 @@ fun PointsScreen() {
 
     val redemptionStatus by pointDealViewModel.redemptionStatus.observeAsState()
 
-    LaunchedEffect(Unit) {
-        if (userId.isNotEmpty()) {
-            userViewModel.getUserById(userId)
-            pointDealViewModel.getEligibleDealsForUser(userId)
-        }
-    }
-
-    // Show toast when redemption status changes
-    redemptionStatus?.let { (success, message) ->
-        LaunchedEffect(redemptionStatus) {
-            Toast.makeText(context, message, Toast.LENGTH_LONG).show()
-            if (success) {
-                userViewModel.getUserById(userId)
-                pointDealViewModel.getEligibleDealsForUser(userId)
-            }
-            pointDealViewModel.clearRedemptionStatus()
-        }
-    }
-
     val userData by userViewModel.users.collectAsState()
     val activeDeals by pointDealViewModel.activeDeals.observeAsState(initial = emptyList())
+    val txList by pointHistoryViewModel.transactions.collectAsState()
 
     val userPoints = userData?.points ?: 0L
 
@@ -121,34 +106,66 @@ fun PointsScreen() {
         }
     }
 
+    // Show toast when redemption status changes
+    redemptionStatus?.let { (success, message) ->
+        LaunchedEffect(redemptionStatus) {
+            Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+            if (success) {
+                userViewModel.getUserById(userId)
+                pointDealViewModel.getEligibleDealsForUser(userId, currentTier)
+            }
+            pointDealViewModel.clearRedemptionStatus()
+        }
+    }
+
+    LaunchedEffect(userId, currentTier) {
+        if (userId.isNotEmpty()) {
+            userViewModel.getUserById(userId)
+            pointDealViewModel.getEligibleDealsForUser(userId, currentTier)
+            pointHistoryViewModel.observeRecent(userId)
+        }
+    }
+
     // Add confirmation dialog
     if (showRedeemConfirmation && selectedDeal != null) {
+        val isFreeDeal = (selectedDeal?.pointsRequired ?: 0L) == 0L
         AlertDialog(
             onDismissRequest = {
                 showRedeemConfirmation = false
                 selectedDeal = null
             },
-            title = { Text("Confirm Redemption") },
+            title = { Text(if (isFreeDeal) "Confirm Claim" else "Confirm Redemption") },
             text = {
-                Text("Are you sure you want to redeem ${selectedDeal?.offer} for ${selectedDeal?.pointsRequired} points?")
+                Text(
+                    if (isFreeDeal) "Are you sure you want to claim ${selectedDeal?.offer}?"
+                    else "Are you sure you want to redeem ${selectedDeal?.offer} for ${selectedDeal?.pointsRequired} points?"
+                )
             },
             confirmButton = {
                 Button(
                     onClick = {
                         selectedDeal?.let { deal ->
-                            pointDealViewModel.redeemPointDeal(
-                                deal.dealId,
-                                deal.pointsRequired,
-                                deal.title,
-                                deal.offer
-                            )
+                            if (isFreeDeal) {
+                                pointDealViewModel.claimPointDeal(
+                                    deal.dealId,
+                                    deal.title,
+                                    deal.offer
+                                )
+                            } else {
+                                pointDealViewModel.redeemPointDeal(
+                                    deal.dealId,
+                                    deal.pointsRequired,
+                                    deal.title,
+                                    deal.offer
+                                )
+                            }
                         }
                         showRedeemConfirmation = false
                         selectedDeal = null
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = Greenish)
                 ) {
-                    Text("Yes, Redeem")
+                    Text(if (isFreeDeal) "Yes, Claim" else "Yes, Redeem")
                 }
             },
             dismissButton = {
@@ -210,13 +227,9 @@ fun PointsScreen() {
                     item {
                         BuyPointsSection(
                             onPayClick = { points ->
-                                val amountRs = points
-                                Toast.makeText(
-                                    context,
-                                    "Initiate Khalti payment: Rs $amountRs for $points point(s)",
-                                    Toast.LENGTH_LONG
-                                ).show()
-                                // TODO: Integrate Khalti SDK here when available
+                                val amountRs = points.toDouble()
+                                // Simulate successful payment
+                                pointDealViewModel.buyPoints(userId, points.toLong(), amountRs)
                             }
                         )
                     }
@@ -254,8 +267,52 @@ fun PointsScreen() {
                     }
                 }
                 "Point history" -> {
-                    item {
-                        PointHistoryContent()
+                    if (txList.isEmpty()) {
+                        item {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text("No point activity in the last 30 days")
+                            }
+                        }
+                    } else {
+                        // Header with Delete All
+                        item {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                                horizontalArrangement = Arrangement.End
+                            ) {
+                                TextButton(
+                                    onClick = {
+                                        pointHistoryViewModel.deleteAllTransactions(userId) { success, msg ->
+                                            Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+                                        }
+                                    },
+                                    colors = ButtonDefaults.textButtonColors(contentColor = Color.Red)
+                                ) {
+                                    Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Delete All")
+                                }
+                            }
+                        }
+                        
+                        items(txList) { tx ->
+                            TransactionItem(
+                                tx = tx,
+                                onDeleteClick = {
+                                    pointHistoryViewModel.deleteTransaction(tx.id) { success, msg ->
+                                        Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+                                    }
+                                }
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+                        }
                     }
                 }
             }
@@ -510,7 +567,8 @@ private fun PointDealCard(
     userPoints: Long,
     onRedeemClick: (PointDealModel) -> Unit
 ) {
-    val canRedeem = userPoints >= deal.pointsRequired
+    val isFreeDeal = deal.pointsRequired == 0L
+    val canRedeem = isFreeDeal || userPoints >= deal.pointsRequired
     val dateFormat = SimpleDateFormat("dd MMM, yyyy", Locale.getDefault())
     val validTillDate = dateFormat.format(Date(deal.validTill))
 
@@ -616,7 +674,7 @@ private fun PointDealCard(
                     shape = RoundedCornerShape(8.dp)
                 ) {
                     Text(
-                        text = "${deal.pointsRequired} Points",
+                        text = if (isFreeDeal) "Claim" else "${deal.pointsRequired} Points",
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
                         color = White
@@ -685,23 +743,84 @@ private fun PointInfoItem(number: String, title: String, description: String) {
 }
 
 @Composable
-private fun PointHistoryContent() {
-    Column(
+private fun TransactionItem(
+    tx: com.example.tradeflow.model.PointTransaction,
+    onDeleteClick: () -> Unit
+) {
+    val isCredit = tx.type.equals("CREDIT", ignoreCase = true)
+    val badgeColor = if (isCredit) Color(0xFF4CAF50) else Color(0xFFF44336) // green/red
+    val sign = if (isCredit) "+" else "-"
+    val dateText = SimpleDateFormat("dd MMM, yyyy • HH:mm", Locale.getDefault()).format(Date(tx.timestamp))
+
+    Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+            .padding(horizontal = 16.dp),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
-        Text(
-            text = "Point History",
-            fontSize = 20.sp,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(bottom = 16.dp)
-        )
-        Text(
-            text = "Your point history will appear here",
-            fontSize = 14.sp,
-            color = Color.Gray
-        )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(
+                modifier = Modifier.weight(1f),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(badgeColor.copy(alpha = 0.15f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = if (isCredit) "C" else "D",
+                        color = badgeColor,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+                Spacer(modifier = Modifier.width(12.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = tx.source,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.Black
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    val amountText = if (tx.amount > 0.0) " • Rs ${tx.amount.toInt()}" else ""
+                    Text(
+                        text = dateText + amountText,
+                        fontSize = 12.sp,
+                        color = Color.Gray
+                    )
+                }
+            }
+            
+            Column(
+                horizontalAlignment = Alignment.End
+            ) {
+                Text(
+                    text = "$sign${kotlin.math.abs(tx.points)}",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = badgeColor
+                )
+                
+                IconButton(onClick = onDeleteClick, modifier = Modifier.size(24.dp)) {
+                    Icon(
+                        Icons.Default.Delete, 
+                        contentDescription = "Delete",
+                        tint = Color.Gray.copy(alpha = 0.6f),
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+            }
+        }
     }
 }

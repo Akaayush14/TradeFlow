@@ -15,6 +15,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
@@ -119,7 +120,6 @@ fun AdminPointDealsScreen(onBackClick: () -> Unit) {
                     Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
                     if (success) {
                         showAddDialog = false
-                        viewModel.getAllPointDeals()
                     }
                 }
             }
@@ -156,13 +156,10 @@ fun AdminDealCard(deal: PointDealModel, onDelete: () -> Unit) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddDealDialog(onDismiss: () -> Unit, onAdd: (PointDealModel) -> Unit) {
-    var offer by remember { mutableStateOf("") }
     var tier by remember { mutableStateOf("Bronze") }
-    var category by remember { mutableStateOf("") }
-    var points by remember { mutableStateOf("") }
-    var rewardPoints by remember { mutableStateOf("") }
-    var discountAmount by remember { mutableStateOf("") }  // ADD THIS
-    var discountType by remember { mutableStateOf("FLAT") }  // ADD THIS
+    var dealType by remember { mutableStateOf("Gift Free Points") } // "Gift Free Points" or "Discount Deal"
+    var pointsInput by remember { mutableStateOf("") }
+    var offerDescription by remember { mutableStateOf("") }
     var validDate by remember { mutableStateOf("") }
     var validTillMillis by remember { mutableLongStateOf(System.currentTimeMillis() + 7 * 24 * 60 * 60 * 1000) } // Default 7 days
 
@@ -174,7 +171,7 @@ fun AddDealDialog(onDismiss: () -> Unit, onAdd: (PointDealModel) -> Unit) {
         { _, year, month, dayOfMonth ->
             calendar.set(year, month, dayOfMonth)
             validTillMillis = calendar.timeInMillis
-            val sdf = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+            val sdf = SimpleDateFormat("dd MMM, yyyy", Locale.getDefault())
             validDate = sdf.format(calendar.time)
         },
         calendar.get(Calendar.YEAR),
@@ -184,118 +181,141 @@ fun AddDealDialog(onDismiss: () -> Unit, onAdd: (PointDealModel) -> Unit) {
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Add Point Deal") },
+        title = {
+            Text(
+                "Create Point Deal",
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold
+            )
+        },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(
-                    value = offer,
-                    onValueChange = { offer = it },
-                    label = { Text("Offer (e.g. FLAT Rs.15 OFF!!)") },
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                // Tier Dropdown (Simplified as RadioRow for now)
-                Text("Tier:")
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    listOf("Bronze", "Silver", "Gold").forEach { t ->
-                        FilterChip(
-                            selected = tier == t,
-                            onClick = { tier = t },
-                            label = { Text(t) }
-                        )
-                    }
-                }
-
-                // Category Dropdown
-                Text("Category:")
-
-                OutlinedTextField(
-                    value = category,
-                    onValueChange = { category = it },
-                    label = { Text("Enter category") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                OutlinedTextField(
-                    value = points,
-                    onValueChange = { if (it.all { char -> char.isDigit() }) points = it },
-                    label = { Text("Points Required") },
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                OutlinedTextField(
-                    value = rewardPoints,
-                    onValueChange = { if (it.all { char -> char.isDigit() }) rewardPoints = it },
-                    label = { Text("Reward Points (optional)") },
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                // ADD DISCOUNT FIELDS HERE - BETWEEN POINTS AND VALID TILL
-                OutlinedTextField(
-                    value = discountAmount,
-                    onValueChange = { discountAmount = it },
-                    label = { Text("Deal") },
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                Text("Discount Type:")
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    listOf("FLAT", "UPTO").forEach { type ->
-                        FilterChip(
-                            selected = discountType == type,
-                            onClick = { discountType = type },
-                            label = { Text(type) }
-                        )
-                    }
-                }
-
-                OutlinedTextField(
-                    value = validDate,
-                    onValueChange = {},
-                    label = { Text("Valid Till") },
-                    readOnly = true,
-                    trailingIcon = {
-                        IconButton(onClick = { datePickerDialog.show() }) {
-                            Icon(Icons.Default.DateRange, "Select Date")
+            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                
+                // Deal Type Section
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Deal Type:", fontSize = 14.sp, color = Color.Gray)
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        listOf("Gift Free Points", "Discount Deal").forEach { type ->
+                            FilterChip(
+                                selected = dealType == type,
+                                onClick = { dealType = type },
+                                label = { Text(type) },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = Color(0xFFE0E7FF),
+                                    selectedLabelColor = Color(0xFF3F51B5)
+                                )
+                            )
                         }
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                )
+                    }
+                }
+
+                // User Tier Section
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("User Tier:", fontSize = 14.sp, color = Color.Gray)
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        listOf("Bronze", "Silver", "Gold").forEach { t ->
+                            FilterChip(
+                                selected = tier == t,
+                                onClick = { tier = t },
+                                label = { Text(t) },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = Color(0xFFE0E7FF),
+                                    selectedLabelColor = Color(0xFF3F51B5)
+                                )
+                            )
+                        }
+                    }
+                }
+
+                // Points Input Section
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        text = if (dealType == "Gift Free Points") "Points to Give:" else "Points Cost:",
+                        fontSize = 14.sp,
+                        color = Color.Gray
+                    )
+                    OutlinedTextField(
+                        value = pointsInput,
+                        onValueChange = { if (it.all { char -> char.isDigit() }) pointsInput = it },
+                        placeholder = { Text("0") },
+                        leadingIcon = {
+                            Icon(Icons.Default.Person, contentDescription = null, tint = Color.Gray)
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = MaterialTheme.shapes.medium
+                    )
+                }
+
+                // Offer Description (Only for Discount Deal)
+                if (dealType == "Discount Deal") {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text("Offer Description:", fontSize = 14.sp, color = Color.Gray)
+                        OutlinedTextField(
+                            value = offerDescription,
+                            onValueChange = { offerDescription = it },
+                            placeholder = { Text("e.g. 50% Off on Premium") },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = MaterialTheme.shapes.medium
+                        )
+                    }
+                }
+
+                // Valid Till Section
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Valid Till:", fontSize = 14.sp, color = Color.Gray)
+                    OutlinedTextField(
+                        value = validDate.ifEmpty { "Select date" },
+                        onValueChange = {},
+                        readOnly = true,
+                        trailingIcon = {
+                            IconButton(onClick = { datePickerDialog.show() }) {
+                                Icon(Icons.Default.DateRange, "Select Date", tint = Color.Gray)
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = MaterialTheme.shapes.medium
+                    )
+                }
             }
         },
         confirmButton = {
             Button(
                 onClick = {
-                    if (offer.isNotEmpty() && points.isNotEmpty()) {
+                    val points = pointsInput.toLongOrNull() ?: 0L
+                    
+                    if (points > 0) {
+                        val isGift = dealType == "Gift Free Points"
                         val deal = PointDealModel(
-                            // REMOVE: dealId = UUID.randomUUID().toString(),
-                            title = "${tier} DEAL",
-                            offer = offer,
+                            title = if (isGift) "$tier Reward" else "$tier Deal",
+                            offer = if (isGift) "Claim $points Free Points!" else offerDescription.ifEmpty { "Redeem for $points Points" },
                             tier = tier,
-                            serviceCategory = category,
-                            pointsRequired = points.toLongOrNull() ?: 0L,
+                            serviceCategory = if (isGift) "Admin Gift" else "Discount",
+                            pointsRequired = if (isGift) 0L else points,
                             validTill = validTillMillis,
                             isActive = true,
-                            discountAmount = discountAmount.toDoubleOrNull() ?: 0.0,  // ADD THIS
-                            discountType = discountType,  // ADD THIS
-                            rewardPoints = rewardPoints.toLongOrNull() ?: 0L
+                            discountAmount = 0.0,
+                            discountType = "FLAT",
+                            rewardPoints = if (isGift) points else 0L
                         )
                         onAdd(deal)
                     } else {
-                        Toast.makeText(context, "Please fill all fields", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, "Please enter valid points", Toast.LENGTH_SHORT).show()
                     }
                 },
-                colors = ButtonDefaults.buttonColors(containerColor = Greenish)
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E7D6F)), // Greenish color from image
+                shape = MaterialTheme.shapes.medium,
+                modifier = Modifier.padding(start = 8.dp)
             ) {
-                Text("Add", color = White)
+                Text(if (dealType == "Gift Free Points") "Give Points" else "Create Deal", color = White)
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel")
+                Text("Cancel", color = Color(0xFF3F51B5))
             }
-        }
+        },
+        containerColor = Color(0xFFF5F5F7), // Light background like image
+        shape = MaterialTheme.shapes.large
     )
 }
 

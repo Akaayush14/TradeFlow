@@ -36,6 +36,11 @@ interface UserRepo {
         callback:(Boolean, String, UserModel?) -> Unit
     ): ValueEventListener
 
+    fun getUserByIdSingle(
+        userId: String,
+        callback:(Boolean, String, UserModel?) -> Unit
+    )
+
     fun getAllUser(callback: (Boolean, String, List<UserModel>?) -> Unit): ValueEventListener
 
 
