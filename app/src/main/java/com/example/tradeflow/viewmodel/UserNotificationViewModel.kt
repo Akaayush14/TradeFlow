@@ -216,11 +216,14 @@ class UserNotificationViewModel(
                     if (success1 && myRequests != null) allRequests.addAll(myRequests)
                     if (success2 && incomingRequests != null) allRequests.addAll(incomingRequests)
 
-                    // Filter for COMPLETED status and distinct by requestId to avoid duplicates
+                    // Filter for COMPLETED or ACCEPTED status and distinct by requestId to avoid duplicates
                     val completed = allRequests
-                        .filter { it.status.equals("COMPLETED", ignoreCase = true) }
+                        .filter { 
+                            it.status.equals("COMPLETED", ignoreCase = true) || 
+                            it.status.equals("ACCEPTED", ignoreCase = true)
+                        }
                         .distinctBy { it.requestId }
-                        .sortedByDescending { it.completedAt }
+                        .sortedByDescending { if (it.completedAt > 0) it.completedAt else it.createdAt }
 
                     _tradeHistory.value = completed
                     _isLoading.value = false

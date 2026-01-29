@@ -306,181 +306,202 @@ fun TradeHistoryItem(request: RequestModel, currentUserId: String) {
     val otherUserName = if (isOwner) request.requesterName else request.ownerName
     val otherUserImage = if (isOwner) request.requesterImage else request.ownerImage
     
-    // Determine what to show based on type
     val isBarter = request.productType.equals("BARTER", ignoreCase = true) || request.productType.equals("BOTH", ignoreCase = true)
     
-    // For Barter: 
-    // If Owner: I gave 'productName', I got 'offerProductName'
-    // If Requester: I gave 'offerProductName', I got 'productName'
+    // Colors
+    val barterTagColor = Color(0xFFE8F5E9) // Light Green (Matches Summary)
+    val barterTagTextColor = Color(0xFF2E7D32) // Dark Green
+    val rentTagColor = Color(0xFFFFFDE7) // Light Yellow (Matches Summary)
+    val rentTagTextColor = Color(0xFFF9A825) // Dark Yellow
     
-    val itemGivenName = if (isOwner) request.productName else request.offerProductName
-    val itemGivenImage = if (isOwner) request.productImage else request.offerProductImage
+    val completedBgColor = Color(0xFFE8F5E9) // Light Green
+    val completedTextColor = Color(0xFF2E7D32) // Dark Green
+    val returnedBgColor = Color(0xFFE3F2FD) // Light Blue
+    val returnedTextColor = Color(0xFF1565C0) // Dark Blue
     
-    val itemReceivedName = if (isOwner) request.offerProductName else request.productName
-    val itemReceivedImage = if (isOwner) request.offerProductImage else request.productImage
-    
-    // For Rent:
-    // If Owner: I rented out 'productName'
-    // If Requester: I rented 'productName'
+    // Card Background Color based on type
+    val cardBackgroundColor = if (isBarter) Color(0xFFE8F5E9) else Color(0xFFFFFDE7)
     
     Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = cardBackgroundColor),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp)
-        ) {
-            // Header: User Info and Date
+        Column(modifier = Modifier.padding(16.dp)) {
+            // Header: Tag + Time
             Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                // Avatar (Initials if no image)
-                Box(
-                    modifier = Modifier
-                        .size(40.dp)
-                        .clip(RoundedCornerShape(20.dp))
-                        .background(Color.LightGray),
-                    contentAlignment = Alignment.Center
-                ) {
-                    if (otherUserImage.isNotEmpty()) {
-                        AsyncImage(
-                            model = otherUserImage,
-                            contentDescription = otherUserName,
-                            modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Crop
-                        )
-                    } else {
-                        Text(
-                            text = otherUserName.take(1).uppercase(),
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White
-                        )
-                    }
-                }
-                
-                Spacer(modifier = Modifier.width(8.dp))
-                
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = otherUserName,
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        text = if (request.completedAt > 0) formatDate(request.completedAt) else formatDate(request.createdAt),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Color.Gray
-                    )
-                }
-                
-                // Status Badge
                 Surface(
-                    color = Greenish.copy(alpha = 0.1f),
-                    shape = RoundedCornerShape(4.dp)
+                    color = Color.White,
+                    shape = RoundedCornerShape(8.dp)
                 ) {
                     Text(
-                        text = if (request.status == "COMPLETED") "Completed" else request.status,
-                        color = Greenish,
-                        style = MaterialTheme.typography.labelSmall,
-                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                        text = if (isBarter) "BARTER" else "RENTAL",
+                        color = if (isBarter) barterTagTextColor else rentTagTextColor,
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
                     )
                 }
+                Text(
+                    text = getRelativeTime(if (request.completedAt > 0) request.completedAt else request.createdAt),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.Gray
+                )
             }
             
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(16.dp))
             
-            // Content
+            // Middle Section
             if (isBarter) {
+                // Barter Layout
+                val myItemName = if (isOwner) request.productName else request.offerProductName
+                val myItemImage = if (isOwner) request.productImage else request.offerProductImage
+                val receivedItemName = if (isOwner) request.offerProductName else request.productName
+                val receivedItemImage = if (isOwner) request.offerProductImage else request.productImage
+                
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Given Item
-                    Column(
-                        modifier = Modifier.weight(1f),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        AsyncImage(
-                            model = itemGivenName.takeIf { it.isNotEmpty() } ?: "", // Fallback or handle empty
-                            contentDescription = itemGivenName,
-                            modifier = Modifier
-                                .size(50.dp)
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(Color.Gray),
-                            contentScale = ContentScale.Crop
-                        )
+                    // You Traded
+                    Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = itemGivenName,
-                            style = MaterialTheme.typography.bodySmall,
-                            maxLines = 1,
-                            modifier = Modifier.padding(top = 4.dp)
-                        )
-                        Text(text = "You traded", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
-                    }
-                    
-                    Icon(
-                        imageVector = Icons.Default.ArrowForward,
-                        contentDescription = "Traded with",
-                        tint = Color.Gray,
-                        modifier = Modifier.size(24.dp)
-                    )
-                    
-                    // Received Item
-                    Column(
-                        modifier = Modifier.weight(1f),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        AsyncImage(
-                            model = itemReceivedImage,
-                            contentDescription = itemReceivedName,
-                            modifier = Modifier
-                                .size(50.dp)
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(Color.Gray),
-                            contentScale = ContentScale.Crop
-                        )
-                        Text(
-                            text = itemReceivedName,
-                            style = MaterialTheme.typography.bodySmall,
-                            maxLines = 1,
-                            modifier = Modifier.padding(top = 4.dp)
-                        )
-                        Text(text = "You received", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
-                    }
-                }
-            } else {
-                // Rental
-                Row(modifier = Modifier.fillMaxWidth()) {
-                     AsyncImage(
-                        model = request.productImage,
-                        contentDescription = request.productName,
-                        modifier = Modifier
-                            .size(60.dp)
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(Color.Gray),
-                        contentScale = ContentScale.Crop
-                    )
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Column {
-                        Text(
-                            text = request.productName,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = if (isOwner) "Rented to $otherUserName" else "Rented from $otherUserName",
+                            text = "You Traded",
                             style = MaterialTheme.typography.bodySmall,
                             color = Color.Gray
                         )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            RoundedImage(imageUrl = myItemImage, size = 48.dp)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Column {
+                                Text(
+                                    text = myItemName,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    maxLines = 1
+                                )
+                                val value = if (isOwner) request.productPrice else request.offerProductPrice
+                                Text(
+                                    text = if (value > 0) "Value: Rs ${value.toInt()}" else "Value: Free",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = Color(0xFF00695C)
+                                )
+                            }
+                        }
+                    }
+                    
+                    // Arrow
+                    Icon(
+                        imageVector = Icons.Default.ArrowForward,
+                        contentDescription = "Swapped",
+                        tint = Color.Gray,
+                        modifier = Modifier.padding(horizontal = 4.dp)
+                    )
+                    
+                    // Received
+                    Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "${request.rentalPriceFormatted} • ${request.rentalPeriod}",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = Color(0xFFFFA000)
+                            text = "Received",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color.Gray
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            RoundedImage(imageUrl = receivedItemImage, size = 48.dp)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Column {
+                                Text(
+                                    text = receivedItemName,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    maxLines = 1
+                                )
+                                val value = if (isOwner) request.offerProductPrice else request.productPrice
+                                Text(
+                                    text = if (value > 0) "Value: Rs ${value.toInt()}" else "Value: Free",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = Color(0xFF00695C)
+                                )
+                            }
+                        }
+                    }
+                }
+            } else {
+                // Rental Layout
+                val itemName = request.productName
+                val itemImage = request.productImage
+                
+                Text(
+                    text = if (isOwner) "You Rented Out" else "You Rented",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.Gray
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    RoundedImage(imageUrl = itemImage, size = 56.dp)
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column {
+                        Text(
+                            text = itemName,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        // Use rentalPriceFormatted if available, or fallback
+                        val price = try { request.rentalPriceFormatted } catch (e: Exception) { "" }
+                        Text(
+                            text = if (price.isNotEmpty()) "Rs $price" else "Rent",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color(0xFF00695C),
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            Divider(color = Color.LightGray.copy(alpha = 0.3f))
+            Spacer(modifier = Modifier.height(12.dp))
+            
+            // Footer
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                // User
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Avatar(imageUrl = otherUserImage, name = otherUserName, size = 32.dp)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = otherUserName,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+                
+                // Status Badge
+                val isReturned = request.status.equals("RETURNED", ignoreCase = true)
+                Surface(
+                    color = if (isReturned) returnedBgColor else completedBgColor,
+                    shape = RoundedCornerShape(16.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                    ) {
+                        Text(
+                            text = if (isReturned) "Returned" else "Completed",
+                            color = if (isReturned) returnedTextColor else completedTextColor,
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold
                         )
                     }
                 }
@@ -489,7 +510,69 @@ fun TradeHistoryItem(request: RequestModel, currentUserId: String) {
     }
 }
 
-fun formatDate(timestamp: Long): String {
-    val sdf = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
-    return sdf.format(Date(timestamp))
+@Composable
+fun RoundedImage(imageUrl: String, size: androidx.compose.ui.unit.Dp) {
+    if (imageUrl.isNotEmpty()) {
+        AsyncImage(
+            model = imageUrl,
+            contentDescription = null,
+            modifier = Modifier
+                .size(size)
+                .clip(RoundedCornerShape(8.dp))
+                .background(Color.LightGray),
+            contentScale = ContentScale.Crop
+        )
+    } else {
+        Box(
+            modifier = Modifier
+                .size(size)
+                .clip(RoundedCornerShape(8.dp))
+                .background(Color.LightGray)
+        )
+    }
+}
+
+@Composable
+fun Avatar(imageUrl: String, name: String, size: androidx.compose.ui.unit.Dp) {
+    if (imageUrl.isNotEmpty()) {
+        AsyncImage(
+            model = imageUrl,
+            contentDescription = name,
+            modifier = Modifier
+                .size(size)
+                .clip(androidx.compose.foundation.shape.CircleShape)
+                .background(Color.LightGray),
+            contentScale = ContentScale.Crop
+        )
+    } else {
+        Box(
+            modifier = Modifier
+                .size(size)
+                .clip(androidx.compose.foundation.shape.CircleShape)
+                .background(Color(0xFF00695C)),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = name.take(1).uppercase(),
+                color = Color.White,
+                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.labelMedium
+            )
+        }
+    }
+}
+
+fun getRelativeTime(timestamp: Long): String {
+    val now = System.currentTimeMillis()
+    val diff = now - timestamp
+    
+    return when {
+        diff < 60 * 60 * 1000 -> "${diff / (60 * 1000)} mins ago"
+        diff < 24 * 60 * 60 * 1000 -> "${diff / (60 * 60 * 1000)} hours ago"
+        diff < 48 * 60 * 60 * 1000 -> "Yesterday"
+        else -> {
+            val sdf = SimpleDateFormat("MMM dd, hh:mm a", Locale.getDefault())
+            sdf.format(Date(timestamp))
+        }
+    }
 }

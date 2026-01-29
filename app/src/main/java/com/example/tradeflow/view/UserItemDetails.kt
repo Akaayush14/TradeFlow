@@ -42,22 +42,21 @@ import com.example.tradeflow.model.UserModel
 import com.example.tradeflow.repository.ProductRepoImpl
 import com.example.tradeflow.repository.ReviewRepoImpl
 import com.example.tradeflow.repository.UserRepoImpl
-import com.example.tradeflow.ui.components.ThemeWrapper
+import com.example.tradeflow.repository.UserNotificationRepoImpl
+import com.example.tradeflow.ui.theme.Greenish
+import com.example.tradeflow.ui.theme.White
 import com.example.tradeflow.viewmodel.ProductViewModel
 import com.example.tradeflow.viewmodel.ReviewViewModel
 import com.example.tradeflow.viewmodel.UserViewModel
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
 import android.content.Intent
-import androidx.compose.foundation.isSystemInDarkTheme
 
 class UserItemDetails : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            ThemeWrapper {
-                ItemDetailsScreen()
-            }
+            ItemDetailsScreen()
         }
     }
 }
@@ -66,15 +65,10 @@ class UserItemDetails : ComponentActivity() {
 fun ContainerTag(text: String, color: Color, textColor: Color) {
     Box(
         modifier = Modifier
-            .background(color, RoundedCornerShape(8.dp))
-            .padding(horizontal = 12.dp, vertical = 6.dp)
+            .background(color, RoundedCornerShape(4.dp))
+            .padding(horizontal = 8.dp, vertical = 4.dp)
     ) {
-        Text(
-            text = text,
-            fontSize = 12.sp,
-            color = textColor,
-            fontWeight = FontWeight.SemiBold
-        )
+        Text(text = text, fontSize = 12.sp, color = textColor)
     }
 }
 
@@ -85,8 +79,7 @@ fun ReviewItem(username: String, rating: Int, comment: String) {
             Text(
                 text = username,
                 fontWeight = FontWeight.SemiBold,
-                fontSize = 14.sp,
-                color = MaterialTheme.colorScheme.onSurface
+                fontSize = 14.sp
             )
             Spacer(modifier = Modifier.width(8.dp))
             Row {
@@ -94,17 +87,13 @@ fun ReviewItem(username: String, rating: Int, comment: String) {
                     Icon(
                         imageVector = if (index < rating) Icons.Default.Star else Icons.Outlined.Star,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.tertiary,
+                        tint = Color(0xFFFFD700),
                         modifier = Modifier.size(16.dp)
                     )
                 }
             }
         }
-        Text(
-            text = comment,
-            fontSize = 14.sp,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+        Text(text = comment, fontSize = 14.sp, color = Color.Gray)
     }
 }
 
@@ -121,6 +110,8 @@ fun ItemDetailsScreen() {
 
     val currentUser = FirebaseAuth.getInstance().currentUser
     val currentUserId = currentUser?.uid ?: ""
+
+
 
     // State variables
     val product by productViewModel.product.collectAsState()
@@ -147,33 +138,31 @@ fun ItemDetailsScreen() {
             }
         }
     }
+
+    // Check if current user is the owner
     val isOwner = currentUserId == product?.ownerId
 
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
-                title = {
-                    Text(
-                        "Item Details",
-                        color = MaterialTheme.colorScheme.onPrimary
-                    )
-                },
+                title = { Text("Item Details", color = White) },
                 navigationIcon = {
                     IconButton(onClick = { activity?.finish() }) {
                         Icon(
                             painterResource(id = R.drawable.outline_arrow_back_ios_new_24),
                             contentDescription = "Back",
-                            tint = MaterialTheme.colorScheme.onPrimary
+                            tint = White
                         )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary
+                    containerColor = Greenish
                 )
             )
         },
         bottomBar = {
-            if (!isOwner && currentUserId.isNotEmpty() && product != null && product?.status != "Completed") {
+            // Only show request button if user is not the owner and product is loaded
+            if (!isOwner && currentUserId.isNotEmpty() && product != null) {
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
                     shadowElevation = 8.dp
@@ -186,10 +175,7 @@ fun ItemDetailsScreen() {
                     ) {
                         OutlinedButton(
                             onClick = {
-                                val intent = Intent(context, UserDashboard::class.java)
-                                intent.putExtra("start_tab", "inbox")
-                                intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
-                                context.startActivity(intent)
+                                Toast.makeText(context, "Opening Chat...", Toast.LENGTH_SHORT).show()
                             },
                             modifier = Modifier
                                 .weight(1f)
@@ -205,46 +191,47 @@ fun ItemDetailsScreen() {
                             Text("Message")
                         }
 
-                        if (product?.status != "Rented") {
-                            Button(
-                                onClick = {
-                                    if (owner == null) {
-                                        errorMessage = "Owner information not available. Please try again."
-                                        showErrorDialog = true
-                                    } else {
-                                        if (product?.type == "Rent") {
+                        Button(
+                            onClick = {
+                                // Check if owner data is available
+                                if (owner == null) {
+                                    errorMessage = "Owner information not available. Please try again."
+                                    showErrorDialog = true
+                                } else {
+                                    // Launch appropriate activity based on product type
+                                    product?.let { productItem ->
+                                        if (productItem.type == "Rent") {
+                                            // Launch Rental Request Activity
                                             val intent = Intent(context, RentalRequestActivity::class.java)
-                                            // Pass product ID and owner ID instead of objects
-                                            intent.putExtra("productId", product?.productId ?: "")
-                                            intent.putExtra("ownerId", product?.ownerId ?: "")
+                                            intent.putExtra("product", productItem)
+                                            intent.putExtra("owner", owner)
                                             context.startActivity(intent)
                                         } else {
+                                            // Launch Barter Request Activity
                                             val intent = Intent(context, BarterRequestActivity::class.java)
-                                            // Pass product ID and owner ID instead of objects
-                                            intent.putExtra("productId", product?.productId ?: "")
-                                            intent.putExtra("ownerId", product?.ownerId ?: "")
+                                            intent.putExtra("product", productItem)
+                                            intent.putExtra("owner", owner)
                                             context.startActivity(intent)
                                         }
                                     }
+                                }
+                            },
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(50.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Greenish
+                            ),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Text(
+                                text = when (product?.type) {
+                                    "Barter" -> "Barter Now"
+                                    "Rent" -> "Rent Now"
+                                    else -> "Send Request"
                                 },
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .height(50.dp),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = MaterialTheme.colorScheme.primary
-                                ),
-                                shape = RoundedCornerShape(12.dp)
-                            ) {
-                                Text(
-                                    text = when (product?.type) {
-                                        "Barter" -> "Barter Now"
-                                        "Rent" -> "Rent Now"
-                                        else -> "Send Request"
-                                    },
-                                    fontSize = 14.sp,
-                                    color = MaterialTheme.colorScheme.onPrimary
-                                )
-                            }
+                                fontSize = 14.sp
+                            )
                         }
                     }
                 }
@@ -253,14 +240,11 @@ fun ItemDetailsScreen() {
     ) { paddingValues ->
         if (loading || (product == null && productId.isNotEmpty())) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+                CircularProgressIndicator(color = Greenish)
             }
         } else if (product == null) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text(
-                    "Product not found",
-                    color = MaterialTheme.colorScheme.onSurface
-                )
+                Text("Product not found")
             }
         } else {
             val allImages = remember(product) {
@@ -282,14 +266,15 @@ fun ItemDetailsScreen() {
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(paddingValues)
+                    .background(White)
                     .verticalScroll(rememberScrollState())
-                    .background(MaterialTheme.colorScheme.background)
             ) {
+                // 1. Item Image (Main Display)
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(300.dp)
-                        .background(MaterialTheme.colorScheme.surfaceVariant),
+                        .background(Color.LightGray),
                     contentAlignment = Alignment.Center
                 ) {
                     HorizontalPager(
@@ -334,14 +319,14 @@ fun ItemDetailsScreen() {
                                 .align(Alignment.BottomEnd)
                                 .padding(16.dp)
                                 .background(
-                                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                                    Color.Black.copy(alpha = 0.6f),
                                     RoundedCornerShape(16.dp)
                                 )
                                 .padding(horizontal = 12.dp, vertical = 6.dp)
                         ) {
                             Text(
                                 text = "${pagerState.currentPage + 1}/${allImages.size}",
-                                color = MaterialTheme.colorScheme.surface,
+                                color = White,
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.Bold
                             )
@@ -364,8 +349,7 @@ fun ItemDetailsScreen() {
                                     .size(70.dp)
                                     .border(
                                         width = if (pagerState.currentPage == index) 2.dp else 1.dp,
-                                        color = if (pagerState.currentPage == index) MaterialTheme.colorScheme.primary
-                                        else MaterialTheme.colorScheme.outline,
+                                        color = if (pagerState.currentPage == index) Greenish else Color.Gray,
                                         shape = RoundedCornerShape(8.dp)
                                     )
                                     .clip(RoundedCornerShape(8.dp))
@@ -394,7 +378,7 @@ fun ItemDetailsScreen() {
                             text = productItem.name,
                             fontSize = 24.sp,
                             fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface
+                            color = Color.Black
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Row(
@@ -410,46 +394,24 @@ fun ItemDetailsScreen() {
                                 },
                                 fontSize = 20.sp,
                                 fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.primary
+                                color = Greenish
                             )
 
-                            val isDarkMode = isSystemInDarkTheme()
                             ContainerTag(
                                 text = productItem.type,
-                                color = if (productItem.type == "Rent") {
-                                    if (isDarkMode)
-                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
-                                    else
-                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
-                                } else {
-                                    if (isDarkMode)
-                                        MaterialTheme.colorScheme.secondaryContainer
-                                    else
-                                        MaterialTheme.colorScheme.secondary.copy(alpha = 0.15f)
-                                },
-                                textColor = if (productItem.type == "Rent") {
-                                    if (isDarkMode)
-                                        MaterialTheme.colorScheme.onPrimary
-                                    else
-                                        MaterialTheme.colorScheme.primary
-                                } else {
-                                    // For Barter
-                                    if (isDarkMode)
-                                        MaterialTheme.colorScheme.onSecondaryContainer
-                                    else
-                                        MaterialTheme.colorScheme.secondary
-                                }
+                                color = if (productItem.type == "Rent") Color(0xFFE0F7FA) else Color(0xFFFFF3E0),
+                                textColor = if (productItem.type == "Rent") Color(0xFF006064) else Color(0xFFE65100)
                             )
                         }
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
                             text = "Status: ${productItem.status}",
                             fontSize = 14.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = Color.Gray
                         )
 
                         Spacer(modifier = Modifier.height(16.dp))
-                        HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
+                        HorizontalDivider(color = Color.LightGray, thickness = 0.5.dp)
                         Spacer(modifier = Modifier.height(16.dp))
 
                         // 3. Owner Info
@@ -457,62 +419,41 @@ fun ItemDetailsScreen() {
                             text = "Owner",
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface
+                            color = Color.Black
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Box(
+                            Image(
+                                painter = painterResource(id = R.drawable.ic_launcher_foreground),
+                                contentDescription = "Owner Profile",
                                 modifier = Modifier
                                     .size(50.dp)
                                     .clip(CircleShape)
-                                    .background(MaterialTheme.colorScheme.surfaceVariant)
-                                    .border(
-                                        1.dp,
-                                        MaterialTheme.colorScheme.outline,
-                                        CircleShape
-                                    ),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                if (!owner?.profileImageUrl.isNullOrEmpty()) {
-                                    AsyncImage(
-                                        model = owner?.profileImageUrl,
-                                        contentDescription = "Owner Profile",
-                                        modifier = Modifier.fillMaxSize(),
-                                        contentScale = ContentScale.Crop,
-                                        placeholder = painterResource(R.drawable.ic_launcher_foreground),
-                                        error = painterResource(R.drawable.ic_launcher_foreground)
-                                    )
-                                } else {
-                                    Image(
-                                        painter = painterResource(id = R.drawable.ic_launcher_foreground),
-                                        contentDescription = "Owner Profile",
-                                        modifier = Modifier.size(40.dp),
-                                        contentScale = ContentScale.Fit
-                                    )
-                                }
-                            }
+                                    .border(1.dp, Color.Gray, CircleShape)
+                                    .background(Color.LightGray),
+                                contentScale = ContentScale.Crop
+                            )
                             Spacer(modifier = Modifier.width(12.dp))
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
                                     text = owner?.name ?: "Loading...",
                                     fontSize = 16.sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = MaterialTheme.colorScheme.onSurface
+                                    fontWeight = FontWeight.SemiBold
                                 )
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Icon(
                                         Icons.Default.Star,
                                         contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.tertiary,
+                                        tint = Color(0xFFFFD700),
                                         modifier = Modifier.size(16.dp)
                                     )
                                     Text(
                                         text = "4.8 (24 reviews)",
                                         fontSize = 14.sp,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        color = Color.Gray,
                                         modifier = Modifier.padding(start = 4.dp)
                                     )
                                 }
@@ -520,7 +461,7 @@ fun ItemDetailsScreen() {
                         }
 
                         Spacer(modifier = Modifier.height(16.dp))
-                        HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
+                        HorizontalDivider(color = Color.LightGray, thickness = 0.5.dp)
                         Spacer(modifier = Modifier.height(16.dp))
 
                         // 4. Description
@@ -528,18 +469,18 @@ fun ItemDetailsScreen() {
                             text = "Description",
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface
+                            color = Color.Black
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
                             text = product?.description ?: "",
                             fontSize = 14.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            color = Color.DarkGray,
                             lineHeight = 20.sp
                         )
 
                         Spacer(modifier = Modifier.height(16.dp))
-                        HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
+                        HorizontalDivider(color = Color.LightGray, thickness = 0.5.dp)
                         Spacer(modifier = Modifier.height(16.dp))
 
                         // 5. Reviews
@@ -547,16 +488,12 @@ fun ItemDetailsScreen() {
                             text = "Reviews (${reviews.size})",
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface
+                            color = Color.Black
                         )
                         Spacer(modifier = Modifier.height(8.dp))
 
                         if (reviews.isEmpty()) {
-                            Text(
-                                "No reviews yet.",
-                                fontSize = 14.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+                            Text("No reviews yet.", fontSize = 14.sp, color = Color.Gray)
                         } else {
                             reviews.forEach { review ->
                                 ReviewItem(
@@ -581,29 +518,18 @@ fun ItemDetailsScreen() {
                     Text(
                         "Error",
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.error
+                        color = Color.Red
                     )
                 },
-                text = {
-                    Text(
-                        errorMessage,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                },
+                text = { Text(errorMessage) },
                 confirmButton = {
                     Button(
                         onClick = { showErrorDialog = false },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primary
-                        )
+                        colors = ButtonDefaults.buttonColors(containerColor = Greenish)
                     ) {
-                        Text(
-                            "OK",
-                            color = MaterialTheme.colorScheme.onPrimary
-                        )
+                        Text("OK")
                     }
-                },
-                containerColor = MaterialTheme.colorScheme.surface
+                }
             )
         }
     }
