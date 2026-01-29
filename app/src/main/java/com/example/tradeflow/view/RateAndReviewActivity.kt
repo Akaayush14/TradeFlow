@@ -132,20 +132,9 @@ fun RateAndReviewScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
+            TradeFlowTopBar(
                 title = { Text("Rate & Review", color = MaterialTheme.colorScheme.onPrimary) },
-                navigationIcon = {
-                    IconButton(onClick = onBackClick) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back",
-                            tint = MaterialTheme.colorScheme.onPrimary
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Greenish
-                )
+                onBackClick = onBackClick
             )
         }
     ) { paddingValues ->
@@ -164,10 +153,12 @@ fun RateAndReviewScreen(
                 // Product Card
                 product?.let { prod ->
                     Card(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .border(1.dp, Greenish.copy(alpha = 0.5f), RoundedCornerShape(16.dp)),
                         shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color.White),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFFE8F5E9)), // Exciting Light Green
+                        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
                     ) {
                         Row(
                             modifier = Modifier
@@ -218,9 +209,9 @@ fun RateAndReviewScreen(
                                 )
                                 Spacer(modifier = Modifier.height(4.dp))
                                 Text(
-                                    text = "by ${prod.name ?: prod.ownerId ?: "Unknown"}",
+                                    text = "Rs ${prod.price ?: prod.ownerId ?: "Unknown"}",
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = Color.Gray
+                                    color = Color.DarkGray
                                 )
                             }
                         }
@@ -245,10 +236,12 @@ fun RateAndReviewScreen(
 
                 // Rating Section
                 Card(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .border(1.dp, Color(0xFFFFC107).copy(alpha = 0.5f), RoundedCornerShape(16.dp)),
                     shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.White),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF8E1)), // Exciting Light Amber
+                    elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
                 ) {
                     Column(
                         modifier = Modifier
@@ -352,10 +345,12 @@ fun RateAndReviewScreen(
 
                 // Review Text Section
                 Card(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .border(1.dp, Color(0xFF29B6F6).copy(alpha = 0.5f), RoundedCornerShape(16.dp)),
                     shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.White),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFE1F5FE)), // Exciting Light Blue
+                    elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
                 ) {
                     Column(
                         modifier = Modifier
@@ -406,7 +401,9 @@ fun RateAndReviewScreen(
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedBorderColor = Greenish,
                                 unfocusedBorderColor = Color.LightGray,
-                                cursorColor = Greenish
+                                cursorColor = Greenish,
+                                focusedContainerColor = Color.White,
+                                unfocusedContainerColor = Color.White
                             ),
                             shape = RoundedCornerShape(12.dp),
                             maxLines = 6

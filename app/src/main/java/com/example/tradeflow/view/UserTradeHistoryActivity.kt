@@ -157,25 +157,14 @@ fun UserTradeHistoryScreen(onBackClick: () -> Unit) {
 
     Scaffold(
         topBar = {
-            TopAppBar(
+            TradeFlowTopBar(
                 title = {
                     Text(
                         "My Trade History",
                         color = MaterialTheme.colorScheme.onPrimary
                     )
                 },
-                navigationIcon = {
-                    IconButton(onClick = onBackClick) {
-                        Icon(
-                            Icons.Default.ArrowBack,
-                            contentDescription = "Back",
-                            tint = MaterialTheme.colorScheme.onPrimary
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Greenish
-                )
+                onBackClick = onBackClick
             )
         }
     ) { paddingValues ->
