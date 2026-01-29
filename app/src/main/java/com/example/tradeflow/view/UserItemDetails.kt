@@ -76,26 +76,55 @@ fun ContainerTag(text: String, color: Color, textColor: Color) {
 }
 
 @Composable
-fun ReviewItem(username: String, rating: Int, comment: String) {
+fun ReviewItem(username: String, userImage: String, rating: Int, comment: String) {
     Column(modifier = Modifier.padding(vertical = 8.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                text = username,
-                fontWeight = FontWeight.SemiBold,
-                fontSize = 14.sp
-            )
+            // Reviewer Image
+            if (userImage.isNotEmpty()) {
+                AsyncImage(
+                    model = userImage,
+                    contentDescription = "Reviewer Profile",
+                    modifier = Modifier
+                        .size(32.dp)
+                        .clip(CircleShape)
+                        .border(1.dp, Color.Gray, CircleShape),
+                    contentScale = ContentScale.Crop,
+                    placeholder = painterResource(R.drawable.ic_launcher_foreground),
+                    error = painterResource(R.drawable.ic_launcher_foreground)
+                )
+            } else {
+                Image(
+                    painter = painterResource(id = R.drawable.ic_launcher_foreground),
+                    contentDescription = "Reviewer Profile",
+                    modifier = Modifier
+                        .size(32.dp)
+                        .clip(CircleShape)
+                        .border(1.dp, Color.Gray, CircleShape),
+                    contentScale = ContentScale.Crop
+                )
+            }
+            
             Spacer(modifier = Modifier.width(8.dp))
-            Row {
-                repeat(5) { index ->
-                    Icon(
-                        imageVector = if (index < rating) Icons.Default.Star else Icons.Outlined.Star,
-                        contentDescription = null,
-                        tint = Color(0xFFFFD700),
-                        modifier = Modifier.size(16.dp)
-                    )
+            
+            Column {
+                Text(
+                    text = username,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 14.sp
+                )
+                Row {
+                    repeat(5) { index ->
+                        Icon(
+                            imageVector = if (index < rating) Icons.Default.Star else Icons.Outlined.Star,
+                            contentDescription = null,
+                            tint = Color(0xFFFFD700),
+                            modifier = Modifier.size(14.dp)
+                        )
+                    }
                 }
             }
         }
+        Spacer(modifier = Modifier.height(4.dp))
         Text(text = comment, fontSize = 14.sp, color = Color.Gray)
     }
 }
@@ -114,16 +143,22 @@ fun ItemDetailsScreen() {
     val currentUser = FirebaseAuth.getInstance().currentUser
     val currentUserId = currentUser?.uid ?: ""
 
-
-
     // State variables
     val product by productViewModel.product.collectAsState()
     val owner by userViewModel.users.collectAsState()
     val reviews by reviewViewModel.reviews.collectAsState()
     val loading by productViewModel.loading.collectAsState()
+    val ownerProducts by productViewModel.allProducts.collectAsState()
 
     var showErrorDialog by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf("") }
+
+    // Owner Stats
+    var ownerAverageRating by remember { mutableFloatStateOf(0f) }
+    var ownerReviewCount by remember { mutableIntStateOf(0) }
+    
+    // Reviewer Details Cache
+    val reviewerMap = remember { mutableStateMapOf<String, UserModel>() }
 
     LaunchedEffect(productId) {
         if (productId.isNotEmpty()) {
@@ -137,6 +172,33 @@ fun ItemDetailsScreen() {
             if (ownerId.isNotEmpty()) {
                 userViewModel.getUserById(ownerId) { success, _, user ->
                     // User data is handled in the ViewModel
+                }
+                // Fetch owner's products to calculate stats
+                productViewModel.getProductsByOwner(ownerId)
+            }
+        }
+    }
+    
+    // Calculate Owner Stats when ownerProducts are loaded
+    LaunchedEffect(ownerProducts) {
+        if (ownerProducts.isNotEmpty()) {
+            val productIds = ownerProducts.map { it.productId }
+            reviewViewModel.getOwnerStats(productIds) { avg, count ->
+                ownerAverageRating = avg
+                ownerReviewCount = count
+            }
+        }
+    }
+    
+    // Fetch Reviewer Details when reviews are loaded
+    LaunchedEffect(reviews) {
+        reviews.forEach { review ->
+            if (review.userId.isNotEmpty() && !reviewerMap.containsKey(review.userId)) {
+                // Use fetchUser to avoid updating the main 'users' state which tracks the item owner
+                userViewModel.fetchUser(review.userId) { user ->
+                    if (user != null) {
+                        reviewerMap[review.userId] = user
+                    }
                 }
             }
         }
@@ -206,14 +268,14 @@ fun ItemDetailsScreen() {
                                         if (productItem.type == "Rent") {
                                             // Launch Rental Request Activity
                                             val intent = Intent(context, RentalRequestActivity::class.java)
-                                            intent.putExtra("product", productItem)
-                                            intent.putExtra("owner", owner)
+                                            intent.putExtra("productId", productItem.productId)
+                                            intent.putExtra("ownerId", owner!!.userId)
                                             context.startActivity(intent)
                                         } else {
                                             // Launch Barter Request Activity
                                             val intent = Intent(context, BarterRequestActivity::class.java)
-                                            intent.putExtra("product", productItem)
-                                            intent.putExtra("owner", owner)
+                                            intent.putExtra("productId", productItem.productId)
+                                            intent.putExtra("ownerId", owner!!.userId)
                                             context.startActivity(intent)
                                         }
                                     }
@@ -501,7 +563,7 @@ fun ItemDetailsScreen() {
                                         modifier = Modifier.size(16.dp)
                                     )
                                     Text(
-                                        text = "4.8 (24 reviews)",
+                                        text = String.format("%.1f (%d reviews)", ownerAverageRating, ownerReviewCount),
                                         fontSize = 14.sp,
                                         color = Color.Gray,
                                         modifier = Modifier.padding(start = 4.dp)
@@ -546,8 +608,10 @@ fun ItemDetailsScreen() {
                             Text("No reviews yet.", fontSize = 14.sp, color = Color.Gray)
                         } else {
                             reviews.forEach { review ->
+                                val reviewer = reviewerMap[review.userId]
                                 ReviewItem(
-                                    username = review.userName,
+                                    username = reviewer?.name ?: review.userName,
+                                    userImage = reviewer?.profileImageUrl ?: "",
                                     rating = review.rating.toInt(),
                                     comment = review.comment
                                 )

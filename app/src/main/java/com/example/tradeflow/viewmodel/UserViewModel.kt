@@ -69,6 +69,18 @@ class UserViewModel( val repo: UserRepo): ViewModel(){
         }
     }
 
+    /**
+     * Fetches a user by ID without updating the main _users state.
+     * Useful for fetching related users (reviewers, other owners) without disrupting the main UI state.
+     */
+    fun fetchUser(userId: String, callback: (UserModel?) -> Unit) {
+        viewModelScope.launch {
+            repo.getUserById(userId) { success, _, data ->
+                callback(data)
+            }
+        }
+    }
+
     fun getAllUser()
     {
         viewModelScope.launch {

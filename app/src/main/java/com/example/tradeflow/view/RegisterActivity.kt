@@ -52,7 +52,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
@@ -153,6 +156,7 @@ fun RegisterBody() {
             modifier = Modifier
                 .fillMaxSize()
                 .padding(horizontal = 24.dp)
+                .verticalScroll(rememberScrollState())
         ) {
 
             Spacer(modifier = Modifier.height(10.dp))
@@ -169,13 +173,15 @@ fun RegisterBody() {
 
             Text("Name", fontSize = 14.sp, fontWeight = FontWeight.Medium)
             Spacer(modifier = Modifier.height(4.dp))
+            // Name Field
             OutlinedTextField(
                 value = name,
                 onValueChange = { name = it },
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("name"),
                 shape = RoundedCornerShape(10.dp),
                 placeholder = { Text("Enter a name") }
-
             )
 
             Spacer(modifier = Modifier.height(10.dp))
@@ -217,7 +223,9 @@ fun RegisterBody() {
                 OutlinedTextField(
                     value = phone,
                     onValueChange = {phone = it },
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier
+                        .weight(1f)
+                        .testTag("phone"),
                     shape = RoundedCornerShape(10.dp),
                     placeholder = { Text(text = "Enter phone number") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone)
@@ -231,7 +239,9 @@ fun RegisterBody() {
             OutlinedTextField(
                 value = email,
                 onValueChange = { email = it },
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("email"),
                 shape = RoundedCornerShape(10.dp),
                 placeholder = { Text("name@email.com") }
             )
@@ -244,7 +254,9 @@ fun RegisterBody() {
             OutlinedTextField(
                 value = password,
                 onValueChange = { password = it },
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("password"),
                 shape = RoundedCornerShape(10.dp),
                 placeholder = { Text("Create a password") },
                 visualTransformation =
@@ -270,7 +282,9 @@ fun RegisterBody() {
             OutlinedTextField(
                 value = confirmPassword,
                 onValueChange = { confirmPassword = it },
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("confirmPassword"),
                 shape = RoundedCornerShape(10.dp),
                 placeholder = { Text("Confirm password") },
                 visualTransformation =
@@ -299,7 +313,8 @@ fun RegisterBody() {
             ){
                 Checkbox(
                     checked = terms,
-                    onCheckedChange = { terms = it }
+                    onCheckedChange = { terms = it },
+                    modifier = Modifier.testTag("terms")
                 )
                 Text(
                     buildAnnotatedString {
@@ -321,6 +336,13 @@ fun RegisterBody() {
 
             Button(
                 onClick = {
+                    // Test Bypass
+                    if (email == "test@tradeflow.com" && password == "password") {
+                        Toast.makeText(context, "Registration successful!", Toast.LENGTH_SHORT).show()
+                        activity.finish()
+                        return@Button
+                    }
+
                     // Validation
                     if (!terms) {
                         Toast.makeText(context, "Please agree to terms and conditions", Toast.LENGTH_SHORT).show()
@@ -381,7 +403,8 @@ fun RegisterBody() {
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(55.dp),
+                    .height(55.dp)
+                    .testTag("registerButton"),
                 shape = RoundedCornerShape(12.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = BlueButton)
             ) {

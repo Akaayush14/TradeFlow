@@ -644,33 +644,18 @@ fun EnhancedNotificationCard(
             // Action Buttons
             when {
                 notification.status == "ACCEPTED" -> {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                    Surface(
+                        shape = RoundedCornerShape(4.dp),
+                        color = MaterialTheme.colorScheme.tertiary,
+                        modifier = Modifier.padding(vertical = 8.dp)
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                painter = painterResource(R.drawable.placeholderimage),
-                                contentDescription = "Accepted",
-                                modifier = Modifier.size(16.dp),
-                                tint = MaterialTheme.colorScheme.tertiary
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                text = "Request accepted",
-                                fontSize = 12.sp,
-                                color = MaterialTheme.colorScheme.tertiary,
-                                fontWeight = FontWeight.Medium
-                            )
-                        }
-                        TextButton(onClick = onViewDetails) {
-                            Text(
-                                "View Details",
-                                fontSize = 12.sp,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                        }
+                        Text(
+                            text = "Request accepted",
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.onTertiary,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            fontWeight = FontWeight.Medium
+                        )
                     }
                 }
                 notification.status == "REJECTED" -> {
