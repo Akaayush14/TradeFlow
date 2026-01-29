@@ -22,6 +22,11 @@ interface ChatRepo {
         callback: (Boolean, String) -> Unit
     )
 
+    fun deleteChat(
+        otherUserId: String,
+        callback: (Boolean, String) -> Unit
+    )
+
     fun getChatPartners(
         callback: (Boolean, String, List<String>?) -> Unit
     )

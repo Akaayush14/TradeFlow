@@ -99,6 +99,22 @@ class ChatRepoImpl : ChatRepo {
             }
     }
 
+    override fun deleteChat(
+        otherUserId: String,
+        callback: (Boolean, String) -> Unit
+    ) {
+        val user = getCurrentUser() ?: return callback(false, "Not logged in")
+        val chatId = generateChatId(user.uid, otherUserId)
+
+        messagesRef.child(chatId).removeValue()
+            .addOnSuccessListener {
+                callback(true, "Chat deleted successfully")
+            }
+            .addOnFailureListener {
+                callback(false, it.message ?: "Failed to delete chat")
+            }
+    }
+
     override fun getChatPartners(
         callback: (Boolean, String, List<String>?) -> Unit
     ) {

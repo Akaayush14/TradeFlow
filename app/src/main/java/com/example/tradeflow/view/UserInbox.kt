@@ -1,7 +1,9 @@
 package com.example.tradeflow.view
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -48,6 +50,9 @@ fun UserInboxScreen(
     val chatSummaries by chatSystemViewModel.chatSummaries.collectAsState()
     val currentUser = userViewModel.getCurrentUser()
 
+    var showDeleteDialog by remember { mutableStateOf(false) }
+    var userToDelete by remember { mutableStateOf<UserModel?>(null) }
+
     val inboxRows = remember(searchQuery, allUsers, chatSummaries) {
         val rows = mutableListOf<Pair<UserModel, com.example.tradeflow.model.ChatModel>>()
         val usersMap = allUsers?.associateBy { it.userId } ?: emptyMap()
@@ -73,6 +78,35 @@ fun UserInboxScreen(
     LaunchedEffect(Unit) {
         userViewModel.getAllUser()
         chatSystemViewModel.loadChatSummaries()
+    }
+
+    if (showDeleteDialog && userToDelete != null) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text("Delete Conversation") },
+            text = { Text("Are you sure you want to delete the conversation with ${userToDelete?.name}?") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        userToDelete?.let { user ->
+                            chatSystemViewModel.deleteChat(user.userId) { success, _ ->
+                                if (success) {
+                                    showDeleteDialog = false
+                                    userToDelete = null
+                                }
+                            }
+                        }
+                    }
+                ) {
+                    Text("Delete", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 
     Scaffold(
@@ -132,7 +166,11 @@ fun UserInboxScreen(
                         user = row.first,
                         lastMessage = summaryText(row.second),
                         lastTime = row.second.lastMessageTime,
-                        onClick = { onChatClick(row.first.userId) }
+                        onClick = { onChatClick(row.first.userId) },
+                        onLongClick = {
+                            userToDelete = row.first
+                            showDeleteDialog = true
+                        }
                     )
                 }
             }
@@ -163,12 +201,22 @@ fun InboxTopAppBar(onBackClick: () -> Unit) {
     )
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun InboxItem(user: UserModel, lastMessage: String, lastTime: Long, onClick: () -> Unit) {
+fun InboxItem(
+    user: UserModel,
+    lastMessage: String,
+    lastTime: Long,
+    onClick: () -> Unit,
+    onLongClick: () -> Unit
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
+            .combinedClickable(
+                onClick = onClick,
+                onLongClick = onLongClick
+            )
             .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {

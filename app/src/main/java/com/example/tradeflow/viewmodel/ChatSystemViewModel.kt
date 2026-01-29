@@ -42,6 +42,19 @@ class ChatSystemViewModel(val repo: ChatRepo) : ViewModel() {
         }
     }
 
+    fun deleteChat(
+        otherUserId: String,
+        callback: (Boolean, String) -> Unit
+    ) {
+        repo.deleteChat(otherUserId) { success, msg ->
+            if (success) {
+                // Refresh summaries after deletion
+                loadChatSummaries()
+            }
+            callback(success, msg)
+        }
+    }
+
     fun getMessages(receiverId: String) {
         viewModelScope.launch {
             repo.getMessages(receiverId,
