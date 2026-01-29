@@ -35,6 +35,21 @@ import com.example.tradeflow.ui.theme.Transparent
 import com.example.tradeflow.ui.theme.White
 import com.example.tradeflow.model.ProductModel
 import com.example.tradeflow.ui.components.ThemeWrapper
+import androidx.compose.ui.graphics.Color
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
+import com.example.tradeflow.viewmodel.UserNotificationViewModel
+import com.example.tradeflow.repository.UserNotificationRepoImpl
+import com.example.tradeflow.repository.ProductRepoImpl
+import com.google.firebase.auth.FirebaseAuth
 
 class UserDashboard : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -101,6 +116,20 @@ fun DashboardPageBody() {
 
     var isNavigating by remember { mutableStateOf(false) }
 
+    val viewModel = remember { UserNotificationViewModel(UserNotificationRepoImpl(), ProductRepoImpl()) }
+    val unreadCount by viewModel.unreadCount.collectAsState()
+    val currentUser = FirebaseAuth.getInstance().currentUser
+    val userId = currentUser?.uid ?: ""
+
+    androidx.compose.runtime.DisposableEffect(userId) {
+        if (userId.isNotEmpty()) {
+            viewModel.startListeningToUnreadCount(userId)
+        }
+        onDispose {
+            viewModel.stopListeningToUnreadCount()
+        }
+    }
+
     val listItem = listOf(
         NavItem(label = "Explore", R.drawable.explore, R.drawable.explore_filled),
         NavItem(label = "Inbox", R.drawable.inbox, R.drawable.inbox_filled),
@@ -130,11 +159,20 @@ fun DashboardPageBody() {
                             }
                         },
                         icon = {
-                            Icon(
-                                painter = painterResource(if (isSelected) item.iconFilled else item.iconOutlined),
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onPrimary
-                            )
+                            if (item.label == "Alert") {
+                                BadgedNotificationIcon(
+                                    unreadCount = unreadCount,
+                                    iconPainter = painterResource(if (isSelected) item.iconFilled else item.iconOutlined),
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onPrimary
+                                )
+                            } else {
+                                Icon(
+                                    painter = painterResource(if (isSelected) item.iconFilled else item.iconOutlined),
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onPrimary
+                                )
+                            }
                         },
                         label = {
                             Text(
@@ -178,6 +216,7 @@ fun DashboardPageBody() {
                     }
                 )
                 3 -> UserNotificationScreen(
+                    viewModel = viewModel,
                     onBackClick = { selectedIndex = 0 },
                     onMessageClick = { selectedIndex = 1 }
                 )
@@ -192,6 +231,37 @@ fun DashboardPageBody() {
                     onSnackbarShown = { showEditSuccess = false }
                 )
                 else -> UserExploreScreen()
+            }
+        }
+    }
+}
+@Composable
+fun BadgedNotificationIcon(
+    unreadCount: Int,
+    iconPainter: Painter,
+    contentDescription: String?,
+    tint: Color
+) {
+    Box {
+        Icon(
+            painter = iconPainter,
+            contentDescription = contentDescription,
+            tint = tint
+        )
+        if (unreadCount > 0) {
+            Box(
+                modifier = Modifier
+                    .size(18.dp)
+                    .offset(x = 12.dp, y = (-8).dp)
+                    .background(Color.Red, CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = if (unreadCount > 99) "99+" else unreadCount.toString(),
+                    color = Color.White,
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold
+                )
             }
         }
     }

@@ -47,14 +47,15 @@ import java.util.*
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun UserNotificationScreen(
+    viewModel: UserNotificationViewModel? = null,
     onBackClick: () -> Unit = {},
     onNotificationClick: (UserNotificationModel) -> Unit = {},
     onViewDetails: (String) -> Unit = {},
     onMessageClick: () -> Unit = {}
 ) {
-    val viewModel = remember { UserNotificationViewModel(UserNotificationRepoImpl(), ProductRepoImpl()) }
-    val notifications by viewModel.notifications.collectAsState()
-    val myRequests by viewModel.myRequests.collectAsState()
+    val finalViewModel = viewModel ?: remember { UserNotificationViewModel(UserNotificationRepoImpl(), ProductRepoImpl()) }
+    val notifications by finalViewModel.notifications.collectAsState()
+    val myRequests by finalViewModel.myRequests.collectAsState()
     val currentUser = FirebaseAuth.getInstance().currentUser
     val userId = currentUser?.uid ?: ""
 
@@ -65,8 +66,10 @@ fun UserNotificationScreen(
 
     LaunchedEffect(userId) {
         if (userId.isNotEmpty()) {
-            viewModel.loadNotifications(userId)
-            viewModel.loadMyRequests(userId)
+            finalViewModel.loadNotifications(userId) {
+                finalViewModel.markAllAsRead(userId)
+            }
+            finalViewModel.loadMyRequests(userId)
         }
     }
 
@@ -129,7 +132,6 @@ fun UserNotificationScreen(
                 .background(MaterialTheme.colorScheme.background)
                 .padding(innerPadding)
         ) {
-            val filters = listOf("All", "Incoming Requests", "My Requests")
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -275,7 +277,7 @@ fun UserNotificationScreen(
                                     EnhancedNotificationCard(
                                         notification = notification,
                                         onClick = {
-                                            viewModel.markAsRead(notification.notificationId)
+                                            finalViewModel.markAsRead(notification.notificationId)
                                             onNotificationClick(notification)
                                         },
                                         onAccept = {
@@ -332,7 +334,7 @@ fun UserNotificationScreen(
                                         request = request,
                                         onCancel = {
                                             if (request.status == "PENDING") {
-                                                viewModel.cancelRequest(request.requestId) { _, _ -> }
+                                                finalViewModel.cancelRequest(request.requestId) { _, _ -> }
                                             }
                                         }
                                     )
@@ -364,9 +366,9 @@ fun UserNotificationScreen(
             confirmButton = {
                 Button(
                     onClick = {
-                        viewModel.acceptRequest(selectedNotification!!.requestId) { success, message ->
+                        finalViewModel.acceptRequest(selectedNotification!!.requestId) { success, message ->
                             if (success) {
-                                viewModel.loadNotifications(userId)
+                                finalViewModel.loadNotifications(userId)
                             }
                         }
                         showAcceptDialog = false
@@ -414,9 +416,9 @@ fun UserNotificationScreen(
             confirmButton = {
                 Button(
                     onClick = {
-                        viewModel.rejectRequest(selectedNotification!!.requestId) { success, message ->
+                        finalViewModel.rejectRequest(selectedNotification!!.requestId) { success, message ->
                             if (success) {
-                                viewModel.loadNotifications(userId)
+                                finalViewModel.loadNotifications(userId)
                             }
                         }
                         showRejectDialog = false

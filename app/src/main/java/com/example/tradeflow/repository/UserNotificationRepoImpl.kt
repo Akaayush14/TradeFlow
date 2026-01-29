@@ -14,6 +14,7 @@ class UserNotificationRepoImpl : UserNotificationRepo {
     val ref: DatabaseReference = database.getReference("notifications")
     private val requestsRef: DatabaseReference = database.getReference("requests")
     private var unreadCountListener: ValueEventListener? = null
+    private var unreadCountQuery: com.google.firebase.database.Query? = null
 
     override fun createRequest(
         request: RequestModel,
@@ -176,6 +177,52 @@ class UserNotificationRepoImpl : UserNotificationRepo {
         } catch (e: Exception) {
             Log.e("TF_NOTIFICATION", "Exception getting unread count: ${e.message}")
             callback(false, "Error: ${e.message}", 0)
+        }
+    }
+
+    override fun startListeningToUnreadCount(
+        userId: String,
+        callback: (Int) -> Unit
+    ) {
+        stopListeningToUnreadCount()
+
+        try {
+            val query = ref.orderByChild("receiverId").equalTo(userId)
+            unreadCountQuery = query
+
+            unreadCountListener = object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    var count = 0
+                    for (child in snapshot.children) {
+                        val isRead = child.child("isRead").getValue(Boolean::class.java) ?: false
+                        if (!isRead) {
+                            count++
+                        }
+                    }
+                    callback(count)
+                }
+
+                override fun onCancelled(error: DatabaseError) {
+                    Log.e("TF_NOTIFICATION", "Error listening to unread count: ${error.message}")
+                    callback(0)
+                }
+            }
+            query.addValueEventListener(unreadCountListener!!)
+        } catch (e: Exception) {
+            Log.e("TF_NOTIFICATION", "Exception starting unread count listener: ${e.message}")
+            callback(0)
+        }
+    }
+
+    override fun stopListeningToUnreadCount() {
+        try {
+            if (unreadCountListener != null && unreadCountQuery != null) {
+                unreadCountQuery?.removeEventListener(unreadCountListener!!)
+                unreadCountListener = null
+                unreadCountQuery = null
+            }
+        } catch (e: Exception) {
+            Log.e("TF_NOTIFICATION", "Exception stopping unread count listener: ${e.message}")
         }
     }
 

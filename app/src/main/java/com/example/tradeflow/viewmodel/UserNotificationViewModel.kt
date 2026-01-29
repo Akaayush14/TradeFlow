@@ -34,6 +34,21 @@ class UserNotificationViewModel(
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading
 
+    fun startListeningToUnreadCount(userId: String) {
+        repository.startListeningToUnreadCount(userId) { count ->
+            _unreadCount.value = count
+        }
+    }
+
+    fun stopListeningToUnreadCount() {
+        repository.stopListeningToUnreadCount()
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        stopListeningToUnreadCount()
+    }
+
     /**
      * Enhanced method to create item request with complete notification details
      * Supports both Barter and Rent requests
@@ -186,13 +201,14 @@ class UserNotificationViewModel(
         return "$startStr-${endStr}, $year"
     }
 
-    fun loadNotifications(userId: String) {
+    fun loadNotifications(userId: String, onLoaded: () -> Unit = {}) {
         viewModelScope.launch {
             repository.getNotifications(userId) { success, _, notificationList ->
                 if (success) {
                     _notifications.value = notificationList ?: emptyList()
                     _unreadCount.value = notificationList?.count { !it.isRead } ?: 0
                 }
+                onLoaded()
             }
         }
     }
