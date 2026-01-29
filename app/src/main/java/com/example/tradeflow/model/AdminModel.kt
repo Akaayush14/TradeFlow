@@ -1,3 +1,4 @@
+// AdminModel.kt
 package com.example.tradeflow.model
 
 data class AdminModel(
@@ -8,6 +9,7 @@ data class AdminModel(
     var dateOfBirth: String = "",
     var gender: String = "",
     var imageUrl: String = "",
+    var location: String = "",
     var isBlocked: Boolean = false,
     var isRestricted: Boolean = false
 ) {
@@ -20,6 +22,7 @@ data class AdminModel(
             "dateOfBirth" to dateOfBirth,
             "gender" to gender,
             "imageUrl" to imageUrl,
+            "location" to location,
             "isBlocked" to isBlocked,
             "isRestricted" to isRestricted
         )

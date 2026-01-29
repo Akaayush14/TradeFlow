@@ -60,4 +60,10 @@ interface AdminRepo {
 
     fun uploadImage(context: Context, imageUri: Uri, callback: (String?) -> Unit)
     fun getFileNameFromUri(context: Context, uri: Uri): String?
+
+    fun changePassword(
+        currentPassword: String,
+        newPassword: String,
+        callback: (Boolean, String) -> Unit
+    )
 }

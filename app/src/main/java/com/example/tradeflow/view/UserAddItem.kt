@@ -2,8 +2,6 @@ package com.example.tradeflow.view
 
 import android.net.Uri
 import android.util.Log
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -50,6 +48,12 @@ import com.example.tradeflow.viewmodel.UserViewModel
 import com.example.tradeflow.repository.UserRepoImpl
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
+import android.app.Activity
+import android.content.Intent
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.Icons
 
 enum class AddItemMode { ADD, EDIT }
 
@@ -110,6 +114,20 @@ fun UserAddItemScreen(
             }
         } else {
             Log.e("TF_IMAGE_SELECT", "No URI returned for index=$activeImageIndex")
+        }
+    }
+    // Location picker launcher
+    val locationPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val selectedAddress = result.data?.getStringExtra(
+                LocationPickerActivity.EXTRA_SELECTED_ADDRESS
+            )
+            if (!selectedAddress.isNullOrEmpty()) {
+                location = selectedAddress
+                Log.d("TF_LOCATION_PICKER", "Selected address: $selectedAddress")
+            }
         }
     }
 
@@ -434,6 +452,7 @@ fun UserAddItemScreen(
                     horizontalArrangement = Arrangement.spacedBy(16.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    // Location with Map Picker
                     Box(
                         modifier = Modifier
                             .weight(1f)
@@ -445,12 +464,29 @@ fun UserAddItemScreen(
                             label = {
                                 Text("Location", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             },
-                            modifier = Modifier.fillMaxSize(),  // Changed to fill parent
+                            modifier = Modifier.fillMaxSize(),
                             singleLine = true,
                             textStyle = TextStyle(
                                 fontSize = 14.sp,
                                 color = MaterialTheme.colorScheme.onSurface
                             ),
+                            trailingIcon = {
+                                IconButton(
+                                    onClick = {
+                                        // Open location picker
+                                        val intent = Intent(context, LocationPickerActivity::class.java).apply {
+                                            putExtra(LocationPickerActivity.EXTRA_INITIAL_ADDRESS, location)
+                                        }
+                                        locationPickerLauncher.launch(intent)
+                                    }
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.LocationOn,
+                                        contentDescription = "Pick Location",
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                            },
                             keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Next),
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedContainerColor = MaterialTheme.colorScheme.surface,
@@ -466,7 +502,6 @@ fun UserAddItemScreen(
                             shape = RoundedCornerShape(12.dp)
                         )
                     }
-
                     // Purpose Dropdown -
                     Box(
                         modifier = Modifier

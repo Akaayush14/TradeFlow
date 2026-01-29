@@ -292,4 +292,40 @@ class AdminRepoImpl : AdminRepo {
         }
         return fileName
     }
+
+    override fun changePassword(
+        currentPassword: String,
+        newPassword: String,
+        callback: (Boolean, String) -> Unit
+    ) {
+        val currentUser = auth.currentUser
+        if (currentUser == null) {
+            callback(false, "No user is logged in")
+            return
+        }
+
+        val email = currentUser.email
+        if (email.isNullOrEmpty()) {
+            callback(false, "User email not found")
+            return
+        }
+
+        val credential = com.google.firebase.auth.EmailAuthProvider.getCredential(email, currentPassword)
+        currentUser.reauthenticate(credential)
+            .addOnCompleteListener { reauthTask ->
+                if (reauthTask.isSuccessful) {
+                    // Update password
+                    currentUser.updatePassword(newPassword)
+                        .addOnCompleteListener { updateTask ->
+                            if (updateTask.isSuccessful) {
+                                callback(true, "Password changed successfully")
+                            } else {
+                                callback(false, updateTask.exception?.message ?: "Failed to update password")
+                            }
+                        }
+                } else {
+                    callback(false, reauthTask.exception?.message ?: "Current password is incorrect")
+                }
+            }
+    }
 }
