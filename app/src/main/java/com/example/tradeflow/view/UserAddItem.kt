@@ -27,6 +27,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
@@ -350,7 +351,8 @@ fun UserAddItemScreen(
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.background)
                 .padding(innerPadding)
-                .padding(horizontal = 16.dp),
+                .padding(horizontal = 16.dp)
+                .testTag("addItemList"),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             // NAME
@@ -363,7 +365,8 @@ fun UserAddItemScreen(
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = 16.dp),
+                        .padding(top = 16.dp)
+                        .testTag("itemNameInput"),
                     singleLine = true,
                     textStyle = TextStyle(
                         fontSize = 14.sp,
@@ -393,7 +396,7 @@ fun UserAddItemScreen(
                     label = {
                         Text("Price", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     },
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().testTag("itemPriceInput"),
                     singleLine = true,
                     textStyle = TextStyle(
                         fontSize = 14.sp,
@@ -423,7 +426,7 @@ fun UserAddItemScreen(
                     label = {
                         Text("Category", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     },
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().testTag("itemCategoryInput"),
                     singleLine = true,
                     textStyle = TextStyle(
                         fontSize = 14.sp,
@@ -464,7 +467,7 @@ fun UserAddItemScreen(
                             label = {
                                 Text("Location", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             },
-                            modifier = Modifier.fillMaxSize(),
+                            modifier = Modifier.fillMaxSize().testTag("itemLocationInput"),
                             singleLine = true,
                             textStyle = TextStyle(
                                 fontSize = 14.sp,
@@ -529,7 +532,8 @@ fun UserAddItemScreen(
                                 },
                                 modifier = Modifier
                                     .menuAnchor()
-                                    .fillMaxSize(),  // Fill parent
+                                    .fillMaxSize()
+                                    .testTag("itemPurposeDropdown"),  // Fill parent
                                 colors = OutlinedTextFieldDefaults.colors(
                                     focusedContainerColor = MaterialTheme.colorScheme.surface,
                                     unfocusedContainerColor = MaterialTheme.colorScheme.surface,
@@ -775,7 +779,8 @@ fun UserAddItemScreen(
                     enabled = !isLoading,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(50.dp),
+                        .height(50.dp)
+                        .testTag("submitButton"),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.primary,
                         contentColor = MaterialTheme.colorScheme.onPrimary,
