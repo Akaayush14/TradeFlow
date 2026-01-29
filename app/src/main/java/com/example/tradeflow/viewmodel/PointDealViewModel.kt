@@ -14,6 +14,10 @@ import com.example.tradeflow.model.PointTransaction
 import com.example.tradeflow.repository.UserRepo
 import com.google.firebase.auth.FirebaseAuth
 
+import com.example.tradeflow.model.UserNotificationModel
+import com.example.tradeflow.repository.UserNotificationRepo
+import com.example.tradeflow.repository.UserNotificationRepoImpl
+
 class PointDealViewModel(
     val repo: PointDealRepo,
     val userRepo: UserRepo
@@ -36,6 +40,7 @@ class PointDealViewModel(
 
     private val redemptionRepo: RedemptionRepo = RedemptionRepoImpl()
     private val txRepo: PointTransactionRepo = PointTransactionRepoImpl()
+    private val notificationRepo: UserNotificationRepo = UserNotificationRepoImpl()
 
     // Client-side lock to prevent race conditions (double claiming)
     private val _processingDealIds = mutableSetOf<String>()
@@ -49,7 +54,16 @@ class PointDealViewModel(
     }
 
     fun deletePointDeal(dealId: String, callback: (Boolean, String) -> Unit) {
-        repo.deletePointDeal(dealId, callback)
+        repo.getPointDealById(dealId) { success, _, deal ->
+            if (success && deal != null && deal.notificationId.isNotEmpty()) {
+                notificationRepo.deleteNotification(deal.notificationId) { _, _ ->
+                    // Proceed to delete deal regardless of notification deletion success
+                    repo.deletePointDeal(dealId, callback)
+                }
+            } else {
+                repo.deletePointDeal(dealId, callback)
+            }
+        }
     }
 
     fun getAllPointDeals() {
@@ -383,6 +397,31 @@ class PointDealViewModel(
                                 timestamp = System.currentTimeMillis()
                             )
                         ) { _, _ -> }
+
+                        // Create Notification and Deal Record
+                        val notification = UserNotificationModel(
+                            receiverId = targetUserId,
+                            title = "You received a gift!",
+                            message = "Admin has gifted you $points points. Enjoy!",
+                            type = "GIFT",
+                            createdAt = System.currentTimeMillis()
+                        )
+                        
+                        notificationRepo.createNotification(notification) { notifSuccess, notificationId ->
+                             val dealRecord = PointDealModel(
+                                 title = "Gift to ${user.name}",
+                                 offer = "Gifted $points Points",
+                                 tier = "All",
+                                 serviceCategory = "Admin Gift",
+                                 pointsRequired = 0,
+                                 rewardPoints = points,
+                                 targetUserId = targetUserId,
+                                 isActive = false,
+                                 notificationId = if (notifSuccess) notificationId else ""
+                             )
+                             repo.addPointDeal(dealRecord) { _, _ -> }
+                        }
+
                         callback(true, "Points gifted successfully to ${user.name}!")
                     } else {
                         callback(false, pointsMessage)

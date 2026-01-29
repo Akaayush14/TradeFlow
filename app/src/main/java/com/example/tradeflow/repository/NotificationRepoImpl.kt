@@ -66,8 +66,12 @@ class NotificationRepoImpl : NotificationRepo {
         ref.addListenerForSingleValueEvent(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 val updates = mutableMapOf<String, Any>()
+                val excludedTypes = listOf("ADMIN_UPDATE", "REQUEST", "ACCEPTED", "REJECTED", "MESSAGE", "COMPLETED", "GIFT")
                 for (child in snapshot.children) {
-                    updates["${child.key}/isRead"] = true
+                    val type = child.child("type").getValue(String::class.java) ?: ""
+                    if (type !in excludedTypes) {
+                        updates["${child.key}/isRead"] = true
+                    }
                 }
                 if (updates.isNotEmpty()) {
                     ref.updateChildren(updates).addOnCompleteListener {
@@ -88,9 +92,11 @@ class NotificationRepoImpl : NotificationRepo {
         ref.addListenerForSingleValueEvent(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 var count = 0
+                val excludedTypes = listOf("ADMIN_UPDATE", "REQUEST", "ACCEPTED", "REJECTED", "MESSAGE", "COMPLETED", "GIFT")
                 for (child in snapshot.children) {
                     val isRead = child.child("isRead").getValue(Boolean::class.java) ?: false
-                    if (!isRead) {
+                    val type = child.child("type").getValue(String::class.java) ?: ""
+                    if (!isRead && type !in excludedTypes) {
                         count++
                     }
                 }
@@ -112,9 +118,11 @@ class NotificationRepoImpl : NotificationRepo {
         unreadCountListener = object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 var count = 0
+                val excludedTypes = listOf("ADMIN_UPDATE", "REQUEST", "ACCEPTED", "REJECTED", "MESSAGE", "COMPLETED", "GIFT")
                 for (child in snapshot.children) {
                     val isRead = child.child("isRead").getValue(Boolean::class.java) ?: false
-                    if (!isRead) {
+                    val type = child.child("type").getValue(String::class.java) ?: ""
+                    if (!isRead && type !in excludedTypes) {
                         count++
                     }
                 }

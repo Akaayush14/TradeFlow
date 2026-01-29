@@ -9,6 +9,10 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -64,6 +68,7 @@ fun AdminPointDealsScreen(onBackClick: () -> Unit) {
 
     var showAddDialog by remember { mutableStateOf(false) }
     var dealToEdit by remember { mutableStateOf<PointDealModel?>(null) }
+    var selectedTab by remember { mutableStateOf("Deals") } // "Deals" or "Gifts"
 
     LaunchedEffect(Unit) {
         viewModel.getAllPointDeals()
@@ -97,31 +102,79 @@ fun AdminPointDealsScreen(onBackClick: () -> Unit) {
             }
         }
     ) { padding ->
-        Box(modifier = Modifier.padding(padding)) {
-            if (allDeals.isNullOrEmpty()) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("No deals found", color = Color.Gray)
-                }
-            } else {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    items(allDeals!!) { deal ->
-                        AdminDealCard(
-                            deal = deal,
-                            onEdit = {
-                                dealToEdit = deal
-                                showAddDialog = true
-                            },
-                            onDelete = {
-                                viewModel.deletePointDeal(deal.dealId) { success, msg ->
-                                    Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
-                                    if (success) viewModel.getAllPointDeals()
-                                }
-                            }
+        Column(modifier = Modifier.padding(padding)) {
+            // Tab Switching Row
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                    .height(48.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(Greenish.copy(alpha = 0.1f)) // Light Greenish background for the tab container
+                    .border(
+                        width = 1.dp,
+                        color = Greenish,
+                        shape = RoundedCornerShape(12.dp)
+                    ),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                listOf("Deals", "Gifts").forEach { tab ->
+                    val isSelected = selectedTab == tab
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight()
+                            .background(
+                                if (isSelected) Greenish
+                                else Color.Transparent
+                            )
+                            .clickable { selectedTab = tab },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = if (tab == "Deals") "Point Deals" else "Gift History",
+                            color = if (isSelected) Color.White else Greenish,
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                            fontSize = 14.sp
                         )
+                    }
+                }
+            }
+
+            val filteredDeals = allDeals?.filter {
+                if (selectedTab == "Deals") it.targetUserId.isEmpty()
+                else it.targetUserId.isNotEmpty()
+            }
+
+            Box(modifier = Modifier.weight(1f)) {
+                if (filteredDeals.isNullOrEmpty()) {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Text(
+                            if (selectedTab == "Deals") "No active deals found" else "No gift history found", 
+                            color = Color.Gray
+                        )
+                    }
+                } else {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        items(filteredDeals) { deal ->
+                            AdminDealCard(
+                                deal = deal,
+                                onEdit = {
+                                    dealToEdit = deal
+                                    showAddDialog = true
+                                },
+                                onDelete = {
+                                    viewModel.deletePointDeal(deal.dealId) { success, msg ->
+                                        Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+                                        if (success) viewModel.getAllPointDeals()
+                                    }
+                                }
+                            )
+                        }
                     }
                 }
             }
@@ -165,6 +218,8 @@ fun AdminPointDealsScreen(onBackClick: () -> Unit) {
 
 @Composable
 fun AdminDealCard(deal: PointDealModel, onEdit: () -> Unit, onDelete: () -> Unit) {
+    val isDirectGift = deal.targetUserId.isNotEmpty()
+    
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = Color.White),
@@ -178,13 +233,27 @@ fun AdminDealCard(deal: PointDealModel, onEdit: () -> Unit, onDelete: () -> Unit
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text(text = deal.offer, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                Text(text = "${deal.tier} • ${deal.serviceCategory}", fontSize = 12.sp, color = Color.Gray)
-                Text(text = "${deal.pointsRequired} Points", fontSize = 12.sp, color = Greenish, fontWeight = FontWeight.Bold)
+                if (isDirectGift) {
+                    // For Gifts: Show "Gift to [User]" as main title
+                    Text(text = deal.title, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                    Text(text = deal.offer, fontSize = 13.sp, color = Color.Gray)
+                } else {
+                    // For Deals: Show Offer as main title
+                    Text(text = deal.offer, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                    Text(text = "${deal.tier} • ${deal.serviceCategory}", fontSize = 12.sp, color = Color.Gray)
+                    Text(
+                        text = "${deal.pointsRequired} Points", 
+                        fontSize = 12.sp, 
+                        color = Greenish, 
+                        fontWeight = FontWeight.Bold
+                    )
+                }
             }
             Row {
-                IconButton(onClick = onEdit) {
-                    Icon(Icons.Default.Edit, "Edit", tint = Color.Gray)
+                if (!isDirectGift) {
+                    IconButton(onClick = onEdit) {
+                        Icon(Icons.Default.Edit, "Edit", tint = Color.Gray)
+                    }
                 }
                 IconButton(onClick = onDelete) {
                     Icon(Icons.Default.Delete, "Delete", tint = Color.Red)

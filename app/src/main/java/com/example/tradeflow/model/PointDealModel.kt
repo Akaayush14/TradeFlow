@@ -13,6 +13,7 @@ data class PointDealModel(
     var discountType: String = "", // "FLAT" or "UPTO"
     var rewardPoints: Long = 0L,
     var targetUserId: String = "", // Specific user ID for gifted points
+    var notificationId: String = "", // ID of the notification sent (if any)
     var createdAt: Long = System.currentTimeMillis(),
     var updatedAt: Long = System.currentTimeMillis()
 ) {
@@ -30,6 +31,7 @@ data class PointDealModel(
             "discountType" to discountType,
             "rewardPoints" to rewardPoints,
             "targetUserId" to targetUserId,
+            "notificationId" to notificationId,
             "createdAt" to createdAt,
             "updatedAt" to updatedAt
         )
@@ -49,6 +51,7 @@ data class PointDealModel(
             "discountType" to discountType,
             "rewardPoints" to rewardPoints,
             "targetUserId" to targetUserId,
+            "notificationId" to notificationId,
             "updatedAt" to updatedAt
         )
     }

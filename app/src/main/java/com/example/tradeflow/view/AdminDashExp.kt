@@ -791,7 +791,7 @@ fun MetricsContent(
                         )
                         MetricCard(
                             title = "Avg Price",
-                            value = "$${String.format("%.2f", avgPrice)}",
+                            value = "Rs. ${String.format("%.2f", avgPrice)}",
                             icon = painterResource(R.drawable.ic_items),
                             color = Color(0xFF4CAF50),
                             modifier = Modifier.weight(1f),
@@ -827,7 +827,7 @@ fun MetricsContent(
 
                 // ADDED: Point Deals Section
                 Text(
-                    text = "Point Deals Statistics",
+                    text = "Points",
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color.Black
@@ -838,7 +838,7 @@ fun MetricsContent(
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     MetricCard(
-                        title = "Total Deals",
+                        title = "Deals and Gifts",
                         value = "$totalDeals",
                         icon = painterResource(R.drawable.ic_items), // Using items icon as generic deal icon
                         color = Color(0xFF9C27B0), // Purple color for deals
@@ -848,157 +848,16 @@ fun MetricsContent(
                             context.startActivity(intent)
                         }
                     )
-                    MetricCard(
-                        title = "Active Deals",
-                        value = "$activeDealsCount",
-                        icon = painterResource(R.drawable.ic_items),
-                        color = Color(0xFF4CAF50), // Green for active
-                        modifier = Modifier.weight(1f),
-                        onClick = {
-                            val intent = Intent(context, AdminPointDealsActivity::class.java)
-                            context.startActivity(intent)
-                        }
-                    )
-                }
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    MetricCard(
-                        title = "Expired Deals",
-                        value = "$expiredDealsCount",
-                        icon = painterResource(R.drawable.ic_items),
-                        color = Color.Red, // Red for expired
-                        modifier = Modifier.weight(1f),
-                        onClick = {
-                            val intent = Intent(context, AdminPointDealsActivity::class.java)
-                            context.startActivity(intent)
-                        }
-                    )
-                    PointDealsPieChartCard(
-                        activeDeals = activeDealsCount,
-                        expiredDeals = expiredDealsCount,
-                        totalDeals = totalDeals,
-                        modifier = Modifier.weight(1f)
-                    )
+                    Spacer(modifier = Modifier.weight(1f))
                 }
             }
         }
     }
 }
 
-// ADDED: Point Deals Pie Chart Card
-@Composable
-fun PointDealsPieChartCard(
-    activeDeals: Int,
-    expiredDeals: Int,
-    totalDeals: Int,
-    modifier: Modifier = Modifier
-) {
-    val context = LocalContext.current
 
-    Card(
-        modifier = modifier.height(120.dp).clickable {
-            val intent = Intent(context, AdminPointDealsActivity::class.java)
-            context.startActivity(intent)
-        },
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        shape = RoundedCornerShape(12.dp)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(12.dp),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(
-                text = "Deals Status",
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Medium,
-                color = Color.Gray
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            if (totalDeals > 0) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    // Pie Chart
-                    PointDealsPieChart(
-                        activeDeals = activeDeals,
-                        expiredDeals = expiredDeals,
-                        total = totalDeals,
-                        modifier = Modifier.size(50.dp)
-                    )
 
-                    // Legend
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        LegendItem(color = Color(0xFF4CAF50), label = "Active", count = activeDeals)
-                        LegendItem(color = Color.Red, label = "Expired", count = expiredDeals)
-                    }
-                }
-            } else {
-                Text(
-                    text = "No deals",
-                    fontSize = 14.sp,
-                    color = Color.Gray
-                )
-            }
-        }
-    }
-}
 
-// ADDED: Point Deals Pie Chart
-@Composable
-fun PointDealsPieChart(
-    activeDeals: Int,
-    expiredDeals: Int,
-    total: Int,
-    modifier: Modifier = Modifier
-) {
-    Canvas(modifier = modifier) {
-        val canvasSize = size.minDimension
-        val radius = canvasSize / 2
-        val strokeWidth = 15f
-
-        var startAngle = -90f
-
-        // Active deals (Green)
-        if (activeDeals > 0) {
-            val sweepAngle = (activeDeals.toFloat() / total) * 360f
-            drawArc(
-                color = Color(0xFF4CAF50),
-                startAngle = startAngle,
-                sweepAngle = sweepAngle,
-                useCenter = false,
-                topLeft = Offset(strokeWidth / 2, strokeWidth / 2),
-                size = Size(canvasSize - strokeWidth, canvasSize - strokeWidth),
-                style = Stroke(width = strokeWidth, cap = StrokeCap.Butt)
-            )
-            startAngle += sweepAngle
-        }
-
-        // Expired deals (Red)
-        if (expiredDeals > 0) {
-            val sweepAngle = (expiredDeals.toFloat() / total) * 360f
-            drawArc(
-                color = Color.Red,
-                startAngle = startAngle,
-                sweepAngle = sweepAngle,
-                useCenter = false,
-                topLeft = Offset(strokeWidth / 2, strokeWidth / 2),
-                size = Size(canvasSize - strokeWidth, canvasSize - strokeWidth),
-                style = Stroke(width = strokeWidth, cap = StrokeCap.Butt)
-            )
-        }
-    }
-}
 
 @Composable
 fun UserStatusPieChartCard(
@@ -1402,13 +1261,14 @@ fun MetricCard(
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Top
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
                     text = title,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Medium,
-                    color = Color.Gray
+                    color = Color.Gray,
+                    modifier = Modifier.weight(1f).padding(end = 8.dp)
                 )
                 Box(
                     modifier = Modifier
@@ -1426,9 +1286,11 @@ fun MetricCard(
             }
             Text(
                 text = value,
-                fontSize = 28.sp,
+                fontSize = if (value.length > 10) 20.sp else if (value.length > 6) 24.sp else 28.sp,
                 fontWeight = FontWeight.Bold,
-                color = color
+                color = color,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
         }
     }
