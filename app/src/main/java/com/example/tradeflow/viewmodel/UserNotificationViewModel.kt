@@ -232,10 +232,11 @@ class UserNotificationViewModel(
                     if (success1 && myRequests != null) allRequests.addAll(myRequests)
                     if (success2 && incomingRequests != null) allRequests.addAll(incomingRequests)
 
-                    // Filter for COMPLETED or ACCEPTED status and distinct by requestId to avoid duplicates
+                    // Filter for COMPLETED, RETURNED or ACCEPTED status and distinct by requestId
                     val completed = allRequests
                         .filter { 
                             it.status.equals("COMPLETED", ignoreCase = true) || 
+                            it.status.equals("RETURNED", ignoreCase = true) ||
                             it.status.equals("ACCEPTED", ignoreCase = true)
                         }
                         .distinctBy { it.requestId }

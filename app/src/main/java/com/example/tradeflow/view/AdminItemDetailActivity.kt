@@ -83,6 +83,9 @@ fun AdminItemDetailsScreen() {
     val reviews by reviewViewModel.reviews.collectAsState()
     val loading by productViewModel.loading.collectAsState()
 
+    // Reviewer Details Cache
+    val reviewerMap = remember { mutableStateMapOf<String, UserModel>() }
+
     // Editing states
     var isEditing by remember { mutableStateOf(false) }
     var editedName by remember { mutableStateOf("") }
@@ -99,6 +102,19 @@ fun AdminItemDetailsScreen() {
         if (productId.isNotEmpty()) {
             productViewModel.getProductById(productId)
             reviewViewModel.getReviewsByProductId(productId)
+        }
+    }
+
+    // Fetch Reviewer Details when reviews are loaded
+    LaunchedEffect(reviews) {
+        reviews.forEach { review ->
+            if (review.userId.isNotEmpty() && !reviewerMap.containsKey(review.userId)) {
+                userViewModel.getUserById(review.userId) { success, _, user ->
+                    if (success && user != null) {
+                        reviewerMap[review.userId] = user
+                    }
+                }
+            }
         }
     }
 
@@ -510,8 +526,10 @@ fun AdminItemDetailsScreen() {
                             Text("No reviews yet.", fontSize = 14.sp, color = Color.Gray)
                         } else {
                             reviews.forEach { review ->
+                                val reviewer = reviewerMap[review.userId]
                                 ReviewItem(
-                                    username = review.userName,
+                                    username = reviewer?.name ?: review.userName,
+                                    userImage = reviewer?.profileImageUrl ?: "",
                                     rating = review.rating.toInt(),
                                     comment = review.comment
                                 )
