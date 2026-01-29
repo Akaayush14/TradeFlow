@@ -1,6 +1,7 @@
 package com.example.tradeflow
 
 import android.app.Activity
+import android.content.Intent
 import androidx.compose.ui.window.Dialog
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -30,6 +31,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
@@ -66,6 +68,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.tradeflow.viewmodel.UserViewModel
+import com.example.tradeflow.view.LoginActivity
 import com.example.tradeflow.model.UserModel
 import com.example.tradeflow.repository.UserRepoImpl
 import com.example.tradeflow.ui.theme.TradeFlowTheme
@@ -139,6 +142,21 @@ fun RegisterBody() {
                 .background(color = Greenish),
             contentAlignment = Alignment.Center
         ) {
+            IconButton(
+                onClick = {
+                    context.startActivity(Intent(context, LoginActivity::class.java))
+                },
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .padding(top = 48.dp, start = 16.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.ArrowBack,
+                    contentDescription = "Back",
+                    tint = Color.White
+                )
+            }
+
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Icon(
                     painter = painterResource(id = R.drawable.house_rent_logo),
