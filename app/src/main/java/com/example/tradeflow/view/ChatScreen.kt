@@ -124,7 +124,7 @@ fun ChatScreen(
                 onBackClick = onBackClick
             )
         },
-        containerColor = White
+        containerColor = MaterialTheme.colorScheme.background
     ) { innerPadding ->
         Column(
             modifier = Modifier
@@ -163,17 +163,17 @@ fun ChatScreen(
                     onValueChange = { messageText = it },
                     modifier = Modifier.weight(1f),
                     maxLines = 3,
-                    textStyle = TextStyle(fontSize = 16.sp, color = Color.Black),
+                    textStyle = TextStyle(fontSize = 16.sp, color = MaterialTheme.colorScheme.onSurface),
                     decorationBox = { innerTextField ->
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clip(RoundedCornerShape(24.dp))
-                                .background(Color(0xFFF3F4F6))
+                                .background(MaterialTheme.colorScheme.surfaceVariant)
                                 .padding(horizontal = 16.dp, vertical = 10.dp)
                         ) {
                             if (messageText.isEmpty()) {
-                                Text("Type a message...", color = Color.Gray)
+                                Text("Type a message...", color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                             innerTextField()
                         }
@@ -198,7 +198,7 @@ fun ChatScreen(
                     Icon(
                         Icons.Default.Send,
                         contentDescription = "Send",
-                        tint = if (messageText.isNotBlank()) Greenish else Color.Gray
+                        tint = if (messageText.isNotBlank()) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }

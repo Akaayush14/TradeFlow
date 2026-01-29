@@ -9,6 +9,12 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.BadgedBox
+import androidx.compose.material3.Badge
+import com.example.tradeflow.viewmodel.UserNotificationViewModel
+import com.example.tradeflow.repository.UserNotificationRepoImpl
+import androidx.compose.runtime.collectAsState
+import com.google.firebase.auth.FirebaseAuth
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -100,8 +106,20 @@ fun DashboardPageBody() {
     val openChat = activity.intent?.getBooleanExtra("openChat", false) ?: false
     val initialChatUserId = activity.intent?.getStringExtra("chatUserId") ?: ""
 
+    val userNotificationViewModel = remember { UserNotificationViewModel(UserNotificationRepoImpl()) }
+    val notifications by userNotificationViewModel.notifications.collectAsState()
+    val currentUser = FirebaseAuth.getInstance().currentUser
+    val userId = currentUser?.uid ?: ""
+    val unreadCount = notifications.count { !it.isRead }
+
     LaunchedEffect(Unit) {
         UserRepoImpl().setupUserPresence()
+    }
+
+    LaunchedEffect(userId) {
+        if (userId.isNotEmpty()) {
+            userNotificationViewModel.loadNotifications(userId)
+        }
     }
 
     LaunchedEffect(openChat, initialChatUserId, initApplied) {
@@ -141,11 +159,25 @@ fun DashboardPageBody() {
                             }
                         },
                         icon = {
-                            Icon(
-                                painter = painterResource(if (isSelected) item.iconFilled else item.iconOutlined),
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onPrimary
-                            )
+                            if (item.label == "Alert" && unreadCount > 0) {
+                                BadgedBox(
+                                    badge = {
+                                        Badge { Text(unreadCount.toString()) }
+                                    }
+                                ) {
+                                    Icon(
+                                        painter = painterResource(if (isSelected) item.iconFilled else item.iconOutlined),
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onPrimary
+                                    )
+                                }
+                            } else {
+                                Icon(
+                                    painter = painterResource(if (isSelected) item.iconFilled else item.iconOutlined),
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onPrimary
+                                )
+                            }
                         },
                         label = {
                             Text(

@@ -79,24 +79,24 @@ fun UserInboxScreen(
         topBar = {
             InboxTopAppBar(onBackClick = onBackClick)
         },
-        containerColor = White
+        containerColor = MaterialTheme.colorScheme.background
     ) { innerPadding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .background(White)
+                .background(MaterialTheme.colorScheme.background)
         ) {
 
             OutlinedTextField(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
-                placeholder = { Text("Search", color = Color.Gray) },
+                placeholder = { Text("Search", color = MaterialTheme.colorScheme.onSurfaceVariant) },
                 leadingIcon = {
                     Icon(
                         Icons.Default.Search,
                         contentDescription = "Search Icon",
-                        tint = Color.Gray
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 },
                 trailingIcon = {
@@ -105,7 +105,7 @@ fun UserInboxScreen(
                             Icon(
                                 imageVector = Icons.Default.Close,
                                 contentDescription = "Clear Search",
-                                tint = Color.Gray
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
@@ -114,12 +114,12 @@ fun UserInboxScreen(
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 12.dp),
                 colors = TextFieldDefaults.colors(
-                    focusedContainerColor = Color(0xFFF0F0F0),
-                    unfocusedContainerColor = Color(0xFFF0F0F0),
-                    disabledContainerColor = Color(0xFFF0F0F0),
+                    focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                    disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
                     focusedIndicatorColor = Color.Transparent,
                     unfocusedIndicatorColor = Color.Transparent,
-                    cursorColor = Greenish
+                    cursorColor = MaterialTheme.colorScheme.primary
                 ),
                 shape = RoundedCornerShape(50.dp)
             )
@@ -148,17 +148,17 @@ fun InboxTopAppBar(onBackClick: () -> Unit) {
             Text(
                 text = "Messages",
                 fontWeight = FontWeight.Bold,
-                color = White
+                color = MaterialTheme.colorScheme.onPrimary
             )
         },
         navigationIcon = {
             IconButton(onClick = onBackClick) {
-                Icon(Icons.Default.ArrowBackIosNew, contentDescription = "Back", tint = White)
+                Icon(Icons.Default.ArrowBackIosNew, contentDescription = "Back", tint = MaterialTheme.colorScheme.onPrimary)
             }
         },
         colors = TopAppBarDefaults.topAppBarColors(
-            containerColor = Greenish,
-            titleContentColor = White
+            containerColor = MaterialTheme.colorScheme.primary,
+            titleContentColor = MaterialTheme.colorScheme.onPrimary
         )
     )
 }
@@ -177,7 +177,7 @@ fun InboxItem(user: UserModel, lastMessage: String, lastTime: Long, onClick: () 
             modifier = Modifier
                 .size(50.dp)
                 .clip(CircleShape)
-                .background(Color(0xFFE0F2FE))
+                .background(MaterialTheme.colorScheme.primaryContainer)
         ) {
             if (user.profileImageUrl.isNotEmpty()) {
                 AsyncImage(
@@ -193,7 +193,7 @@ fun InboxItem(user: UserModel, lastMessage: String, lastTime: Long, onClick: () 
                     Icons.Default.Person,
                     contentDescription = "Avatar",
                     modifier = Modifier.align(Alignment.Center),
-                    tint = Color(0xFF0288D1)
+                    tint = MaterialTheme.colorScheme.onPrimaryContainer
                 )
             }
         }
@@ -205,12 +205,12 @@ fun InboxItem(user: UserModel, lastMessage: String, lastTime: Long, onClick: () 
                 text = user.name.ifEmpty { user.email },
                 fontWeight = FontWeight.Bold,
                 fontSize = 16.sp,
-                color = Color.Black
+                color = MaterialTheme.colorScheme.onSurface
             )
             Text(
                 text = lastMessage.ifEmpty { "No messages yet" },
                 fontSize = 14.sp,
-                color = Color.Gray,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
             )
         }

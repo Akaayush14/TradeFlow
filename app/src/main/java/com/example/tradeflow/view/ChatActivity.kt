@@ -118,11 +118,11 @@ fun ChatScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color(0xFF007D70)
+                    containerColor = MaterialTheme.colorScheme.primary
                 )
             )
         },
-        containerColor = Color(0xFFF5F5F5)
+        containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
         if (senderId.isEmpty()) {
             Box(
@@ -133,7 +133,7 @@ fun ChatScreen(
             ) {
                 Text(
                     text = "You must be logged in to chat.",
-                    color = Color.Red,
+                    color = MaterialTheme.colorScheme.error,
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold
                 )
@@ -153,7 +153,7 @@ fun ChatScreen(
                             Text(
                                 text = state.message,
                                 modifier = Modifier.align(Alignment.Center),
-                                color = Color.Red
+                                color = MaterialTheme.colorScheme.error
                             )
                         }
                         is ChatUiState.Success -> {
@@ -256,13 +256,13 @@ fun SelectionToolbar(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(Color.White)
+            .background(MaterialTheme.colorScheme.surface)
             .padding(8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         // Cross button (Left)
         IconButton(onClick = onCancel) {
-            Icon(Icons.Default.Close, contentDescription = "Cancel Selection", tint = Color.Black)
+            Icon(Icons.Default.Close, contentDescription = "Cancel Selection", tint = MaterialTheme.colorScheme.onSurface)
         }
 
         Spacer(modifier = Modifier.width(8.dp))
@@ -271,7 +271,7 @@ fun SelectionToolbar(
         Text(
             text = "$selectedCount selected",
             fontWeight = FontWeight.Bold,
-            color = Color.Black
+            color = MaterialTheme.colorScheme.onSurface
         )
 
         // Spacer to push Select All to center
@@ -279,7 +279,7 @@ fun SelectionToolbar(
 
         // Select All (Center-ish)
         TextButton(onClick = onSelectAll) {
-            Text("Select All", color = Color(0xFF007D70))
+            Text("Select All", color = MaterialTheme.colorScheme.primary)
         }
 
         // Spacer to push Delete to right
@@ -287,7 +287,7 @@ fun SelectionToolbar(
 
         // Delete button (Right)
         IconButton(onClick = onDelete) {
-            Icon(Icons.Default.Delete, contentDescription = "Delete", tint = Color.Red)
+            Icon(Icons.Default.Delete, contentDescription = "Delete", tint = MaterialTheme.colorScheme.error)
         }
     }
 }
@@ -301,7 +301,7 @@ fun MessageInput(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(Color.White)
+            .background(MaterialTheme.colorScheme.surface)
             .padding(8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -313,9 +313,9 @@ fun MessageInput(
                 .padding(end = 8.dp),
             shape = RoundedCornerShape(24.dp),
             colors = TextFieldDefaults.colors(
-                focusedContainerColor = Color(0xFFF5F5F5),
-                unfocusedContainerColor = Color(0xFFF5F5F5),
-                disabledContainerColor = Color(0xFFF5F5F5),
+                focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
                 focusedIndicatorColor = Color.Transparent,
                 unfocusedIndicatorColor = Color.Transparent
             ),
@@ -326,12 +326,12 @@ fun MessageInput(
             onClick = onSend,
             modifier = Modifier
                 .size(48.dp)
-                .background(Color(0xFF01423C), CircleShape)
+                .background(MaterialTheme.colorScheme.primary, CircleShape)
         ) {
             Icon(
                 imageVector = Icons.Default.Send,
                 contentDescription = "Send",
-                tint = Color.White
+                tint = MaterialTheme.colorScheme.onPrimary
             )
         }
     }
@@ -348,14 +348,14 @@ fun ChatBubble(
     onClick: () -> Unit
 ) {
     val backgroundColor = if (isSelected) {
-        Color(0xFFBBDEFB) // Highlight color when selected
+        MaterialTheme.colorScheme.primaryContainer // Highlight color when selected
     } else if (isMe) {
-        Color(0xFF01423C0)
+        MaterialTheme.colorScheme.primary
     } else {
-        Color.White
+        MaterialTheme.colorScheme.surface
     }
 
-    val contentColor = if (isSelected) Color.Black else if (isMe) Color.White else Color.Black
+    val contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else if (isMe) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
 
     val shape = if (isMe) {
         RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomStart = 16.dp, bottomEnd = 0.dp)
@@ -397,7 +397,7 @@ fun ChatBubble(
                     shape = shape,
                     shadowElevation = 2.dp,
                     modifier = Modifier.widthIn(max = 280.dp)
-                        .then(if (isSelected) Modifier.border(2.dp, Color.Blue, shape) else Modifier)
+                        .then(if (isSelected) Modifier.border(2.dp, MaterialTheme.colorScheme.primary, shape) else Modifier)
                 ) {
                     Column(modifier = Modifier.padding(12.dp)) {
                         Text(
@@ -419,12 +419,12 @@ fun ChatBubble(
                     Icon(
                         imageVector = Icons.Default.CheckCircle,
                         contentDescription = "Selected",
-                        tint = Color.Blue,
+                        tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier
                             .align(Alignment.TopEnd)
                             .offset(x = 8.dp, y = (-8).dp)
                             .size(20.dp)
-                            .background(Color.White, CircleShape)
+                            .background(MaterialTheme.colorScheme.surface, CircleShape)
                     )
                 }
             }
@@ -444,7 +444,7 @@ fun TypingIndicator() {
         horizontalAlignment = Alignment.Start
     ) {
         Surface(
-            color = Color.White,
+            color = MaterialTheme.colorScheme.surface,
             shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomEnd = 16.dp, bottomStart = 0.dp),
             shadowElevation = 2.dp
         ) {
@@ -454,7 +454,7 @@ fun TypingIndicator() {
             ) {
                 Text(
                     text = "Typing...",
-                    color = Color.Gray,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontSize = 14.sp,
                     fontStyle = androidx.compose.ui.text.font.FontStyle.Italic
                 )

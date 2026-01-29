@@ -90,7 +90,7 @@ fun ChatScreen() {
         Box(
             modifier = Modifier
                 .weight(1f)
-                .background(Color(0xFFECE5DD))
+                .background(MaterialTheme.colorScheme.background)
         ) {
             LazyColumn(
                 reverseLayout = true,
@@ -111,12 +111,12 @@ fun ChatScreen() {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(Color.LightGray)
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
                     .padding(6.dp)
             ) {
-                Text("Replying: ${it.text}", modifier = Modifier.weight(1f))
+                Text("Replying: ${it.text}", modifier = Modifier.weight(1f), color = MaterialTheme.colorScheme.onSurfaceVariant)
                 TextButton(onClick = { replyMessage = null }) {
-                    Text("Cancel")
+                    Text("Cancel", color = MaterialTheme.colorScheme.primary)
                 }
             }
         }
@@ -132,20 +132,20 @@ fun ChatScreen() {
         Dialog(onDismissRequest = { showOptions = null }) {
             Column(
                 modifier = Modifier
-                    .background(Color.White, RoundedCornerShape(12.dp))
+                    .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(12.dp))
                     .padding(16.dp)
             ) {
                 TextButton(onClick = {
                     messages.remove(msg)
                     showOptions = null
-                }) { Text("Delete") }
+                }) { Text("Delete", color = MaterialTheme.colorScheme.error) }
 
                 TextButton(onClick = {
                     replyMessage = msg
                     showOptions = null
-                }) { Text("Reply") }
+                }) { Text("Reply", color = MaterialTheme.colorScheme.primary) }
 
-                TextButton(onClick = { showOptions = null }) { Text("Cancel") }
+                TextButton(onClick = { showOptions = null }) { Text("Cancel", color = MaterialTheme.colorScheme.onSurface) }
             }
         }
     }
@@ -159,20 +159,20 @@ fun ChatTopBar(onCall: () -> Unit, onVideoCall: () -> Unit) {
     TopAppBar(
         title = {
             Column {
-                Text("TradeFlow", color = Color.White)
-                Text("online", color = Color.White.copy(0.7f), fontSize = 12.sp)
+                Text("TradeFlow", color = MaterialTheme.colorScheme.onPrimary)
+                Text("online", color = MaterialTheme.colorScheme.onPrimary.copy(0.7f), fontSize = 12.sp)
             }
         },
         actions = {
             IconButton(onClick = onCall) {
-                Icon(Icons.Default.Call, null, tint = Color.White)
+                Icon(Icons.Default.Call, null, tint = MaterialTheme.colorScheme.onPrimary)
             }
             IconButton(onClick = onVideoCall) {
-                Icon(Icons.Default.Videocam, null, tint = Color.White)
+                Icon(Icons.Default.Videocam, null, tint = MaterialTheme.colorScheme.onPrimary)
             }
             Box {
                 IconButton(onClick = { expanded = true }) {
-                    Icon(Icons.Default.MoreVert, null, tint = Color.White)
+                    Icon(Icons.Default.MoreVert, null, tint = MaterialTheme.colorScheme.onPrimary)
                 }
                 DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
                     DropdownMenuItem(text = { Text("Clear chat") }, onClick = { expanded = false })
@@ -180,15 +180,15 @@ fun ChatTopBar(onCall: () -> Unit, onVideoCall: () -> Unit) {
             }
         },
         colors = TopAppBarDefaults.topAppBarColors(
-            containerColor = Color(0xFF075E54)
+            containerColor = MaterialTheme.colorScheme.primary
         )
     )
 }
 
 @Composable
 fun MessageBubble(message: ChatMessage, onLongPress: () -> Unit) {
-    val bg = if (message.isMe) Color(0xFF25D366) else Color.White
-    val txt = if (message.isMe) Color.White else Color.Black
+    val bg = if (message.isMe) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant
+    val txt = if (message.isMe) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
     val align = if (message.isMe) Arrangement.End else Arrangement.Start
 
     Row(
@@ -203,14 +203,14 @@ fun MessageBubble(message: ChatMessage, onLongPress: () -> Unit) {
                 .widthIn(max = 250.dp)
         ) {
             message.replyTo?.let {
-                Text("Reply: ${it.text}", fontSize = 12.sp, color = Color.DarkGray)
+                Text("Reply: ${it.text}", fontSize = 12.sp, color = txt.copy(alpha = 0.8f))
                 Spacer(modifier = Modifier.height(4.dp))
             }
             Text(message.text, color = txt)
             Text(
                 formatTime(message.time),
                 fontSize = 10.sp,
-                color = Color.Gray,
+                color = txt.copy(alpha = 0.7f),
                 modifier = Modifier.align(Alignment.End)
             )
         }
@@ -237,7 +237,14 @@ fun ChatInputBar(
             singleLine = true,
             keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Send),
             keyboardActions = KeyboardActions(onSend = { onSend() }),
-            shape = RoundedCornerShape(24.dp)
+            shape = RoundedCornerShape(24.dp),
+            colors = TextFieldDefaults.colors(
+                focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                focusedIndicatorColor = Color.Transparent,
+                unfocusedIndicatorColor = Color.Transparent
+            )
         )
 
         Spacer(modifier = Modifier.width(8.dp))
@@ -246,9 +253,9 @@ fun ChatInputBar(
             onClick = onSend,
             modifier = Modifier
                 .size(48.dp)
-                .background(Greenish, CircleShape)
+                .background(MaterialTheme.colorScheme.primary, CircleShape)
         ) {
-            Text("➤", color = Color.White)
+            Text("➤", color = MaterialTheme.colorScheme.onPrimary)
         }
     }
 }
