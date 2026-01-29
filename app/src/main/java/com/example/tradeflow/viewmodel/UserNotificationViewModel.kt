@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.tradeflow.model.UserNotificationModel
 import com.example.tradeflow.model.RequestModel
+import com.example.tradeflow.repository.ProductRepo
 import com.example.tradeflow.repository.UserNotificationRepoImpl
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -13,7 +14,10 @@ import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
 
-class UserNotificationViewModel(private val repository: UserNotificationRepoImpl) : ViewModel() {
+class UserNotificationViewModel(
+    private val repository: UserNotificationRepoImpl,
+    private val productRepository: ProductRepo
+) : ViewModel() {
 
     private val _notifications = MutableStateFlow<List<UserNotificationModel>>(emptyList())
     val notifications: StateFlow<List<UserNotificationModel>> = _notifications
@@ -21,11 +25,29 @@ class UserNotificationViewModel(private val repository: UserNotificationRepoImpl
     private val _myRequests = MutableStateFlow<List<RequestModel>>(emptyList())
     val myRequests: StateFlow<List<RequestModel>> = _myRequests
 
+    private val _tradeHistory = MutableStateFlow<List<RequestModel>>(emptyList())
+    val tradeHistory: StateFlow<List<RequestModel>> = _tradeHistory
+
     private val _unreadCount = MutableStateFlow(0)
     val unreadCount: StateFlow<Int> = _unreadCount
 
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading
+
+    fun startListeningToUnreadCount(userId: String) {
+        repository.startListeningToUnreadCount(userId) { count ->
+            _unreadCount.value = count
+        }
+    }
+
+    fun stopListeningToUnreadCount() {
+        repository.stopListeningToUnreadCount()
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        stopListeningToUnreadCount()
+    }
 
     /**
      * Enhanced method to create item request with complete notification details
@@ -179,13 +201,14 @@ class UserNotificationViewModel(private val repository: UserNotificationRepoImpl
         return "$startStr-${endStr}, $year"
     }
 
-    fun loadNotifications(userId: String) {
+    fun loadNotifications(userId: String, onLoaded: () -> Unit = {}) {
         viewModelScope.launch {
             repository.getNotifications(userId) { success, _, notificationList ->
                 if (success) {
                     _notifications.value = notificationList ?: emptyList()
                     _unreadCount.value = notificationList?.count { !it.isRead } ?: 0
                 }
+                onLoaded()
             }
         }
     }
@@ -195,6 +218,32 @@ class UserNotificationViewModel(private val repository: UserNotificationRepoImpl
             repository.getRequestsByRequester(userId) { success, _, requests ->
                 if (success) {
                     _myRequests.value = requests?.sortedByDescending { it.createdAt } ?: emptyList()
+                }
+            }
+        }
+    }
+
+    fun loadTradeHistory(userId: String) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            repository.getRequestsByRequester(userId) { success1, _, myRequests ->
+                repository.getRequestsByOwner(userId) { success2, _, incomingRequests ->
+                    val allRequests = mutableListOf<RequestModel>()
+                    if (success1 && myRequests != null) allRequests.addAll(myRequests)
+                    if (success2 && incomingRequests != null) allRequests.addAll(incomingRequests)
+
+                    // Filter for COMPLETED, RETURNED or ACCEPTED status and distinct by requestId
+                    val completed = allRequests
+                        .filter { 
+                            it.status.equals("COMPLETED", ignoreCase = true) || 
+                            it.status.equals("RETURNED", ignoreCase = true) ||
+                            it.status.equals("ACCEPTED", ignoreCase = true)
+                        }
+                        .distinctBy { it.requestId }
+                        .sortedByDescending { if (it.completedAt > 0) it.completedAt else it.createdAt }
+
+                    _tradeHistory.value = completed
+                    _isLoading.value = false
                 }
             }
         }
@@ -267,9 +316,21 @@ class UserNotificationViewModel(private val repository: UserNotificationRepoImpl
                         // Update request status
                         repository.updateRequestStatus(requestId, "ACCEPTED") { updateSuccess, _ ->
                             if (updateSuccess) {
-                                // Update local notification status
+                                // Determine new product status based on request type
+                                val newProductStatus = if (request.productType == "RENT") "Rented" else "Completed"
+                                
+                                // Update product status
+                                productRepository.updateProductStatus(request.productId, newProductStatus) { _, _ -> }
+                                
+                                if (request.productType == "BARTER" && request.offerProductId.isNotEmpty()) {
+                                    productRepository.updateProductStatus(request.offerProductId, "Completed") { _, _ -> }
+                                }
+
+                                // Update local notification status and sync with DB
                                 _notifications.value = _notifications.value.map { notif ->
                                     if (notif.requestId == requestId) {
+                                        // Update status in DB
+                                        repository.updateNotificationStatus(notif.notificationId, "ACCEPTED") { _, _ -> }
                                         notif.copy(status = "ACCEPTED")
                                     } else {
                                         notif
@@ -333,9 +394,18 @@ class UserNotificationViewModel(private val repository: UserNotificationRepoImpl
                         // Update request status
                         repository.updateRequestStatus(requestId, "REJECTED") { updateSuccess, _ ->
                             if (updateSuccess) {
-                                // Update local notification status
+                                // Update product status to Available
+                                productRepository.updateProductStatus(request.productId, "Available") { _, _ -> }
+                                
+                                if (request.productType == "BARTER" && request.offerProductId.isNotEmpty()) {
+                                    productRepository.updateProductStatus(request.offerProductId, "Available") { _, _ -> }
+                                }
+
+                                // Update local notification status and sync with DB
                                 _notifications.value = _notifications.value.map { notif ->
                                     if (notif.requestId == requestId) {
+                                        // Update status in DB
+                                        repository.updateNotificationStatus(notif.notificationId, "REJECTED") { _, _ -> }
                                         notif.copy(status = "REJECTED")
                                     } else {
                                         notif

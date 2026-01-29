@@ -147,7 +147,8 @@ fun UserExploreScreen() {
     }
 
     val availableProducts = allProducts.filter { product ->
-        !product.isDeleted && product.status == "Available" && product.isListed
+        !product.isDeleted && product.isListed && 
+        (product.status == "Available" || product.status == "Completed" || product.status == "Rented")
     }
 
     val filteredProducts = availableProducts.filter { product ->
@@ -911,6 +912,7 @@ fun ExploreItemCard(
                     val statusColor = when (product.status) {
                         "Available" -> MaterialTheme.colorScheme.primary
                         "Completed" -> MaterialTheme.colorScheme.tertiary
+                        "Rented" -> Color(0xFF4CAF50) // Greenish
                         "Pending" -> MaterialTheme.colorScheme.secondary
                         else -> MaterialTheme.colorScheme.outline
                     }

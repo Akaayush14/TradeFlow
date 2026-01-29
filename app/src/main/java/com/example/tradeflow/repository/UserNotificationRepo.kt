@@ -34,6 +34,13 @@ interface UserNotificationRepo {
         callback: (Boolean, String, Int) -> Unit
     )
 
+    fun startListeningToUnreadCount(
+        userId: String,
+        callback: (Int) -> Unit
+    )
+
+    fun stopListeningToUnreadCount()
+
     fun getRequestById(
         requestId: String,
         callback: (Boolean, String, RequestModel?) -> Unit
@@ -53,6 +60,12 @@ interface UserNotificationRepo {
     fun getRequestsByRequester(
         requesterId: String,
         callback: (Boolean, String, List<RequestModel>?) -> Unit
+    )
+
+    fun updateNotificationStatus(
+        notificationId: String,
+        status: String,
+        callback: (Boolean, String) -> Unit
     )
 
     fun deleteNotification(

@@ -23,9 +23,11 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
@@ -75,7 +77,7 @@ fun UserAddItemScreen(
     var description by remember { mutableStateOf(initialProduct?.description ?: "") }
     var selectedPurpose by remember { mutableStateOf(initialProduct?.type ?: "Select purpose") }
     var category by remember { mutableStateOf(initialProduct?.category ?: "") }
-    var status by remember { mutableStateOf(initialProduct?.status ?: "Available") }
+    var status by remember { mutableStateOf(initialProduct?.status ?: "Pending") }
     var agreedToTerms by remember { mutableStateOf(false) }
     var isDropdownExpanded by remember { mutableStateOf(false) }
 
@@ -161,7 +163,7 @@ fun UserAddItemScreen(
         selectedPurpose = "Select purpose"
         category = ""
         agreedToTerms = false
-        status = "Available"
+        status = "Pending"
         imageUri = null
         imageUri2 = null
         imageUri3 = null
@@ -217,7 +219,8 @@ fun UserAddItemScreen(
                 imageUrl = mainUrl,
                 imageUrl2 = subUrl2,
                 imageUrl3 = subUrl3,
-                imageUrl4 = subUrl4
+                imageUrl4 = subUrl4,
+                isListed = false // Always false for new/updated items until admin approves
             )
 
             val callback: (Boolean, String) -> Unit = { success, message ->
@@ -348,7 +351,8 @@ fun UserAddItemScreen(
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.background)
                 .padding(innerPadding)
-                .padding(horizontal = 16.dp),
+                .padding(horizontal = 16.dp)
+                .testTag("addItemList"),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             // NAME
@@ -361,7 +365,8 @@ fun UserAddItemScreen(
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = 16.dp),
+                        .padding(top = 16.dp)
+                        .testTag("itemNameInput"),
                     singleLine = true,
                     textStyle = TextStyle(
                         fontSize = 14.sp,
@@ -391,7 +396,7 @@ fun UserAddItemScreen(
                     label = {
                         Text("Price", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     },
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().testTag("itemPriceInput"),
                     singleLine = true,
                     textStyle = TextStyle(
                         fontSize = 14.sp,
@@ -421,7 +426,7 @@ fun UserAddItemScreen(
                     label = {
                         Text("Category", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     },
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().testTag("itemCategoryInput"),
                     singleLine = true,
                     textStyle = TextStyle(
                         fontSize = 14.sp,
@@ -462,7 +467,7 @@ fun UserAddItemScreen(
                             label = {
                                 Text("Location", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             },
-                            modifier = Modifier.fillMaxSize(),
+                            modifier = Modifier.fillMaxSize().testTag("itemLocationInput"),
                             singleLine = true,
                             textStyle = TextStyle(
                                 fontSize = 14.sp,
@@ -527,7 +532,8 @@ fun UserAddItemScreen(
                                 },
                                 modifier = Modifier
                                     .menuAnchor()
-                                    .fillMaxSize(),  // Fill parent
+                                    .fillMaxSize()
+                                    .testTag("itemPurposeDropdown"),  // Fill parent
                                 colors = OutlinedTextFieldDefaults.colors(
                                     focusedContainerColor = MaterialTheme.colorScheme.surface,
                                     unfocusedContainerColor = MaterialTheme.colorScheme.surface,
@@ -606,7 +612,7 @@ fun UserAddItemScreen(
             // IMAGES SECTION
             item {
                 Text(
-                    "Add Images (Main + 3 Sub-images)",
+                    "Add Images",
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.padding(bottom = 8.dp)
@@ -617,6 +623,7 @@ fun UserAddItemScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(200.dp)
+                        .clip(RoundedCornerShape(12.dp))
                         .border(
                             1.dp,
                             MaterialTheme.colorScheme.primary,
@@ -687,6 +694,7 @@ fun UserAddItemScreen(
                             modifier = Modifier
                                 .weight(1f)
                                 .height(100.dp)
+                                .clip(RoundedCornerShape(8.dp))
                                 .border(
                                     1.dp,
                                     MaterialTheme.colorScheme.primary,
@@ -771,7 +779,8 @@ fun UserAddItemScreen(
                     enabled = !isLoading,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(50.dp),
+                        .height(50.dp)
+                        .testTag("submitButton"),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.primary,
                         contentColor = MaterialTheme.colorScheme.onPrimary,

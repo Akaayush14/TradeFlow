@@ -17,6 +17,7 @@ import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Email
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -37,6 +38,7 @@ import com.example.tradeflow.model.RequestModel
 import com.example.tradeflow.model.ProductModel
 import com.example.tradeflow.repository.ProductRepoImpl
 import com.example.tradeflow.repository.UserNotificationRepoImpl
+import com.example.tradeflow.repository.UserRepoImpl
 import com.example.tradeflow.viewmodel.UserNotificationViewModel
 import com.google.firebase.auth.FirebaseAuth
 import java.text.SimpleDateFormat
@@ -45,11 +47,12 @@ import java.util.*
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun UserNotificationScreen(
+    viewModel: UserNotificationViewModel,
     onBackClick: () -> Unit = {},
     onNotificationClick: (UserNotificationModel) -> Unit = {},
-    onViewDetails: (String) -> Unit = {}
+    onViewDetails: (String) -> Unit = {},
+    onMessageClick: () -> Unit = {} // ADDED FROM FRIEND'S CODE
 ) {
-    val viewModel = remember { UserNotificationViewModel(UserNotificationRepoImpl()) }
     val notifications by viewModel.notifications.collectAsState()
     val myRequests by viewModel.myRequests.collectAsState()
     val currentUser = FirebaseAuth.getInstance().currentUser
@@ -62,7 +65,10 @@ fun UserNotificationScreen(
 
     LaunchedEffect(userId) {
         if (userId.isNotEmpty()) {
-            viewModel.loadNotifications(userId)
+            // FROM FRIEND'S CODE: Mark all as read when loaded
+            viewModel.loadNotifications(userId) {
+                viewModel.markAllAsRead(userId)
+            }
             viewModel.loadMyRequests(userId)
         }
     }
@@ -126,55 +132,121 @@ fun UserNotificationScreen(
                 .background(MaterialTheme.colorScheme.background)
                 .padding(innerPadding)
         ) {
-            val filters = listOf("All", "Incoming Request", "My Requests")
-            // Unified Tabs Layout
-            Box(
+            // FROM FRIEND'S CODE: Improved Filter UI
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 12.dp)
+                    .background(MaterialTheme.colorScheme.background)
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),  // Increased spacing
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(48.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant)
-                        .border(
-                            width = 1.dp,
-                            color = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
-                            shape = RoundedCornerShape(12.dp)
-                        ),
-                    verticalAlignment = Alignment.CenterVertically
+                // "All" Button - Fixed width with circular shape
+                Button(  // Changed to Button component
+                    onClick = { selectedFilter = "All" },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (selectedFilter == "All")
+                            MaterialTheme.colorScheme.primary
+                        else
+                            MaterialTheme.colorScheme.surface
+                    ),
+                    shape = CircleShape,  // Fully rounded shape
+                    contentPadding = PaddingValues(horizontal = 24.dp, vertical = 12.dp),
+                    modifier = Modifier.height(48.dp),  // NO weight() - natural width
+                    elevation = ButtonDefaults.buttonElevation(
+                        defaultElevation = if (selectedFilter == "All") 0.dp else 0.dp
+                    ),
+                    border = if (selectedFilter != "All")
+                        BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+                    else null
                 ) {
-                    val filters = listOf("All", "Incoming Request", "My Requests")
-                    filters.forEach { filter ->
-                        val isSelected = selectedFilter == filter
+                    Text(
+                        text = "All",
+                        fontSize = 14.sp,  // Larger font
+                        fontWeight = FontWeight.Medium,
+                        color = if (selectedFilter == "All")
+                            MaterialTheme.colorScheme.onPrimary
+                        else
+                            MaterialTheme.colorScheme.onSurface
+                    )
+                }
+
+                // Other filters - Share remaining space equally
+                FilterChip(
+                    selected = selectedFilter == "Incoming Request",
+                    onClick = { selectedFilter = "Incoming Request" },
+                    label = {
                         Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .fillMaxHeight()
-                                .background(
-                                    if (isSelected) MaterialTheme.colorScheme.primary
-                                    else Color.Transparent
-                                )
-                                .clickable { selectedFilter = filter },
+                            modifier = Modifier.fillMaxWidth(),
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
-                                text = when(filter) {
-                                    "Incoming Request" -> "Requests" // Shorten for display
-                                    else -> filter
-                                },
-                                color = if (isSelected) MaterialTheme.colorScheme.onPrimary
-                                else MaterialTheme.colorScheme.onSurfaceVariant,
+                                text = "Incoming Request",
                                 fontSize = 14.sp,
-                                fontWeight = if (isSelected) FontWeight.Medium else FontWeight.Normal,
+                                fontWeight = if (selectedFilter == "Incoming Request") FontWeight.Medium else FontWeight.Normal,
+                                color = if (selectedFilter == "Incoming Request")
+                                    MaterialTheme.colorScheme.onPrimary
+                                else
+                                    MaterialTheme.colorScheme.onSurface,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
                         }
-                    }
-                }
+                    },
+                    shape = RoundedCornerShape(24.dp),
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = MaterialTheme.colorScheme.primary,
+                        selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
+                        containerColor = Color.Transparent,
+                        labelColor = MaterialTheme.colorScheme.onSurface
+                    ),
+                    border = if (selectedFilter == "Incoming Request") null else FilterChipDefaults.filterChipBorder(
+                        enabled = true,
+                        selected = false,
+                        borderColor = MaterialTheme.colorScheme.outline
+                    ),
+                    modifier = Modifier
+                        .height(48.dp)
+                        .weight(1f)
+                )
+
+                FilterChip(
+                    selected = selectedFilter == "My Requests",
+                    onClick = { selectedFilter = "My Requests" },
+                    label = {
+                        Box(
+                            modifier = Modifier.fillMaxWidth(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "My Requests",
+                                fontSize = 14.sp,
+                                fontWeight = if (selectedFilter == "My Requests") FontWeight.Medium else FontWeight.Normal,
+                                color = if (selectedFilter == "My Requests")
+                                    MaterialTheme.colorScheme.onPrimary
+                                else
+                                    MaterialTheme.colorScheme.onSurface,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    },
+                    shape = RoundedCornerShape(24.dp),
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = MaterialTheme.colorScheme.primary,
+                        selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
+                        containerColor = Color.Transparent,
+                        labelColor = MaterialTheme.colorScheme.onSurface
+                    ),
+                    border = if (selectedFilter == "My Requests") null else FilterChipDefaults.filterChipBorder(
+                        enabled = true,
+                        selected = false,
+                        borderColor = MaterialTheme.colorScheme.outline
+                    ),
+                    modifier = Modifier
+                        .height(48.dp)
+                        .weight(1f)
+                )
             }
 
             val hasNotifications = filteredNotifications.isNotEmpty()
@@ -217,7 +289,7 @@ fun UserNotificationScreen(
                                             showRejectDialog = true
                                         },
                                         onViewDetails = { onViewDetails(notification.requestId) },
-                                        onMessage = {}
+                                        onMessage = onMessageClick // ADDED FROM FRIEND'S CODE
                                     )
                                 }
                             }
@@ -386,6 +458,19 @@ fun EnhancedNotificationCard(
     onViewDetails: () -> Unit = {},
     onMessage: () -> Unit = {}
 ) {
+    // FROM FRIEND'S CODE: Dynamic user image loading
+    var senderImage by remember { mutableStateOf(notification.senderImage) }
+
+    LaunchedEffect(notification.senderId) {
+        if (notification.senderId.isNotEmpty()) {
+            UserRepoImpl().getUserById(notification.senderId) { success, _, user ->
+                if (success && user != null) {
+                    senderImage = user.profileImageUrl
+                }
+            }
+        }
+    }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -411,10 +496,10 @@ fun EnhancedNotificationCard(
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // User Avatar with status indicator
+                    // User Avatar with status indicator - USING DYNAMIC IMAGE
                     Box {
                         AsyncImage(
-                            model = notification.senderImage.ifEmpty { R.drawable.placeholderimage },
+                            model = senderImage.ifEmpty { R.drawable.placeholderimage },
                             contentDescription = "Sender",
                             modifier = Modifier
                                 .size(40.dp)
@@ -560,33 +645,19 @@ fun EnhancedNotificationCard(
             // Action Buttons
             when {
                 notification.status == "ACCEPTED" -> {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                    // FROM FRIEND'S CODE: Better accepted status display
+                    Surface(
+                        shape = RoundedCornerShape(4.dp),
+                        color = MaterialTheme.colorScheme.tertiary,
+                        modifier = Modifier.padding(vertical = 8.dp)
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                painter = painterResource(R.drawable.placeholderimage),
-                                contentDescription = "Accepted",
-                                modifier = Modifier.size(16.dp),
-                                tint = MaterialTheme.colorScheme.tertiary
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                text = "Request accepted",
-                                fontSize = 12.sp,
-                                color = MaterialTheme.colorScheme.tertiary,
-                                fontWeight = FontWeight.Medium
-                            )
-                        }
-                        TextButton(onClick = onViewDetails) {
-                            Text(
-                                "View Details",
-                                fontSize = 12.sp,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                        }
+                        Text(
+                            text = "Request accepted",
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.onTertiary,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            fontWeight = FontWeight.Medium
+                        )
                     }
                 }
                 notification.status == "REJECTED" -> {
@@ -645,12 +716,21 @@ fun EnhancedNotificationCard(
                                 color = MaterialTheme.colorScheme.onSurface
                             )
                         }
-                        IconButton(
+                        // FROM FRIEND'S CODE: Better message button
+                        OutlinedButton(
                             onClick = onMessage,
-                            modifier = Modifier.size(40.dp)
+                            modifier = Modifier
+                                .width(40.dp)
+                                .height(40.dp),
+                            shape = RoundedCornerShape(8.dp),
+                            contentPadding = PaddingValues(0.dp),
+                            border = BorderStroke(
+                                1.dp,
+                                MaterialTheme.colorScheme.outline
+                            )
                         ) {
                             Icon(
-                                painter = painterResource(R.drawable.placeholderimage), // Use message icon
+                                imageVector = Icons.Default.Email,
                                 contentDescription = "Message",
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -778,6 +858,19 @@ fun SentRequestCard(
     request: RequestModel,
     onCancel: () -> Unit
 ) {
+    // FROM FRIEND'S CODE: Dynamic owner image loading
+    var ownerImage by remember { mutableStateOf(request.ownerImage) }
+
+    LaunchedEffect(request.ownerId) {
+        if (request.ownerId.isNotEmpty()) {
+            UserRepoImpl().getUserById(request.ownerId) { success, _, user ->
+                if (success && user != null) {
+                    ownerImage = user.profileImageUrl
+                }
+            }
+        }
+    }
+
     val statusColor = when (request.status) {
         "PENDING" -> MaterialTheme.colorScheme.secondary
         "ACCEPTED" -> MaterialTheme.colorScheme.tertiary
@@ -837,8 +930,9 @@ fun SentRequestCard(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
+                // USING DYNAMIC OWNER IMAGE
                 AsyncImage(
-                    model = request.ownerImage.ifEmpty { R.drawable.placeholderimage },
+                    model = ownerImage.ifEmpty { R.drawable.placeholderimage },
                     contentDescription = "Owner",
                     modifier = Modifier
                         .size(40.dp)
@@ -927,12 +1021,7 @@ fun EmptyNotificationState() {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            Icon(
-                painter = painterResource(R.drawable.placeholderimage),
-                contentDescription = "No notifications",
-                modifier = Modifier.size(80.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            // FROM FRIEND'S CODE: Simplified empty state
             Box(
                 contentAlignment = Alignment.TopEnd
             ) {
@@ -998,6 +1087,7 @@ fun formatTime(timestamp: Long): String {
 @Composable
 fun PreviewNotification(){
     MaterialTheme {
-        UserNotificationScreen()
+        val viewModel = remember { UserNotificationViewModel(UserNotificationRepoImpl(), ProductRepoImpl()) }
+        UserNotificationScreen(viewModel = viewModel)
     }
 }

@@ -14,6 +14,9 @@ class ReviewViewModel(private val repo: ReviewRepo) : ViewModel() {
     private val _reviews = MutableStateFlow<List<ReviewModel>>(emptyList())
     val reviews: StateFlow<List<ReviewModel>> = _reviews.asStateFlow()
 
+    private val _userReviews = MutableStateFlow<List<ReviewModel>>(emptyList())
+    val userReviews: StateFlow<List<ReviewModel>> = _userReviews.asStateFlow()
+
     private val _loading = MutableStateFlow(false)
     val loading: StateFlow<Boolean> = _loading.asStateFlow()
 
@@ -30,6 +33,49 @@ class ReviewViewModel(private val repo: ReviewRepo) : ViewModel() {
                     _reviews.value = data ?: emptyList()
                 } else {
                     _reviews.value = emptyList()
+                }
+            }
+        }
+    }
+
+    fun getReviewsByUserId(userId: String) {
+        viewModelScope.launch {
+            _loading.value = true
+            repo.getReviewsByUserId(userId) { success, message, data ->
+                _loading.value = false
+                if (success) {
+                    _userReviews.value = data ?: emptyList()
+                } else {
+                    _userReviews.value = emptyList()
+                }
+            }
+        }
+    }
+
+    fun getOwnerStats(productIds: List<String>, callback: (Float, Int) -> Unit) {
+        if (productIds.isEmpty()) {
+            callback(0f, 0)
+            return
+        }
+
+        viewModelScope.launch {
+            var totalRating = 0f
+            var totalCount = 0
+            var processedCount = 0
+
+            productIds.forEach { productId ->
+                repo.getReviewsByProductId(productId) { success, _, reviewsList ->
+                    if (success && reviewsList != null) {
+                        reviewsList.forEach { r ->
+                            totalRating += r.rating
+                            totalCount++
+                        }
+                    }
+                    processedCount++
+                    if (processedCount == productIds.size) {
+                        val average = if (totalCount > 0) totalRating / totalCount else 0f
+                        callback(average, totalCount)
+                    }
                 }
             }
         }

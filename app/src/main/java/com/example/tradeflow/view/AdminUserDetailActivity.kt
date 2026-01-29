@@ -49,6 +49,8 @@ import com.example.tradeflow.repository.ProductRepoImpl
 import com.example.tradeflow.viewmodel.ProductViewModel
 import com.example.tradeflow.model.UserNotificationModel
 import com.example.tradeflow.repository.UserNotificationRepoImpl
+import com.google.firebase.auth.FirebaseAuth
+import com.example.tradeflow.model.UserModel
 
 class AdminUserDetailActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -70,6 +72,20 @@ fun AdminUserDetailScreen() {
     val productViewModel = remember { ProductViewModel(ProductRepoImpl()) }
     val userNotificationRepo = remember { UserNotificationRepoImpl() }
     val user by viewModel.users.collectAsState()
+
+    // Admin User Details
+    val auth = remember { FirebaseAuth.getInstance() }
+    val currentUserId = auth.currentUser?.uid ?: ""
+    var adminUser by remember { mutableStateOf<UserModel?>(null) }
+
+    LaunchedEffect(currentUserId) {
+        if (currentUserId.isNotEmpty()) {
+            viewModel.getUserById(currentUserId) { _, _, user ->
+                adminUser = user
+            }
+        }
+    }
+
     val userProducts by productViewModel.allProducts.collectAsState()
 
     // Editing states
@@ -136,6 +152,20 @@ fun AdminUserDetailScreen() {
                             )
                             viewModel.updateUserProfile(userId, updates) { success, message ->
                                 if (success) {
+                                    // Create notification for user
+                                    val notification = UserNotificationModel(
+                                        type = "ADMIN_UPDATE",
+                                        title = "Profile Updated by Admin",
+                                        message = "Your profile details have been updated by an admin.",
+                                        senderId = currentUserId,
+                                        senderName = adminUser?.name ?: "Admin",
+                                        senderImage = adminUser?.profileImageUrl ?: "",
+                                        receiverId = userId,
+                                        isRead = false,
+                                        createdAt = System.currentTimeMillis()
+                                    )
+                                    userNotificationRepo.createNotification(notification) { _, _ -> }
+
                                     Toast.makeText(context, "User Updated Successfully", Toast.LENGTH_SHORT).show()
                                     isEditing = false
                                     // Refresh user data
@@ -350,7 +380,9 @@ fun AdminUserDetailScreen() {
                                                     type = "ADMIN_UPDATE",
                                                     title = "Product Listed by Admin",
                                                     message = "Your product '${product.name}' has been listed by an admin.",
-                                                    senderName = "Admin",
+                                                    senderId = currentUserId,
+                                                    senderName = adminUser?.name ?: "Admin",
+                                                    senderImage = adminUser?.profileImageUrl ?: "",
                                                     receiverId = product.ownerId,
                                                     productId = product.productId,
                                                     productName = product.name,
@@ -372,7 +404,8 @@ fun AdminUserDetailScreen() {
                                                     type = "ADMIN_UPDATE",
                                                     title = "Product Unlisted by Admin",
                                                     message = "Your product '${product.name}' has been unlisted by an admin.",
-                                                    senderName = "Admin",
+                                                    senderName = adminUser?.name ?: "Admin",
+                                                    senderImage = adminUser?.profileImageUrl ?: "",
                                                     receiverId = product.ownerId,
                                                     productId = product.productId,
                                                     productName = product.name,

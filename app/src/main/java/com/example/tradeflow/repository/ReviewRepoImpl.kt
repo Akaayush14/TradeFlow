@@ -42,4 +42,26 @@ class ReviewRepoImpl : ReviewRepo {
                 }
             })
     }
+
+    override fun getReviewsByUserId(userId: String, callback: (Boolean, String, List<ReviewModel>?) -> Unit) {
+        database.orderByChild("userId").equalTo(userId)
+            .addValueEventListener(object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    val reviews = mutableListOf<ReviewModel>()
+                    if (snapshot.exists()) {
+                        for (doc in snapshot.children) {
+                            val review = doc.getValue(ReviewModel::class.java)
+                            if (review != null) {
+                                reviews.add(review)
+                            }
+                        }
+                    }
+                    callback(true, "Reviews fetched", reviews)
+                }
+
+                override fun onCancelled(error: DatabaseError) {
+                    callback(false, error.message, null)
+                }
+            })
+    }
 }
