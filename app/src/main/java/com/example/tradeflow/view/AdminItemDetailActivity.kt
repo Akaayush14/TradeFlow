@@ -82,9 +82,14 @@ fun AdminItemDetailsScreen() {
     val owner by userViewModel.users.collectAsState()
     val reviews by reviewViewModel.reviews.collectAsState()
     val loading by productViewModel.loading.collectAsState()
+    val ownerProducts by productViewModel.allProducts.collectAsState()
 
     // Reviewer Details Cache
     val reviewerMap = remember { mutableStateMapOf<String, UserModel>() }
+
+    // Owner Stats
+    var ownerAverageRating by remember { mutableFloatStateOf(0f) }
+    var ownerReviewCount by remember { mutableIntStateOf(0) }
 
     // Editing states
     var isEditing by remember { mutableStateOf(false) }
@@ -127,12 +132,22 @@ fun AdminItemDetailsScreen() {
             editedLocation = it.location
             editedType = it.type
             
-            it.ownerId.let { ownerId ->
-                if (ownerId.isNotEmpty()) {
-                    userViewModel.getUserById(ownerId) { _, _, _ ->
-                        // User data is handled in the ViewModel
-                    }
+            if (it.ownerId.isNotEmpty()) {
+                userViewModel.getUserById(it.ownerId) { _, _, _ ->
+                    // Owner loaded
                 }
+                // Fetch owner's products to calculate stats
+                productViewModel.getProductsByOwner(it.ownerId)
+            }
+        }
+    }
+
+    LaunchedEffect(ownerProducts) {
+        if (ownerProducts.isNotEmpty()) {
+            val productIds = ownerProducts.map { it.productId }
+            reviewViewModel.getOwnerStats(productIds) { avg, count ->
+                ownerAverageRating = avg
+                ownerReviewCount = count
             }
         }
     }
@@ -467,16 +482,31 @@ fun AdminItemDetailsScreen() {
                                         }
                                     }
                             ) {
-                                Image(
-                                    painter = painterResource(id = R.drawable.ic_launcher_foreground),
-                                    contentDescription = "Owner Profile",
-                                    modifier = Modifier
-                                        .size(50.dp)
-                                        .clip(CircleShape)
-                                        .border(1.dp, Color.Gray, CircleShape)
-                                        .background(Color.LightGray),
-                                    contentScale = ContentScale.Crop
-                                )
+                                if (owner?.profileImageUrl.isNullOrEmpty()) {
+                                    Image(
+                                        painter = painterResource(id = R.drawable.ic_launcher_foreground),
+                                        contentDescription = "Owner Profile",
+                                        modifier = Modifier
+                                            .size(50.dp)
+                                            .clip(CircleShape)
+                                            .border(1.dp, Color.Gray, CircleShape)
+                                            .background(Color.LightGray),
+                                        contentScale = ContentScale.Crop
+                                    )
+                                } else {
+                                    AsyncImage(
+                                        model = owner?.profileImageUrl,
+                                        contentDescription = "Owner Profile",
+                                        modifier = Modifier
+                                            .size(50.dp)
+                                            .clip(CircleShape)
+                                            .border(1.dp, Color.Gray, CircleShape)
+                                            .background(Color.LightGray),
+                                        contentScale = ContentScale.Crop,
+                                        placeholder = painterResource(R.drawable.ic_launcher_foreground),
+                                        error = painterResource(R.drawable.ic_launcher_foreground)
+                                    )
+                                }
                                 Spacer(modifier = Modifier.width(12.dp))
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(
@@ -484,7 +514,20 @@ fun AdminItemDetailsScreen() {
                                         fontSize = 16.sp,
                                         fontWeight = FontWeight.SemiBold
                                     )
-                                    // Owner rating can be added here
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(
+                                            Icons.Default.Star,
+                                            contentDescription = null,
+                                            tint = Color(0xFFFFD700),
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                        Text(
+                                            text = String.format("%.1f (%d reviews)", ownerAverageRating, ownerReviewCount),
+                                            fontSize = 14.sp,
+                                            color = Color.Gray,
+                                            modifier = Modifier.padding(start = 4.dp)
+                                        )
+                                    }
                                 }
                             }
 
