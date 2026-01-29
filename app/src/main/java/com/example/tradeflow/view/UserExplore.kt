@@ -616,7 +616,7 @@ fun RecommendationHeader(onSeeAllClick: () -> Unit) {
             )
         }
         Text(
-            text = "See All >",
+            text = "See All",
             fontSize = 14.sp,
             color = MaterialTheme.colorScheme.primary,
             fontWeight = FontWeight.Medium,
@@ -885,7 +885,7 @@ fun ExploreItemCard(
                     Icon(
                         imageVector = if (isSaved) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
                         contentDescription = "Favorite",
-                        tint = if (isSaved) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.outline,
+                        tint = if (isSaved) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.size(16.dp)
                     )
                 }
