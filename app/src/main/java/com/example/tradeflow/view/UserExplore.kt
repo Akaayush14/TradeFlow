@@ -243,43 +243,6 @@ fun UserExploreScreen() {
         },
         topBar = {
             Column {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(MaterialTheme.colorScheme.primary)
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.End,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.2f))
-                            .clickable {
-                                val intent = Intent(activity, UserPointsActivity::class.java)
-                                activity.startActivity(intent)
-                            }
-                            .padding(horizontal = 12.dp, vertical = 6.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = "$userPoints Points",
-                                color = MaterialTheme.colorScheme.onPrimary,
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                text = "Use >",
-                                color = MaterialTheme.colorScheme.onPrimary,
-                                fontSize = 12.sp
-                            )
-                        }
-                    }
-                }
                 TradeFlowTopBar(
                     title = {
                         Row(
@@ -377,6 +340,18 @@ fun UserExploreScreen() {
                                     )
                                 }
                             }
+                            Spacer(modifier = Modifier.width(8.dp))
+                            // Points Display
+                            Text(
+                                text = "$userPoints Pts",
+                                color = MaterialTheme.colorScheme.onPrimary,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.clickable {
+                                    val intent = Intent(activity, UserPointsActivity::class.java)
+                                    activity.startActivity(intent)
+                                }
+                            )
                         }
                     },
                     actions = {
