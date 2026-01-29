@@ -34,6 +34,7 @@ import com.example.tradeflow.model.PointDealModel
 import com.example.tradeflow.model.UserModel
 import com.example.tradeflow.repository.PointDealRepoImpl
 import com.example.tradeflow.repository.UserRepoImpl
+import com.example.tradeflow.ui.components.ThemeWrapper
 import com.example.tradeflow.ui.theme.Greenish
 import com.example.tradeflow.ui.theme.White
 import com.example.tradeflow.viewmodel.PointDealViewModel
@@ -48,7 +49,7 @@ class UserPointsActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            MaterialTheme {
+            ThemeWrapper {
                 PointsScreen()
             }
         }
@@ -156,7 +157,7 @@ fun PointsScreen() {
             ) {
                 Card(
                     shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = White),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(16.dp)
@@ -170,14 +171,14 @@ fun PointsScreen() {
                             text = if (isFreeDeal) "Claim Deal" else "Redeem Deal",
                             fontSize = 20.sp,
                             fontWeight = FontWeight.Bold,
-                            color = Color.Black
+                            color = MaterialTheme.colorScheme.onSurface
                         )
 
                         Text(
                             text = if (isFreeDeal) "Claim ${selectedDeal?.offer} for free!"
                             else "Use points or pay directly to get ${selectedDeal?.offer}",
                             fontSize = 14.sp,
-                            color = Color.Gray,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = androidx.compose.ui.text.style.TextAlign.Center
                         )
 
@@ -198,12 +199,13 @@ fun PointsScreen() {
                                 .fillMaxWidth()
                                 .height(50.dp),
                             shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = Greenish)
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                         ) {
                             Text(
                                 text = if (isFreeDeal) "Claim Now" else "Redeem for $requiredPoints Points",
                                 fontSize = 16.sp,
-                                fontWeight = FontWeight.Bold
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onPrimary
                             )
                         }
 
@@ -217,7 +219,7 @@ fun PointsScreen() {
                                 Text(
                                     text = "OR",
                                     modifier = Modifier.padding(horizontal = 8.dp),
-                                    color = Color.Gray,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     fontSize = 12.sp
                                 )
                                 HorizontalDivider(modifier = Modifier.weight(1f))
@@ -242,7 +244,7 @@ fun PointsScreen() {
                                 selectedDeal = null
                             }
                         ) {
-                            Text("Cancel", color = Color.Gray)
+                            Text("Cancel", color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
                 }
@@ -257,7 +259,7 @@ fun PointsScreen() {
             ) {
                 Card(
                     shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = White),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(16.dp)
@@ -271,13 +273,13 @@ fun PointsScreen() {
                             text = "Insufficient Points",
                             fontSize = 20.sp,
                             fontWeight = FontWeight.Bold,
-                            color = Color.Black
+                            color = MaterialTheme.colorScheme.onSurface
                         )
 
                         Text(
                             text = "You need $requiredPoints points for this deal. Buy now to redeem instantly?",
                             fontSize = 14.sp,
-                            color = Color.Gray,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = androidx.compose.ui.text.style.TextAlign.Center
                         )
 
@@ -298,7 +300,7 @@ fun PointsScreen() {
                                 selectedDeal = null
                             }
                         ) {
-                            Text("Cancel", color = Color.Gray)
+                            Text("Cancel", color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
                 }
@@ -309,14 +311,14 @@ fun PointsScreen() {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("TradeFlow Points", color = White, fontWeight = FontWeight.Bold) },
+                title = { Text("TradeFlow Points", color = MaterialTheme.colorScheme.onPrimary, fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = { activity?.finish() }) {
-                        Icon(Icons.Default.ArrowBack, "Back", tint = White)
+                        Icon(Icons.Default.ArrowBack, "Back", tint = MaterialTheme.colorScheme.onPrimary)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Greenish
+                    containerColor = MaterialTheme.colorScheme.primary
                 )
             )
         }
@@ -325,7 +327,7 @@ fun PointsScreen() {
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .background(Color.White)
+                .background(MaterialTheme.colorScheme.background)
         ) {
             // Points Summary Card
             item {
@@ -587,7 +589,7 @@ private fun BuyPointsSection(
             .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Text(text = "Points to buy", fontSize = 14.sp, fontWeight = FontWeight.Medium)
+        Text(text = "Points to buy", fontSize = 14.sp, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurface)
         OutlinedTextField(
             value = pointsInput,
             onValueChange = { new ->
@@ -595,7 +597,14 @@ private fun BuyPointsSection(
             },
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(10.dp),
-            singleLine = true
+            singleLine = true,
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                cursorColor = MaterialTheme.colorScheme.primary,
+                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                unfocusedBorderColor = MaterialTheme.colorScheme.outline
+            )
         )
 
         Row(
@@ -609,7 +618,11 @@ private fun BuyPointsSection(
                         pointsInput = (current + inc).toString()
                     },
                     modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(8.dp)
+                    shape = RoundedCornerShape(8.dp),
+                    colors = ButtonDefaults.filledTonalButtonColors(
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                    )
                 ) {
                     Text(text = "+$inc")
                 }
@@ -620,14 +633,14 @@ private fun BuyPointsSection(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Text(text = "1 Point = Rs $ratePerPoint", color = Color.Gray, fontSize = 12.sp)
+            Text(text = "1 Point = Rs $ratePerPoint", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
         }
 
         Text(
             text = "Total Payable: Rs $totalPayable",
             fontSize = 16.sp,
             fontWeight = FontWeight.Bold,
-            color = Color(0xFF006CFF)
+            color = MaterialTheme.colorScheme.primary
         )
 
         KhaltiPaymentButton(
@@ -656,7 +669,7 @@ private fun NavigationTabs(
                     .weight(1f)
                     .clip(RoundedCornerShape(8.dp))
                     .background(
-                        if (isSelected) Greenish.copy(alpha = 0.2f) else Color.Transparent
+                        if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.2f) else Color.Transparent
                     )
                     .clickable { onTabSelected(tab) }
                     .padding(vertical = 12.dp),
@@ -666,12 +679,13 @@ private fun NavigationTabs(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.Center
                 ) {
+                    val tintColor = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                     when (tab) {
                         "Buy Points" -> {
                             Icon(
                                 Icons.Default.Info,
                                 contentDescription = null,
-                                tint = if (isSelected) Greenish else Color.Gray,
+                                tint = tintColor,
                                 modifier = Modifier.size(16.dp)
                             )
                             Spacer(modifier = Modifier.width(4.dp))
@@ -680,7 +694,7 @@ private fun NavigationTabs(
                             Icon(
                                 Icons.Default.History,
                                 contentDescription = null,
-                                tint = if (isSelected) Greenish else Color.Gray,
+                                tint = tintColor,
                                 modifier = Modifier.size(16.dp)
                             )
                             Spacer(modifier = Modifier.width(4.dp))
@@ -690,7 +704,7 @@ private fun NavigationTabs(
                         text = tab,
                         fontSize = 12.sp,
                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                        color = if (isSelected) Greenish else Color.Gray
+                        color = tintColor
                     )
                 }
             }

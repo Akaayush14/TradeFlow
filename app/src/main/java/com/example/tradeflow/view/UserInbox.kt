@@ -1,5 +1,6 @@
 package com.example.tradeflow.view
 
+import android.content.Intent
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -24,6 +25,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -43,6 +45,7 @@ fun UserInboxScreen(
     onBackClick: () -> Unit = {},
     onChatClick: (String) -> Unit = {}
 ) {
+    val context = LocalContext.current
     var searchQuery by remember { mutableStateOf("") }
     val userViewModel: UserViewModel = viewModel(factory = ViewModelFactory())
     val chatSystemViewModel: ChatSystemViewModel = viewModel(factory = ViewModelFactory())
@@ -113,7 +116,28 @@ fun UserInboxScreen(
         topBar = {
             InboxTopAppBar(onBackClick = onBackClick)
         },
-        containerColor = MaterialTheme.colorScheme.background
+        containerColor = MaterialTheme.colorScheme.background,
+        // ADD THE FLOATING ACTION BUTTON HERE
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = {
+                    // Open Chat Bot
+                    val intent = Intent(context, ChatActivity::class.java)
+                    intent.putExtra("receiverId", "chat_bot")
+                    intent.putExtra("receiverName", "TradeFlow Assistant")
+                    context.startActivity(intent)
+                },
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary,
+                shape = CircleShape
+            ) {
+                Icon(
+                    painter = painterResource(id = R.drawable.ic_chatbot),
+                    contentDescription = "Chat Bot Assistant",
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+        }
     ) { innerPadding ->
         Column(
             modifier = Modifier
