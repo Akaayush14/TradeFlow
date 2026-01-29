@@ -458,6 +458,18 @@ fun EnhancedNotificationCard(
     onViewDetails: () -> Unit = {},
     onMessage: () -> Unit = {}
 ) {
+    var senderImage by remember { mutableStateOf(notification.senderImage) }
+
+    LaunchedEffect(notification.senderId) {
+        if (notification.senderId.isNotEmpty()) {
+            UserRepoImpl().getUserById(notification.senderId) { success, _, user ->
+                if (success && user != null) {
+                    senderImage = user.profileImageUrl
+                }
+            }
+        }
+    }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -486,7 +498,7 @@ fun EnhancedNotificationCard(
                     // User Avatar with status indicator
                     Box {
                         AsyncImage(
-                            model = notification.senderImage.ifEmpty { R.drawable.placeholderimage },
+                            model = senderImage.ifEmpty { R.drawable.placeholderimage },
                             contentDescription = "Sender",
                             modifier = Modifier
                                 .size(40.dp)

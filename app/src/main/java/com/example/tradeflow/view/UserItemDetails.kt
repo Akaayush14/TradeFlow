@@ -461,16 +461,31 @@ fun ItemDetailsScreen() {
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Image(
-                                painter = painterResource(id = R.drawable.ic_launcher_foreground),
-                                contentDescription = "Owner Profile",
-                                modifier = Modifier
-                                    .size(50.dp)
-                                    .clip(CircleShape)
-                                    .border(1.dp, Color.Gray, CircleShape)
-                                    .background(Color.LightGray),
-                                contentScale = ContentScale.Crop
-                            )
+                            if (owner?.profileImageUrl.isNullOrEmpty()) {
+                                Image(
+                                    painter = painterResource(id = R.drawable.ic_launcher_foreground),
+                                    contentDescription = "Owner Profile",
+                                    modifier = Modifier
+                                        .size(50.dp)
+                                        .clip(CircleShape)
+                                        .border(1.dp, Color.Gray, CircleShape)
+                                        .background(Color.LightGray),
+                                    contentScale = ContentScale.Crop
+                                )
+                            } else {
+                                AsyncImage(
+                                    model = owner?.profileImageUrl,
+                                    contentDescription = "Owner Profile",
+                                    modifier = Modifier
+                                        .size(50.dp)
+                                        .clip(CircleShape)
+                                        .border(1.dp, Color.Gray, CircleShape)
+                                        .background(Color.LightGray),
+                                    contentScale = ContentScale.Crop,
+                                    placeholder = painterResource(R.drawable.ic_launcher_foreground),
+                                    error = painterResource(R.drawable.ic_launcher_foreground)
+                                )
+                            }
                             Spacer(modifier = Modifier.width(12.dp))
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
