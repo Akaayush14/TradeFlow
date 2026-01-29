@@ -227,7 +227,9 @@ fun ItemDetailsScreen() {
         },
         bottomBar = {
             // Only show request button if user is not the owner and product is loaded
-            if (!isOwner && currentUserId.isNotEmpty() && product != null) {
+            // Also hide if status is Completed
+            if (!isOwner && currentUserId.isNotEmpty() && product != null &&
+                !product?.status?.trim().equals("Completed", ignoreCase = true)) {
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
                     shadowElevation = 8.dp

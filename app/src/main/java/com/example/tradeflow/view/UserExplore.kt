@@ -926,7 +926,7 @@ fun ExploreItemCard(
                     val statusColor = when (product.status) {
                         "Available" -> MaterialTheme.colorScheme.primary
                         "Completed" -> MaterialTheme.colorScheme.tertiary
-                        "Rented" -> Color(0xFFFFA500) // Orange
+                        "Rented" -> Color(0xFF4CAF50) // Greenish
                         "Pending" -> MaterialTheme.colorScheme.secondary
                         else -> MaterialTheme.colorScheme.outline
                     }
