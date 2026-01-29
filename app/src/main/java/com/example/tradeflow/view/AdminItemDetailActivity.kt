@@ -77,6 +77,19 @@ fun AdminItemDetailsScreen() {
     val reviewViewModel = remember { ReviewViewModel(ReviewRepoImpl()) }
     val userNotificationRepo = remember { UserNotificationRepoImpl() }
 
+    // Admin User Details
+    val auth = remember { FirebaseAuth.getInstance() }
+    val currentUserId = auth.currentUser?.uid ?: ""
+    var adminUser by remember { mutableStateOf<UserModel?>(null) }
+
+    LaunchedEffect(currentUserId) {
+        if (currentUserId.isNotEmpty()) {
+            userViewModel.getUserById(currentUserId) { _, _, user ->
+                adminUser = user
+            }
+        }
+    }
+
     // State variables
     val product by productViewModel.product.collectAsState()
     val owner by userViewModel.users.collectAsState()
@@ -184,7 +197,9 @@ fun AdminItemDetailsScreen() {
                                             type = "ADMIN_UPDATE",
                                             title = "Product Updated by Admin",
                                             message = "Your product '${updatedProduct.name}' details have been updated by an admin.",
-                                            senderName = "Admin",
+                                            senderId = currentUserId,
+                                            senderName = adminUser?.name ?: "Admin",
+                                            senderImage = adminUser?.profileImageUrl ?: "",
                                             receiverId = updatedProduct.ownerId,
                                             productId = updatedProduct.productId,
                                             productName = updatedProduct.name,
