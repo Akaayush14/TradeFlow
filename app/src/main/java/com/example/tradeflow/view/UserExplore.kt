@@ -975,13 +975,13 @@ fun ExploreItemCard(
                                 painter = painterResource(R.drawable.location_on),
                                 contentDescription = "Location",
                                 modifier = Modifier.size(16.dp),
-                                colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.outline)
+                                colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.onSurface)
                             )
                             Spacer(modifier = Modifier.width(2.dp))
                             Text(
                                 text = product.location,
                                 fontSize = 10.sp,
-                                color = MaterialTheme.colorScheme.outline,
+                                color = MaterialTheme.colorScheme.onSurface,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                                 modifier = Modifier.widthIn(max = 60.dp)

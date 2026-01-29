@@ -49,7 +49,6 @@ import com.example.tradeflow.viewmodel.UserViewModel
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
 import android.content.Intent
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material.icons.filled.LocationOn
 import android.net.Uri
 
@@ -69,6 +68,7 @@ fun ContainerTag(text: String, color: Color, textColor: Color) {
     Box(
         modifier = Modifier
             .background(color, RoundedCornerShape(8.dp))
+            .border(1.dp, textColor, RoundedCornerShape(8.dp))
             .padding(horizontal = 12.dp, vertical = 6.dp)
     ) {
         Text(
@@ -422,32 +422,10 @@ fun ItemDetailsScreen() {
                                 color = MaterialTheme.colorScheme.primary
                             )
 
-                            val isDarkMode = isSystemInDarkTheme()
                             ContainerTag(
                                 text = productItem.type,
-                                color = if (productItem.type == "Rent") {
-                                    if (isDarkMode)
-                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
-                                    else
-                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
-                                } else {
-                                    if (isDarkMode)
-                                        MaterialTheme.colorScheme.secondaryContainer
-                                    else
-                                        MaterialTheme.colorScheme.secondary.copy(alpha = 0.15f)
-                                },
-                                textColor = if (productItem.type == "Rent") {
-                                    if (isDarkMode)
-                                        MaterialTheme.colorScheme.onPrimary
-                                    else
-                                        MaterialTheme.colorScheme.primary
-                                } else {
-                                    // For Barter
-                                    if (isDarkMode)
-                                        MaterialTheme.colorScheme.onSecondaryContainer
-                                    else
-                                        MaterialTheme.colorScheme.secondary
-                                }
+                                color = Color.Transparent,
+                                textColor = MaterialTheme.colorScheme.primary
                             )
                         }
                         Spacer(modifier = Modifier.height(8.dp))
