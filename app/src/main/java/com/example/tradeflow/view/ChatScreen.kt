@@ -40,6 +40,9 @@ import java.util.*
 import com.example.tradeflow.viewmodel.ViewModelFactory
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.border
+import androidx.compose.ui.text.TextStyle
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -151,19 +154,30 @@ fun ChatScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                    .padding(start = 8.dp, end = 8.dp, top = 4.dp, bottom = 0.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
 
-                OutlinedTextField(
+                BasicTextField(
                     value = messageText,
                     onValueChange = { messageText = it },
-                    placeholder = { Text("Type a message...") },
                     modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(50.dp),
-                    singleLine = false,
                     maxLines = 3,
-                    colors = OutlinedTextFieldDefaults.colors()
+                    textStyle = TextStyle(fontSize = 16.sp, color = Color.Black),
+                    decorationBox = { innerTextField ->
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(24.dp))
+                                .background(Color(0xFFF3F4F6))
+                                .padding(horizontal = 16.dp, vertical = 10.dp)
+                        ) {
+                            if (messageText.isEmpty()) {
+                                Text("Type a message...", color = Color.Gray)
+                            }
+                            innerTextField()
+                        }
+                    }
                 )
 
                 IconButton(
@@ -279,7 +293,7 @@ fun MessageItem(
                 .pointerInput(Unit) {
                     detectTapGestures(onLongPress = { onLongClick() })
                 }
-                .padding(12.dp)
+                .padding(8.dp)
         ) {
             Text(
                 text = message.text,

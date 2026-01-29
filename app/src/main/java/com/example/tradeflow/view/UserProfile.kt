@@ -18,6 +18,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Create
+import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
@@ -149,7 +150,23 @@ fun UserProfileScreen(
                         color = MaterialTheme.colorScheme.onPrimary
                     )
                 },
-                onBackClick = onBackClick
+                onBackClick = onBackClick,
+                actions = {
+                    if (targetUserId != currentUserId && targetUserId.isNotEmpty()) {
+                        IconButton(onClick = {
+                            val intent = Intent(context, UserDashboard::class.java)
+                            intent.putExtra("openChat", true)
+                            intent.putExtra("chatUserId", targetUserId)
+                            context.startActivity(intent)
+                        }) {
+                            Icon(
+                                imageVector = Icons.Default.Email,
+                                contentDescription = "Message",
+                                tint = MaterialTheme.colorScheme.onPrimary
+                            )
+                        }
+                    }
+                }
             )
         },
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) }

@@ -12,6 +12,10 @@ import androidx.compose.material.icons.filled.ArrowBackIosNew
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.layout.ContentScale
+import coil.compose.AsyncImage
+import com.example.tradeflow.R
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -175,12 +179,23 @@ fun InboxItem(user: UserModel, lastMessage: String, lastTime: Long, onClick: () 
                 .clip(CircleShape)
                 .background(Color(0xFFE0F2FE))
         ) {
-            Icon(
-                Icons.Default.Person,
-                contentDescription = "Avatar",
-                modifier = Modifier.align(Alignment.Center),
-                tint = Color(0xFF0288D1)
-            )
+            if (user.profileImageUrl.isNotEmpty()) {
+                AsyncImage(
+                    model = user.profileImageUrl,
+                    contentDescription = "Avatar",
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop,
+                    placeholder = painterResource(R.drawable.placeholderimage),
+                    error = painterResource(R.drawable.placeholderimage)
+                )
+            } else {
+                Icon(
+                    Icons.Default.Person,
+                    contentDescription = "Avatar",
+                    modifier = Modifier.align(Alignment.Center),
+                    tint = Color(0xFF0288D1)
+                )
+            }
         }
 
         Spacer(modifier = Modifier.width(16.dp))
@@ -205,7 +220,7 @@ fun InboxItem(user: UserModel, lastMessage: String, lastTime: Long, onClick: () 
             modifier = Modifier
                 .size(12.dp)
                 .clip(CircleShape)
-                .background(if (!user.isBlocked) Color.Green else Color.Red)
+                .background(if (user.isOnline) Color.Green else Color.Red)
         )
     }
 }
