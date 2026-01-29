@@ -194,8 +194,9 @@ fun ItemDetailsScreen() {
     LaunchedEffect(reviews) {
         reviews.forEach { review ->
             if (review.userId.isNotEmpty() && !reviewerMap.containsKey(review.userId)) {
-                userViewModel.getUserById(review.userId) { success, _, user ->
-                    if (success && user != null) {
+                // Use fetchUser to avoid updating the main 'users' state which tracks the item owner
+                userViewModel.fetchUser(review.userId) { user ->
+                    if (user != null) {
                         reviewerMap[review.userId] = user
                     }
                 }
