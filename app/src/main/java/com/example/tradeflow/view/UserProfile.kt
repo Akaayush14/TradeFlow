@@ -17,9 +17,11 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Create
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.Timeline
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -182,6 +184,72 @@ fun UserProfileScreen(
                     },
                     profileImageUrl = profileImageUrl
                 )
+
+                // Trade History Card
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp)
+                        .padding(bottom = 8.dp)
+                        .clickable {
+                            val intent = Intent(context, UserTradeHistoryActivity::class.java)
+                            context.startActivity(intent)
+                        },
+                    shape = RoundedCornerShape(16.dp),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // Icon
+                        Box(
+                            modifier = Modifier
+                                .size(48.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(Greenish),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Timeline,
+                                contentDescription = "Trade History",
+                                tint = White,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.width(16.dp))
+
+                        // Text
+                        Column(
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text(
+                                text = "My Trade History",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                text = "View your completed trades",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+
+                        // Arrow
+                        Icon(
+                            imageVector = Icons.Default.ChevronRight,
+                            contentDescription = "Navigate",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -506,7 +574,7 @@ fun ProductItemCard(
 ) {
     // Determine background color based on status and type
     val cardBackgroundColor = when {
-        product.status == "Completed" -> MaterialTheme.colorScheme.tertiaryContainer
+        product.status == "Completed" -> MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.3f)
         product.type == "Barter" -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
         product.type == "Rent" -> MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.3f)
         else -> MaterialTheme.colorScheme.surfaceVariant

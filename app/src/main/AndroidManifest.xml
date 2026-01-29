@@ -256,6 +256,11 @@
             android:exported="false"
             android:theme="@style/Theme.TradeFlow" />
 
+        <activity
+            android:name=".view.UserTradeHistoryActivity"
+            android:exported="false"
+            android:theme="@style/Theme.TradeFlow" />
+
         <!-- ChatActivity - FIXED: Changed to exported="true" -->
         <activity
             android:name=".view.ChatActivity"
