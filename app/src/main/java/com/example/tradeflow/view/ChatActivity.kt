@@ -44,7 +44,7 @@ import java.util.*
 class ChatActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        
+
         val receiverId = intent.getStringExtra("receiverId") ?: ""
         val receiverName = intent.getStringExtra("receiverName") ?: "User"
         val senderId = FirebaseAuth.getInstance().currentUser?.uid ?: ""
@@ -76,7 +76,7 @@ fun ChatScreen(
     val uiState by viewModel.uiState.collectAsState()
     val isTyping by viewModel.isTyping.collectAsState()
     var messageText by remember { mutableStateOf("") }
-    
+
     // Selection Mode State
     var isSelectionMode by remember { mutableStateOf(false) }
     val selectedMessages = remember { mutableStateListOf<String>() }
@@ -264,7 +264,7 @@ fun SelectionToolbar(
         IconButton(onClick = onCancel) {
             Icon(Icons.Default.Close, contentDescription = "Cancel Selection", tint = Color.Black)
         }
-        
+
         Spacer(modifier = Modifier.width(8.dp))
 
         // Selected Count (Left, next to cross)
@@ -321,7 +321,7 @@ fun MessageInput(
             ),
             placeholder = { Text("Type a message...") }
         )
-        
+
         IconButton(
             onClick = onSend,
             modifier = Modifier
@@ -354,9 +354,9 @@ fun ChatBubble(
     } else {
         Color.White
     }
-    
+
     val contentColor = if (isSelected) Color.Black else if (isMe) Color.White else Color.Black
-    
+
     val shape = if (isMe) {
         RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomStart = 16.dp, bottomEnd = 0.dp)
     } else {
@@ -390,7 +390,7 @@ fun ChatBubble(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
             }
-            
+
             Box {
                 Surface(
                     color = backgroundColor,
@@ -413,7 +413,7 @@ fun ChatBubble(
                         )
                     }
                 }
-                
+
                 // Checkmark Overlay for selected items
                 if (isSelected) {
                     Icon(

@@ -36,7 +36,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
- 
+
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material.icons.Icons
@@ -128,14 +128,17 @@ import com.example.tradeflow.model.ProductModel
 import com.example.tradeflow.model.UserModel
 import com.example.tradeflow.repository.AdminRepoImpl
 import com.example.tradeflow.repository.NotificationRepoImpl
+import com.example.tradeflow.repository.PointDealRepoImpl
 import com.example.tradeflow.repository.ProductRepoImpl
 import com.example.tradeflow.repository.UserRepoImpl
 import com.example.tradeflow.ui.theme.DarkGreen
 import com.example.tradeflow.ui.theme.Greenish
 import com.example.tradeflow.viewmodel.AdminViewModel
 import com.example.tradeflow.viewmodel.NotificationViewModel
+import com.example.tradeflow.viewmodel.PointDealViewModel
 import com.example.tradeflow.viewmodel.ProductViewModel
 import com.example.tradeflow.viewmodel.UserViewModel
+import androidx.compose.runtime.livedata.observeAsState
 
 class AdminDashExp : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -156,7 +159,7 @@ fun AdminExp() {
     var userTab by remember { mutableStateOf(0) }
     var itemTab by remember { mutableStateOf(0) }
     var backPressedTime by remember { mutableLongStateOf(0L) }
-    
+
     // Notification view model for unread count
     val notificationViewModel = remember { NotificationViewModel(NotificationRepoImpl()) }
     val unreadCount by notificationViewModel.unreadCount.collectAsState()
@@ -210,7 +213,7 @@ fun AdminExp() {
                     },
                     label = { Text("User", color = Color.White) }
                 )
-                
+
                 NavigationBarItem(
                     selected = selectedIndex == 3,
                     onClick = { selectedIndex = 3 },
@@ -223,7 +226,7 @@ fun AdminExp() {
                     },
                     label = { Text("Items", color = Color.White) }
                 )
-                
+
                 NavigationBarItem(
                     selected = selectedIndex == 4,
                     onClick = { selectedIndex = 4 },
@@ -234,13 +237,13 @@ fun AdminExp() {
                             contentDescription = "Alerts"
                         )
                     },
-                    label = { 
+                    label = {
                         Text(
-                            "Alerts", 
+                            "Alerts",
                             color = Color.White,
                             maxLines = 1,
                             overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
-                        ) 
+                        )
                     }
                 )
 
@@ -373,11 +376,11 @@ fun AdminExploreScreen(
         },
         floatingActionButton = {
             FloatingActionButton(
-                onClick = { 
+                onClick = {
                     if (currentAdmin?.isRestricted == true) {
-                        Toast.makeText(context, "you don't have the permissions to access the super admin", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, "You don't have the permissions to access the super admin", Toast.LENGTH_SHORT).show()
                     } else {
-                        showPasswordDialog = true 
+                        showPasswordDialog = true
                     }
                 },
                 containerColor = Greenish,
@@ -524,12 +527,16 @@ fun MetricsContent(
     val productViewModel = remember { ProductViewModel(ProductRepoImpl()) }
     val notificationViewModel = remember { NotificationViewModel(NotificationRepoImpl()) }
     val adminViewModel = remember { AdminViewModel(AdminRepoImpl()) }
+    // ADDED: Point Deal ViewModel
+    val pointDealViewModel = remember { PointDealViewModel(PointDealRepoImpl(), UserRepoImpl()) }
 
     val allUsers by userViewModel.allUsers.collectAsState()
     val allProducts by productViewModel.allProducts.collectAsState()
     val notifications by notificationViewModel.notifications.collectAsState()
     val unreadCount by notificationViewModel.unreadCount.collectAsState()
     val allAdmins by adminViewModel.allAdmins.collectAsState()
+    // ADDED: Point Deals
+    val allDeals by pointDealViewModel.allDeals.observeAsState()
 
     val coroutineScope = rememberCoroutineScope()
 
@@ -539,6 +546,8 @@ fun MetricsContent(
         notificationViewModel.getAllNotifications()
         notificationViewModel.getUnreadCount()
         adminViewModel.getAllAdmins()
+        // ADDED: Load point deals
+        pointDealViewModel.getAllPointDeals()
     }
 
     // User Metrics
@@ -566,6 +575,11 @@ fun MetricsContent(
     // Notification Metrics
     val totalNotifications = notifications?.size ?: 0
 
+    // ADDED: Point Deals Metrics
+    val activeDealsCount = allDeals?.count { it.isActive && it.validTill > System.currentTimeMillis() } ?: 0
+    val expiredDealsCount = allDeals?.count { it.validTill <= System.currentTimeMillis() } ?: 0
+    val totalDeals = (allDeals?.size ?: 0)
+
     val hasInternet = isInternetAvailableExp(context)
     val scrollState = rememberScrollState()
     var isRefreshing by remember { mutableStateOf(false) }
@@ -580,6 +594,8 @@ fun MetricsContent(
                 notificationViewModel.getAllNotifications()
                 notificationViewModel.getUnreadCount()
                 adminViewModel.getAllAdmins()
+                // ADDED: Refresh point deals
+                pointDealViewModel.getAllPointDeals()
                 delay(1000) // Simulate delay for better UI
                 isRefreshing = false
             }
@@ -595,7 +611,7 @@ fun MetricsContent(
                     contentDescription = null
                 )
             }
-        } else if (totalUsers == 0 && totalAdmins == 0 && totalProducts == 0) {
+        } else if (totalUsers == 0 && totalAdmins == 0 && totalProducts == 0 && totalDeals == 0) {
             Box(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
@@ -737,7 +753,7 @@ fun MetricsContent(
                         icon = painterResource(R.drawable.ic_items),
                         color = Greenish,
                         modifier = Modifier.weight(1f),
-                        onClick = { onNavigateToItem(0) } // Default to listed/all? Or use separate logic. Let's say 0 is Listed.
+                        onClick = { onNavigateToItem(0) }
                     )
                     MetricCard(
                         title = "Listed",
@@ -805,7 +821,180 @@ fun MetricsContent(
                         )
                     }
                 }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // ADDED: Point Deals Section
+                Text(
+                    text = "Point Deals Statistics",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Black
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    MetricCard(
+                        title = "Total Deals",
+                        value = "$totalDeals",
+                        icon = painterResource(R.drawable.ic_items), // Using items icon as generic deal icon
+                        color = Color(0xFF9C27B0), // Purple color for deals
+                        modifier = Modifier.weight(1f),
+                        onClick = {
+                            val intent = Intent(context, AdminPointDealsActivity::class.java)
+                            context.startActivity(intent)
+                        }
+                    )
+                    MetricCard(
+                        title = "Active Deals",
+                        value = "$activeDealsCount",
+                        icon = painterResource(R.drawable.ic_items),
+                        color = Color(0xFF4CAF50), // Green for active
+                        modifier = Modifier.weight(1f),
+                        onClick = {
+                            val intent = Intent(context, AdminPointDealsActivity::class.java)
+                            context.startActivity(intent)
+                        }
+                    )
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    MetricCard(
+                        title = "Expired Deals",
+                        value = "$expiredDealsCount",
+                        icon = painterResource(R.drawable.ic_items),
+                        color = Color.Red, // Red for expired
+                        modifier = Modifier.weight(1f),
+                        onClick = {
+                            val intent = Intent(context, AdminPointDealsActivity::class.java)
+                            context.startActivity(intent)
+                        }
+                    )
+                    PointDealsPieChartCard(
+                        activeDeals = activeDealsCount,
+                        expiredDeals = expiredDealsCount,
+                        totalDeals = totalDeals,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
             }
+        }
+    }
+}
+
+// ADDED: Point Deals Pie Chart Card
+@Composable
+fun PointDealsPieChartCard(
+    activeDeals: Int,
+    expiredDeals: Int,
+    totalDeals: Int,
+    modifier: Modifier = Modifier
+) {
+    val context = LocalContext.current
+
+    Card(
+        modifier = modifier.height(120.dp).clickable {
+            val intent = Intent(context, AdminPointDealsActivity::class.java)
+            context.startActivity(intent)
+        },
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(12.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = "Deals Status",
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Medium,
+                color = Color.Gray
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            if (totalDeals > 0) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Pie Chart
+                    PointDealsPieChart(
+                        activeDeals = activeDeals,
+                        expiredDeals = expiredDeals,
+                        total = totalDeals,
+                        modifier = Modifier.size(50.dp)
+                    )
+
+                    // Legend
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        LegendItem(color = Color(0xFF4CAF50), label = "Active", count = activeDeals)
+                        LegendItem(color = Color.Red, label = "Expired", count = expiredDeals)
+                    }
+                }
+            } else {
+                Text(
+                    text = "No deals",
+                    fontSize = 14.sp,
+                    color = Color.Gray
+                )
+            }
+        }
+    }
+}
+
+// ADDED: Point Deals Pie Chart
+@Composable
+fun PointDealsPieChart(
+    activeDeals: Int,
+    expiredDeals: Int,
+    total: Int,
+    modifier: Modifier = Modifier
+) {
+    Canvas(modifier = modifier) {
+        val canvasSize = size.minDimension
+        val radius = canvasSize / 2
+        val strokeWidth = 15f
+
+        var startAngle = -90f
+
+        // Active deals (Green)
+        if (activeDeals > 0) {
+            val sweepAngle = (activeDeals.toFloat() / total) * 360f
+            drawArc(
+                color = Color(0xFF4CAF50),
+                startAngle = startAngle,
+                sweepAngle = sweepAngle,
+                useCenter = false,
+                topLeft = Offset(strokeWidth / 2, strokeWidth / 2),
+                size = Size(canvasSize - strokeWidth, canvasSize - strokeWidth),
+                style = Stroke(width = strokeWidth, cap = StrokeCap.Butt)
+            )
+            startAngle += sweepAngle
+        }
+
+        // Expired deals (Red)
+        if (expiredDeals > 0) {
+            val sweepAngle = (expiredDeals.toFloat() / total) * 360f
+            drawArc(
+                color = Color.Red,
+                startAngle = startAngle,
+                sweepAngle = sweepAngle,
+                useCenter = false,
+                topLeft = Offset(strokeWidth / 2, strokeWidth / 2),
+                size = Size(canvasSize - strokeWidth, canvasSize - strokeWidth),
+                style = Stroke(width = strokeWidth, cap = StrokeCap.Butt)
+            )
         }
     }
 }
@@ -1022,7 +1211,7 @@ fun ProductListingPieChartCard(
         colors = CardDefaults.cardColors(containerColor = Color.White),
         shape = RoundedCornerShape(12.dp),
 
-    ) {
+        ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -1271,7 +1460,7 @@ fun ItemsContent(searchText: String) {
         }
     }
 
-    
+
 
     PullToRefreshLayout(
         isRefreshing = isRefreshing,
@@ -1284,7 +1473,7 @@ fun ItemsContent(searchText: String) {
             }
         }
     ) {
-        
+
         if (!hasInternet) {
             Box(
                 modifier = Modifier.fillMaxSize(),
@@ -1488,7 +1677,7 @@ fun UsersContent(searchText: String) {
         }
     }
 
-    
+
 
     PullToRefreshLayout(
         isRefreshing = isRefreshing,
@@ -1501,7 +1690,7 @@ fun UsersContent(searchText: String) {
             }
         }
     ) {
-        
+
         if (!hasInternet) {
             Box(
                 modifier = Modifier.fillMaxSize(),
@@ -1823,7 +2012,7 @@ fun UserCardExp(
                         )
                     }
                 }
-                
+
                 Spacer(modifier = Modifier.width(16.dp))
 
                 // Details Column (Right)
@@ -1831,11 +2020,11 @@ fun UserCardExp(
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                     modifier = Modifier.weight(1f)
                 ) {
-                     // Name & Status
+                    // Name & Status
                     Row(
-                         modifier = Modifier.fillMaxWidth(),
-                         horizontalArrangement = Arrangement.SpaceBetween,
-                         verticalAlignment = Alignment.CenterVertically
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
                             text = user.name.ifEmpty { "Unknown User" },
@@ -1843,8 +2032,8 @@ fun UserCardExp(
                             fontWeight = FontWeight.Bold,
                             color = Color.Black
                         )
-                        
-                         if (user.isBlocked) {
+
+                        if (user.isBlocked) {
                             Text(
                                 text = "BLOCKED",
                                 fontSize = 12.sp,
@@ -1908,10 +2097,10 @@ fun UserCardExp(
                             color = Color.Gray
                         )
                     }
-                    
+
                     // Gender & DOB
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                         // Gender
+                        // Gender
                         Icon(
                             imageVector = androidx.compose.material.icons.Icons.Default.Person,
                             contentDescription = "Gender",
@@ -1924,9 +2113,9 @@ fun UserCardExp(
                             fontSize = 14.sp,
                             color = Color.Gray
                         )
-                        
+
                         Spacer(modifier = Modifier.width(12.dp))
-                        
+
                         // DOB
                         Icon(
                             imageVector = androidx.compose.material.icons.Icons.Default.DateRange,

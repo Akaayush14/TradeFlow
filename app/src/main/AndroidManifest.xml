@@ -42,9 +42,11 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
         <meta-data
             android:name="com.google.android.geo.API_KEY"
             android:value="AIzaSyCX3_5f2eilotR-J9y7sC-7Q-zCFP98G7U" />
+
         <activity
             android:name=".view.MainActivity"
             android:exported="true"
@@ -106,6 +108,7 @@
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+
             <meta-data
                 android:name="com.google.android.geo.API_KEY"
                 android:value="YOUR_MAP_API_KEY" />
@@ -160,7 +163,6 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-
         <activity
             android:name=".view.AdminProfile"
             android:exported="true"
@@ -182,7 +184,6 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-
         <activity
             android:name=".view.AdminUserMetric"
             android:exported="true"
@@ -244,7 +245,7 @@
             android:exported="false"
             android:theme="@style/Theme.TradeFlow" />
         <activity
-            android:name=".view.AdminPointDeals"
+            android:name=".view.AdminPointDealsActivity"
             android:exported="false"
             android:theme="@style/Theme.TradeFlow" />
         <activity
@@ -255,8 +256,6 @@
             android:name=".view.RentalRequestActivity"
             android:exported="false"
             android:theme="@style/Theme.TradeFlow" />
-
-        <!-- ChatActivity - FIXED: Changed to exported="true" -->
         <activity
             android:name=".view.ChatActivity"
             android:exported="true"

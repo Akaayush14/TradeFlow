@@ -188,7 +188,19 @@ fun ItemDetailsScreen() {
                     ) {
                         OutlinedButton(
                             onClick = {
-                                Toast.makeText(context, "Opening Chat...", Toast.LENGTH_SHORT).show()
+                                // CHAT UPDATE FROM FRIEND'S CODE - START
+                                val ownerId = product?.ownerId ?: ""
+                                if (ownerId.isNotEmpty()) {
+                                    val intent = Intent(context, UserDashboard::class.java).apply {
+                                        putExtra("openChat", true)
+                                        putExtra("chatUserId", ownerId)
+                                    }
+                                    context.startActivity(intent)
+                                    activity?.finish() // Close current activity after opening chat
+                                } else {
+                                    Toast.makeText(context, "Owner not available", Toast.LENGTH_SHORT).show()
+                                }
+                                // CHAT UPDATE FROM FRIEND'S CODE - END
                             },
                             modifier = Modifier
                                 .weight(1f)
@@ -440,7 +452,7 @@ fun ItemDetailsScreen() {
                         }
                         Spacer(modifier = Modifier.height(8.dp))
 
-// Product Location
+                        // Product Location
                         if (!productItem.location.isNullOrBlank()) {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,

@@ -11,6 +11,8 @@ data class PointDealModel(
     var isActive: Boolean = true,
     var discountAmount: Double = 0.0,
     var discountType: String = "", // "FLAT" or "UPTO"
+    var rewardPoints: Long = 0L,
+    var targetUserId: String = "", // Specific user ID for gifted points
     var createdAt: Long = System.currentTimeMillis(),
     var updatedAt: Long = System.currentTimeMillis()
 ) {
@@ -26,9 +28,31 @@ data class PointDealModel(
             "isActive" to isActive,
             "discountAmount" to discountAmount,
             "discountType" to discountType,
+            "rewardPoints" to rewardPoints,
+            "targetUserId" to targetUserId,
             "createdAt" to createdAt,
             "updatedAt" to updatedAt
         )
     }
-}
 
+
+    fun toUpdateMap(): Map<String, Any?> {
+        return mapOf(
+            "title" to title,
+            "offer" to offer,
+            "tier" to tier,
+            "serviceCategory" to serviceCategory,
+            "pointsRequired" to pointsRequired,
+            "validTill" to validTill,
+            "isActive" to isActive,
+            "discountAmount" to discountAmount,
+            "discountType" to discountType,
+            "rewardPoints" to rewardPoints,
+            "targetUserId" to targetUserId,
+            "updatedAt" to updatedAt
+        )
+    }
+
+
+
+}

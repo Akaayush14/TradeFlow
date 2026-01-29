@@ -18,6 +18,7 @@ import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -35,6 +36,7 @@ import com.example.tradeflow.ui.theme.Transparent
 import com.example.tradeflow.ui.theme.White
 import com.example.tradeflow.model.ProductModel
 import com.example.tradeflow.ui.components.ThemeWrapper
+import com.example.tradeflow.repository.UserRepoImpl
 
 class UserDashboard : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -91,7 +93,24 @@ fun DashboardPageBody() {
     var editingProduct by remember { mutableStateOf<ProductModel?>(null) }
     var showEditSuccess by remember { mutableStateOf(false) }
 
+    var chatUserId by remember { mutableStateOf("") }
+    var initApplied by remember { mutableStateOf(false) }
     var isNavigating by remember { mutableStateOf(false) }
+
+    val openChat = activity.intent?.getBooleanExtra("openChat", false) ?: false
+    val initialChatUserId = activity.intent?.getStringExtra("chatUserId") ?: ""
+
+    LaunchedEffect(Unit) {
+        UserRepoImpl().setupUserPresence()
+    }
+
+    LaunchedEffect(openChat, initialChatUserId, initApplied) {
+        if (openChat && initialChatUserId.isNotEmpty() && !initApplied) {
+            chatUserId = initialChatUserId
+            selectedIndex = 5  // Opens chat screen
+            initApplied = true
+        }
+    }
 
     val listItem = listOf(
         NavItem(label = "Explore", R.drawable.explore, R.drawable.explore_filled),
@@ -153,7 +172,13 @@ fun DashboardPageBody() {
         ) {
             when (selectedIndex) {
                 0 -> UserExploreScreen()
-                1 -> UserInboxScreen(onBackClick = { selectedIndex = 0 })
+                1 -> UserInboxScreen(
+                    onBackClick = { selectedIndex = 0 },
+                    onChatClick = { userId ->
+                        chatUserId = userId
+                        selectedIndex = 5
+                    }
+                )
                 2 -> UserAddItemScreen(
                     mode = addItemMode,
                     initialProduct = editingProduct,
@@ -179,6 +204,11 @@ fun DashboardPageBody() {
                     },
                     showEditSuccess = showEditSuccess,
                     onSnackbarShown = { showEditSuccess = false }
+                )
+
+                5 -> ChatScreen(
+                    receiverId = chatUserId,
+                    onBackClick = { selectedIndex = 1 }
                 )
                 else -> UserExploreScreen()
             }

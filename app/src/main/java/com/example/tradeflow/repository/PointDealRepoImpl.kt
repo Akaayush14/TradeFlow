@@ -11,6 +11,9 @@ class PointDealRepoImpl : PointDealRepo {
     val database: FirebaseDatabase = FirebaseDatabase.getInstance()
     val ref: DatabaseReference = database.getReference("PointDeals")
 
+
+
+
     override fun addPointDeal(
         model: PointDealModel,
         callback: (Boolean, String) -> Unit
@@ -29,12 +32,13 @@ class PointDealRepoImpl : PointDealRepo {
         }
     }
 
+
     override fun updatePointDeal(
         model: PointDealModel,
         callback: (Boolean, String) -> Unit
     ) {
         model.updatedAt = System.currentTimeMillis()
-        ref.child(model.dealId).updateChildren(model.toMap()).addOnCompleteListener {
+        ref.child(model.dealId).updateChildren(model.toUpdateMap()).addOnCompleteListener {
             if (it.isSuccessful) {
                 callback(true, "Point deal updated successfully")
             } else {
@@ -108,28 +112,31 @@ class PointDealRepoImpl : PointDealRepo {
     override fun getActivePointDeals(
         callback: (Boolean, String, List<PointDealModel>?) -> Unit
     ) {
-        ref.orderByChild("isActive").equalTo(true)
-            .addValueEventListener(object : ValueEventListener {
-                override fun onDataChange(snapshot: DataSnapshot) {
-                    if (snapshot.exists()) {
-                        val activeDeals = mutableListOf<PointDealModel>()
-                        val currentTime = System.currentTimeMillis()
-                        for (data in snapshot.children) {
-                            val deal = data.getValue(PointDealModel::class.java)
-                            if (deal != null && deal.validTill > currentTime) {
+        val currentTime = System.currentTimeMillis()
+        ref.addListenerForSingleValueEvent(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                if (snapshot.exists()) {
+                    val activeDeals = mutableListOf<PointDealModel>()
+                    for (data in snapshot.children) {
+                        val deal = data.getValue(PointDealModel::class.java)
+                        if (deal != null) {
+                            val isActive = deal.isActive
+                            val isValid = deal.validTill > currentTime
+                            if (isActive && isValid) {
                                 activeDeals.add(deal)
                             }
                         }
-                        callback(true, "Active deals fetched", activeDeals)
-                    } else {
-                        callback(true, "No active deals found", emptyList())
                     }
+                    callback(true, "Active deals fetched", activeDeals)
+                } else {
+                    callback(true, "No active deals found", emptyList())
                 }
+            }
 
-                override fun onCancelled(error: DatabaseError) {
-                    callback(false, error.message, null)
-                }
-            })
+            override fun onCancelled(error: DatabaseError) {
+                callback(false, error.message, null)
+            }
+        })
     }
 
     override fun getPointDealsByTier(
@@ -137,7 +144,7 @@ class PointDealRepoImpl : PointDealRepo {
         callback: (Boolean, String, List<PointDealModel>?) -> Unit
     ) {
         ref.orderByChild("tier").equalTo(tier)
-            .addValueEventListener(object : ValueEventListener {
+            .addListenerForSingleValueEvent(object : ValueEventListener {
                 override fun onDataChange(snapshot: DataSnapshot) {
                     if (snapshot.exists()) {
                         val tierDeals = mutableListOf<PointDealModel>()
@@ -160,4 +167,3 @@ class PointDealRepoImpl : PointDealRepo {
             })
     }
 }
-
