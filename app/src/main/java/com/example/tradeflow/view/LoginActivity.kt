@@ -88,6 +88,14 @@ fun LoginScreen() {
                 isLoading = false
 
                 if (task.isSuccessful) {
+                    // Enforce case sensitivity for email
+                    val registeredEmail = auth.currentUser?.email
+                    if (registeredEmail != null && registeredEmail != email.trim()) {
+                        auth.signOut()
+                        errorMessage = "Email is case-sensitive. Please enter exactly as registered."
+                        return@addOnCompleteListener
+                    }
+
                     // Save credentials if Remember Me is checked
                     if (rememberMe) {
                         sharedPrefs.edit()
