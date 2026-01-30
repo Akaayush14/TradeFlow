@@ -475,24 +475,26 @@ fun EnhancedNotificationCard(
                         }
 
                         // Request Type Badge
-                        Surface(
-                            shape = RoundedCornerShape(4.dp),
-                            color = if (notification.requestType == "BARTER")
-                                MaterialTheme.colorScheme.errorContainer
-                            else
-                                MaterialTheme.colorScheme.primaryContainer,
-                            modifier = Modifier.padding(top = 2.dp)
-                        ) {
-                            Text(
-                                text = notification.requestType.ifEmpty { "Message" },
-                                fontSize = 10.sp,
+                        if (notification.requestType.isNotEmpty()) {
+                            Surface(
+                                shape = RoundedCornerShape(4.dp),
                                 color = if (notification.requestType == "BARTER")
-                                    MaterialTheme.colorScheme.onErrorContainer
+                                    MaterialTheme.colorScheme.errorContainer
                                 else
-                                    MaterialTheme.colorScheme.onPrimaryContainer,
-                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                                fontWeight = FontWeight.Medium
-                            )
+                                    MaterialTheme.colorScheme.primaryContainer,
+                                modifier = Modifier.padding(top = 2.dp)
+                            ) {
+                                Text(
+                                    text = notification.requestType,
+                                    fontSize = 10.sp,
+                                    color = if (notification.requestType == "BARTER")
+                                        MaterialTheme.colorScheme.onErrorContainer
+                                    else
+                                        MaterialTheme.colorScheme.onPrimaryContainer,
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
                         }
                     }
                 }

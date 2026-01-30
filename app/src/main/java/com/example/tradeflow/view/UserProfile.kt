@@ -863,8 +863,8 @@ fun ProductItemCard(
                             }
                         }
 
-                        // Delete Button - Only show for Pending items (isListed=false)
-                        if (!product.isListed && product.status != "Completed" && product.status != "Rented") {
+                        // Delete Button - Show for both Available and Pending items
+                        if (product.status != "Completed" && product.status != "Rented") {
                             Card(
                                 modifier = Modifier
                                     .weight(1f)
@@ -879,8 +879,7 @@ fun ProductItemCard(
                                     modifier = Modifier
                                         .fillMaxSize()
                                         .clickable {
-                                            showDeleteConfirm = !product.isListed && product.status != "Completed" && product.status != "Rented"
-                                            showDeleteBlocked = product.isListed || product.status == "Completed" || product.status == "Rented"
+                                            showDeleteConfirm = true
                                         },
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.Center
