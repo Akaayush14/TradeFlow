@@ -51,7 +51,7 @@ fun UserNotificationScreen(
     onBackClick: () -> Unit = {},
     onNotificationClick: (UserNotificationModel) -> Unit = {},
     onViewDetails: (String) -> Unit = {},
-    onMessageClick: () -> Unit = {} // ADDED FROM FRIEND'S CODE
+    onMessageClick: (String) -> Unit = {} // ADDED FROM FRIEND'S CODE
 ) {
     val notifications by viewModel.notifications.collectAsState()
     val myRequests by viewModel.myRequests.collectAsState()
@@ -216,7 +216,7 @@ fun UserNotificationScreen(
                                             showRejectDialog = true
                                         },
                                         onViewDetails = { onViewDetails(notification.requestId) },
-                                        onMessage = onMessageClick // ADDED FROM FRIEND'S CODE
+                                        onMessage = { onMessageClick(notification.senderId) } // ADDED FROM FRIEND'S CODE
                                     )
                                 }
                             }
