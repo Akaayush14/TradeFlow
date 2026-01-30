@@ -121,7 +121,7 @@ fun UserProfileScreen(
             ListingStatus.ALL -> typeFiltered
             ListingStatus.AVAILABLE -> typeFiltered.filter { it.status == "Available" }
             ListingStatus.PENDING -> typeFiltered.filter { it.status == "Pending" }
-            ListingStatus.COMPLETED -> typeFiltered.filter { it.status == "Completed" }
+            ListingStatus.COMPLETED -> typeFiltered.filter { it.status == "Completed" || it.status == "Rented" }
         }
     }
 
@@ -186,7 +186,7 @@ fun UserProfileScreen(
                     userDisplayEmail = userDisplayEmail,
                     barterCount = allProducts.count { it.type == "Barter" },
                     rentalCount = allProducts.count { it.type == "Rent" },
-                    completedCount = allProducts.count { it.status == "Completed" },
+                    completedCount = allProducts.count { it.status == "Completed" || it.status == "Rented" },
                     isLoading = isLoading,
                     onEditProfileClick = {
                         try {
