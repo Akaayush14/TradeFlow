@@ -152,13 +152,17 @@ class NotificationHelper(private val notificationRepo: NotificationRepo) {
         notificationRepo.addNotification(notification) { _, _ -> }
     }
 
-    fun sendSystemNotification(userId: String, message: String) {
+    fun sendSystemNotification(userId: String, message: String, senderImage: String = "") {
         val notification = NotificationModel(
             message = message,
             type = TYPE_SYSTEM,
             userId = userId,
             timestamp = System.currentTimeMillis(),
             isRead = false
+            // Note: NotificationModel needs to support senderImage if we want to store it here.
+            // Currently NotificationModel does NOT have senderImage.
+            // However, UserNotificationModel DOES.
+            // If this helper is using NotificationModel, we might need to update NotificationModel or use UserNotificationModel.
         )
         notificationRepo.addNotification(notification) { _, _ -> }
     }

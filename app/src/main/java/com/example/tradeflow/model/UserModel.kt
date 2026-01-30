@@ -1,4 +1,5 @@
 package com.example.tradeflow.model
+import java.io.Serializable
 
 data class UserModel(
     var userId: String = "",
@@ -12,7 +13,10 @@ data class UserModel(
     var isRestricted: Boolean = false,
     var points: Long = 0L,
     var profileImageUrl: String = "",
-) {
+    var isOnline: Boolean = false,
+    var lastActive: Long = 0L
+) : Serializable {
+
     fun toMap(): Map<String, Any?> {
         return mapOf(
             "userId" to userId,
@@ -26,6 +30,8 @@ data class UserModel(
             "isRestricted" to isRestricted,
             "points" to points,
             "profileImageUrl" to profileImageUrl,
+            "isOnline" to isOnline,
+            "lastActive" to lastActive
         )
     }
 }

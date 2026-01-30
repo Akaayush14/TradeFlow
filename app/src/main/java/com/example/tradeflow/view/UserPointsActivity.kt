@@ -1,6 +1,8 @@
 package com.example.tradeflow.view
 
 import android.os.Bundle
+import android.util.Log
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -12,6 +14,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.*
@@ -26,13 +29,16 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.collectAsState
+import androidx.compose.ui.window.Dialog
 import com.example.tradeflow.model.PointDealModel
 import com.example.tradeflow.model.UserModel
 import com.example.tradeflow.repository.PointDealRepoImpl
 import com.example.tradeflow.repository.UserRepoImpl
+import com.example.tradeflow.ui.components.ThemeWrapper
 import com.example.tradeflow.ui.theme.Greenish
 import com.example.tradeflow.ui.theme.White
 import com.example.tradeflow.viewmodel.PointDealViewModel
+import com.example.tradeflow.viewmodel.PointHistoryViewModel
 import com.example.tradeflow.viewmodel.UserViewModel
 import com.google.firebase.auth.FirebaseAuth
 import java.text.SimpleDateFormat
@@ -43,7 +49,7 @@ class UserPointsActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            MaterialTheme {
+            ThemeWrapper {
                 PointsScreen()
             }
         }
@@ -57,28 +63,27 @@ fun PointsScreen() {
     val activity = context as? ComponentActivity
 
     val userViewModel = remember { UserViewModel(UserRepoImpl()) }
-    val pointDealViewModel = remember { PointDealViewModel(PointDealRepoImpl()) }
+    // FIX: Add UserRepoImpl() as second parameter
+    val pointDealViewModel = remember { PointDealViewModel(PointDealRepoImpl(), UserRepoImpl()) }
+    val pointHistoryViewModel = remember { PointHistoryViewModel() }
 
     val currentUser = FirebaseAuth.getInstance().currentUser
     val userId = currentUser?.uid ?: ""
 
-    var selectedTab by remember { mutableStateOf("Point Deals") }
+    var selectedTab by remember { mutableStateOf("Buy Deals") }
+    var showRedeemConfirmation by remember { mutableStateOf(false) }
+    var selectedDeal by remember { mutableStateOf<PointDealModel?>(null) }
 
-    LaunchedEffect(Unit) {
-        if (userId.isNotEmpty()) {
-            userViewModel.getUserById(userId) { success, _, user ->
-                // User data loaded
-            }
-            pointDealViewModel.getActivePointDeals()
-        }
-    }
+    val redemptionStatus by pointDealViewModel.redemptionStatus.observeAsState()
 
     val userData by userViewModel.users.collectAsState()
     val activeDeals by pointDealViewModel.activeDeals.observeAsState(initial = emptyList())
+    val userRedemptions by pointDealViewModel.userRedemptions.observeAsState(initial = emptySet())
+    val txList by pointHistoryViewModel.transactions.collectAsState()
 
     val userPoints = userData?.points ?: 0L
 
-    // Calculate tier based on points
+    // Calculate tier based on points - FIXED: Moved inside composable
     val currentTier: String
     val nextTier: String
     val pointsToNextTier: Long
@@ -105,17 +110,215 @@ fun PointsScreen() {
         }
     }
 
+    // Show toast when redemption status changes
+    redemptionStatus?.let { (success, message) ->
+        LaunchedEffect(redemptionStatus) {
+            Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+            if (success) {
+                // FIX: Added callback parameter
+                userViewModel.getUserById(userId) { success, message, user ->
+                    if (success) {
+                        Log.d("PointsScreen", "User data refreshed")
+                    }
+                }
+                pointDealViewModel.getEligibleDealsForUser(userId, currentTier)
+            }
+            pointDealViewModel.clearRedemptionStatus()
+        }
+    }
+
+    LaunchedEffect(userId, currentTier) {
+        if (userId.isNotEmpty()) {
+            // FIX: Added callback parameter
+            userViewModel.getUserById(userId) { success, message, user ->
+                if (success) {
+                    Log.d("PointsScreen", "User data loaded")
+                } else {
+                    Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+                }
+            }
+            pointDealViewModel.getEligibleDealsForUser(userId, currentTier)
+            pointHistoryViewModel.observeRecent(userId)
+        }
+    }
+
+    // Add confirmation dialog
+    if (showRedeemConfirmation && selectedDeal != null) {
+        val requiredPoints = selectedDeal?.pointsRequired ?: 0L
+        val isFreeDeal = requiredPoints == 0L
+        val canRedeem = userPoints >= requiredPoints
+
+        if (canRedeem || isFreeDeal) {
+            Dialog(
+                onDismissRequest = {
+                    showRedeemConfirmation = false
+                    selectedDeal = null
+                }
+            ) {
+                Card(
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        Text(
+                            text = if (isFreeDeal) "Claim Deal" else "Redeem Deal",
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+
+                        Text(
+                            text = if (isFreeDeal) "Claim ${selectedDeal?.offer} for free!"
+                            else "Use points or pay directly to get ${selectedDeal?.offer}",
+                            fontSize = 14.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                        )
+
+                        // Redeem with Points Button
+                        Button(
+                            onClick = {
+                                selectedDeal?.let { deal ->
+                                    if (isFreeDeal) {
+                                        pointDealViewModel.claimPointDeal(deal.dealId, deal.title, deal.offer)
+                                    } else {
+                                        pointDealViewModel.redeemPointDeal(deal.dealId, requiredPoints, deal.title, deal.offer)
+                                    }
+                                }
+                                showRedeemConfirmation = false
+                                selectedDeal = null
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(50.dp),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                        ) {
+                            Text(
+                                text = if (isFreeDeal) "Claim Now" else "Redeem for $requiredPoints Points",
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onPrimary
+                            )
+                        }
+
+                        // OR Divider (only if not free)
+                        if (!isFreeDeal) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                HorizontalDivider(modifier = Modifier.weight(1f))
+                                Text(
+                                    text = "OR",
+                                    modifier = Modifier.padding(horizontal = 8.dp),
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    fontSize = 12.sp
+                                )
+                                HorizontalDivider(modifier = Modifier.weight(1f))
+                            }
+
+                            // Pay with Khalti Button
+                            KhaltiPaymentButton(
+                                onClick = {
+                                    selectedDeal?.let { deal ->
+                                        val amountRs = requiredPoints.toDouble()
+                                        pointDealViewModel.buyDealDirectly(userId, deal, amountRs)
+                                    }
+                                    showRedeemConfirmation = false
+                                    selectedDeal = null
+                                }
+                            )
+                        }
+
+                        TextButton(
+                            onClick = {
+                                showRedeemConfirmation = false
+                                selectedDeal = null
+                            }
+                        ) {
+                            Text("Cancel", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+                }
+            }
+        } else {
+            // Insufficient points - Show Khalti Payment Dialog
+            Dialog(
+                onDismissRequest = {
+                    showRedeemConfirmation = false
+                    selectedDeal = null
+                }
+            ) {
+                Card(
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        Text(
+                            text = "Insufficient Points",
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+
+                        Text(
+                            text = "You need $requiredPoints points for this deal. Buy now to redeem instantly?",
+                            fontSize = 14.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                        )
+
+                        KhaltiPaymentButton(
+                            onClick = {
+                                selectedDeal?.let { deal ->
+                                    val amountRs = requiredPoints.toDouble()
+                                    pointDealViewModel.buyDealDirectly(userId, deal, amountRs)
+                                }
+                                showRedeemConfirmation = false
+                                selectedDeal = null
+                            }
+                        )
+
+                        TextButton(
+                            onClick = {
+                                showRedeemConfirmation = false
+                                selectedDeal = null
+                            }
+                        ) {
+                            Text("Cancel", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("TradeFlow Points", color = White, fontWeight = FontWeight.Bold) },
+                title = { Text("TradeFlow Points", color = MaterialTheme.colorScheme.onPrimary, fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = { activity?.finish() }) {
-                        Icon(Icons.Default.ArrowBack, "Back", tint = White)
+                        Icon(Icons.Default.ArrowBack, "Back", tint = MaterialTheme.colorScheme.onPrimary)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Greenish
+                    containerColor = MaterialTheme.colorScheme.primary
                 )
             )
         }
@@ -124,6 +327,7 @@ fun PointsScreen() {
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
+                .background(MaterialTheme.colorScheme.background)
         ) {
             // Points Summary Card
             item {
@@ -145,40 +349,129 @@ fun PointsScreen() {
             }
 
             // Content based on selected tab
-            if (selectedTab == "Point Deals") {
-                val dealsList = activeDeals ?: emptyList()
-                if (dealsList.isEmpty()) {
+            when (selectedTab) {
+                "Buy Points" -> {
                     item {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = "No active deals available",
-                                fontSize = 14.sp,
-                                color = Color.Gray
-                            )
+                        BuyPointsSection(
+                            onPayClick = { points ->
+                                val amountRs = points.toDouble()
+                                // Simulate successful payment
+                                pointDealViewModel.buyPoints(userId, points.toLong(), amountRs)
+                            }
+                        )
+                    }
+                }
+                "Buy Deals" -> {
+                    val dealsList = activeDeals ?: emptyList()
+
+                    // Header for Delete All (if any redemptions exist)
+                    if (userRedemptions.isNotEmpty()) {
+                        item {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                                horizontalArrangement = Arrangement.End
+                            ) {
+                                TextButton(
+                                    onClick = {
+                                        pointDealViewModel.deleteAllRedemptions(userId)
+                                    },
+                                    colors = ButtonDefaults.textButtonColors(contentColor = Color.Red)
+                                ) {
+                                    Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Delete All Claims")
+                                }
+                            }
                         }
                     }
-                } else {
-                    items(dealsList) { deal ->
-                        PointDealCard(deal = deal, userPoints = userPoints)
-                        Spacer(modifier = Modifier.height(12.dp))
+
+                    if (dealsList.isEmpty()) {
+                        item {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text("No active buy deals available")
+                            }
+                        }
+                    } else {
+                        items(dealsList) { deal ->
+                            val isClaimed = deal.dealId in userRedemptions
+                            PointDealCard(
+                                deal = deal,
+                                userPoints = userPoints,
+                                isClaimed = isClaimed,
+                                onRedeemClick = {
+                                    if (!isClaimed) {
+                                        selectedDeal = it
+                                        showRedeemConfirmation = true
+                                    }
+                                },
+                                onDeleteClick = if (isClaimed) {
+                                    { pointDealViewModel.deleteRedemption(userId, deal.dealId) }
+                                } else null
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+                        }
                     }
                 }
-            }
-            
-            if (selectedTab == "How it works?") {
-                item {
-                    HowItWorksContent()
+                "How it works?" -> {
+                    item {
+                        HowItWorksContent()
+                    }
                 }
-            }
-            
-            if (selectedTab == "Point history") {
-                item {
-                    PointHistoryContent()
+                "Point history" -> {
+                    if (txList.isEmpty()) {
+                        item {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text("No point activity in the last 30 days")
+                            }
+                        }
+                    } else {
+                        // Header with Delete All
+                        item {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                                horizontalArrangement = Arrangement.End
+                            ) {
+                                TextButton(
+                                    onClick = {
+                                        pointHistoryViewModel.deleteAllTransactions(userId) { success, msg ->
+                                            Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+                                        }
+                                    },
+                                    colors = ButtonDefaults.textButtonColors(contentColor = Color.Red)
+                                ) {
+                                    Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Delete All")
+                                }
+                            }
+                        }
+
+                        items(txList) { tx ->
+                            TransactionItem(
+                                tx = tx,
+                                onDeleteClick = {
+                                    pointHistoryViewModel.deleteTransaction(tx.id) { success, msg ->
+                                        Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+                                    }
+                                }
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+                        }
+                    }
                 }
             }
         }
@@ -281,11 +574,87 @@ private fun PointsSummaryCard(
 }
 
 @Composable
+private fun BuyPointsSection(
+    onPayClick: (Int) -> Unit
+) {
+    var pointsInput by remember { mutableStateOf("500") }
+    val increments = listOf(100, 250, 500, 1000)
+    val points = pointsInput.toIntOrNull() ?: 0
+    val ratePerPoint = 1 // Rs 1 per point
+    val totalPayable = points * ratePerPoint
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Text(text = "Points to buy", fontSize = 14.sp, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurface)
+        OutlinedTextField(
+            value = pointsInput,
+            onValueChange = { new ->
+                if (new.all { it.isDigit() }) pointsInput = new
+            },
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(10.dp),
+            singleLine = true,
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                cursorColor = MaterialTheme.colorScheme.primary,
+                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                unfocusedBorderColor = MaterialTheme.colorScheme.outline
+            )
+        )
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            increments.forEach { inc ->
+                FilledTonalButton(
+                    onClick = {
+                        val current = pointsInput.toIntOrNull() ?: 0
+                        pointsInput = (current + inc).toString()
+                    },
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(8.dp),
+                    colors = ButtonDefaults.filledTonalButtonColors(
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                    )
+                ) {
+                    Text(text = "+$inc")
+                }
+            }
+        }
+
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text(text = "1 Point = Rs $ratePerPoint", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
+        }
+
+        Text(
+            text = "Total Payable: Rs $totalPayable",
+            fontSize = 16.sp,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.primary
+        )
+
+        KhaltiPaymentButton(
+            onClick = { if (points > 0) onPayClick(points) }
+        )
+    }
+}
+
+@Composable
 private fun NavigationTabs(
     selectedTab: String,
     onTabSelected: (String) -> Unit
 ) {
-    val tabs = listOf("How it works?", "Point history", "Point Deals")
+    val tabs = listOf("Buy Points", "Buy Deals", "Point history")
 
     Row(
         modifier = Modifier
@@ -300,7 +669,7 @@ private fun NavigationTabs(
                     .weight(1f)
                     .clip(RoundedCornerShape(8.dp))
                     .background(
-                        if (isSelected) Greenish.copy(alpha = 0.2f) else Color.Transparent
+                        if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.2f) else Color.Transparent
                     )
                     .clickable { onTabSelected(tab) }
                     .padding(vertical = 12.dp),
@@ -310,12 +679,13 @@ private fun NavigationTabs(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.Center
                 ) {
+                    val tintColor = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                     when (tab) {
-                        "How it works?" -> {
+                        "Buy Points" -> {
                             Icon(
                                 Icons.Default.Info,
                                 contentDescription = null,
-                                tint = if (isSelected) Greenish else Color.Gray,
+                                tint = tintColor,
                                 modifier = Modifier.size(16.dp)
                             )
                             Spacer(modifier = Modifier.width(4.dp))
@@ -324,7 +694,7 @@ private fun NavigationTabs(
                             Icon(
                                 Icons.Default.History,
                                 contentDescription = null,
-                                tint = if (isSelected) Greenish else Color.Gray,
+                                tint = tintColor,
                                 modifier = Modifier.size(16.dp)
                             )
                             Spacer(modifier = Modifier.width(4.dp))
@@ -334,7 +704,7 @@ private fun NavigationTabs(
                         text = tab,
                         fontSize = 12.sp,
                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                        color = if (isSelected) Greenish else Color.Gray
+                        color = tintColor
                     )
                 }
             }
@@ -343,8 +713,15 @@ private fun NavigationTabs(
 }
 
 @Composable
-private fun PointDealCard(deal: PointDealModel, userPoints: Long) {
-    val canRedeem = userPoints >= deal.pointsRequired
+private fun PointDealCard(
+    deal: PointDealModel,
+    userPoints: Long,
+    isClaimed: Boolean = false,
+    onRedeemClick: (PointDealModel) -> Unit,
+    onDeleteClick: (() -> Unit)? = null
+) {
+    val isFreeDeal = deal.pointsRequired == 0L
+    val canRedeem = isFreeDeal || userPoints >= deal.pointsRequired
     val dateFormat = SimpleDateFormat("dd MMM, yyyy", Locale.getDefault())
     val validTillDate = dateFormat.format(Date(deal.validTill))
 
@@ -436,21 +813,37 @@ private fun PointDealCard(deal: PointDealModel, userPoints: Long) {
 
                 // Points Required Button
                 Button(
-                    onClick = { /* Handle redemption */ },
-                    enabled = canRedeem,
+                    onClick = {
+                        onRedeemClick(deal)
+                    },
+                    enabled = !isClaimed,
                     modifier = Modifier.width(100.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = if (canRedeem) Greenish else Color.Gray,
-                        disabledContainerColor = Color.LightGray
+                        containerColor = if (isClaimed) Color.Gray else Greenish,
+                        disabledContainerColor = Color.Gray
                     ),
                     shape = RoundedCornerShape(8.dp)
                 ) {
                     Text(
-                        text = "${deal.pointsRequired} Points",
+                        text = if (isClaimed) "Claimed" else if (isFreeDeal) "Claim" else "${deal.pointsRequired} Points",
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
                         color = White
                     )
+                }
+
+                if (isClaimed && onDeleteClick != null) {
+                    IconButton(
+                        onClick = onDeleteClick,
+                        modifier = Modifier.size(24.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.Delete,
+                            contentDescription = "Delete Claim",
+                            tint = Color.Red,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
                 }
             }
         }
@@ -516,23 +909,111 @@ private fun PointInfoItem(number: String, title: String, description: String) {
 }
 
 @Composable
-private fun PointHistoryContent() {
+fun KhaltiPaymentButton(
+    onClick: () -> Unit
+) {
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
+        Button(
+            onClick = onClick,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(50.dp),
+            shape = RoundedCornerShape(12.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF6A1B9A))
+        ) {
+            Text(text = "Pay with Khalti", color = Color.White, fontSize = 16.sp)
+        }
+
         Text(
-            text = "Point History",
-            fontSize = 20.sp,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(bottom = 16.dp)
-        )
-        Text(
-            text = "Your point history will appear here",
-            fontSize = 14.sp,
+            text = "Secure payment powered by Khalti",
+            fontSize = 12.sp,
             color = Color.Gray
         )
+    }
+}
+
+@Composable
+private fun TransactionItem(
+    tx: com.example.tradeflow.model.PointTransaction,
+    onDeleteClick: () -> Unit
+) {
+    val isCredit = tx.type.equals("CREDIT", ignoreCase = true)
+    val badgeColor = if (isCredit) Color(0xFF4CAF50) else Color(0xFFF44336) // green/red
+    val sign = if (isCredit) "+" else "-"
+    val dateText = SimpleDateFormat("dd MMM, yyyy • HH:mm", Locale.getDefault()).format(Date(tx.timestamp))
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(
+                modifier = Modifier.weight(1f),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(badgeColor.copy(alpha = 0.15f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = if (isCredit) "C" else "D",
+                        color = badgeColor,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+                Spacer(modifier = Modifier.width(12.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = tx.source,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.Black
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    val amountText = if (tx.amount > 0.0) " • Rs ${tx.amount.toInt()}" else ""
+                    Text(
+                        text = dateText + amountText,
+                        fontSize = 12.sp,
+                        color = Color.Gray
+                    )
+                }
+            }
+
+            Column(
+                horizontalAlignment = Alignment.End
+            ) {
+                Text(
+                    text = "$sign${kotlin.math.abs(tx.points)}",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = badgeColor
+                )
+
+                IconButton(onClick = onDeleteClick, modifier = Modifier.size(24.dp)) {
+                    Icon(
+                        Icons.Default.Delete,
+                        contentDescription = "Delete",
+                        tint = Color.Gray.copy(alpha = 0.6f),
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+            }
+        }
     }
 }

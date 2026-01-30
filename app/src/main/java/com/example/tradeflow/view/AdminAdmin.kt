@@ -310,7 +310,9 @@ fun RegisterAdminContent() {
     var gender by remember { mutableStateOf("Male") }
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
-    
+    var location by remember { mutableStateOf("") }
+
+
     // Image selection state
     var imageUri by remember { mutableStateOf<Uri?>(null) }
     
@@ -480,6 +482,14 @@ fun RegisterAdminContent() {
         }
 
         Spacer(modifier = Modifier.height(8.dp))
+
+        OutlinedTextField(
+            value = location, // Add location state variable
+            onValueChange = { location = it },
+            label = { Text("Location") },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true
+        )
 
         OutlinedTextField(
             value = password,

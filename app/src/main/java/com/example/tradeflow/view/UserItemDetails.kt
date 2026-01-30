@@ -49,7 +49,8 @@ import com.example.tradeflow.viewmodel.UserViewModel
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
 import android.content.Intent
-import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material.icons.filled.LocationOn
+import android.net.Uri
 
 class UserItemDetails : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -62,48 +63,74 @@ class UserItemDetails : ComponentActivity() {
     }
 }
 
+// FRIEND'S IMPROVED CONTAINER TAG
 @Composable
 fun ContainerTag(text: String, color: Color, textColor: Color) {
     Box(
         modifier = Modifier
-            .background(color, RoundedCornerShape(8.dp))
-            .padding(horizontal = 12.dp, vertical = 6.dp)
+            .background(color, RoundedCornerShape(4.dp))
+            .padding(horizontal = 8.dp, vertical = 4.dp)
     ) {
-        Text(
-            text = text,
-            fontSize = 12.sp,
-            color = textColor,
-            fontWeight = FontWeight.SemiBold
-        )
+        Text(text = text, fontSize = 12.sp, color = textColor)
     }
 }
 
+// FRIEND'S IMPROVED REVIEW ITEM WITH PROFILE IMAGES
 @Composable
-fun ReviewItem(username: String, rating: Int, comment: String) {
+fun ReviewItem(username: String, userImage: String, rating: Int, comment: String) {
     Column(modifier = Modifier.padding(vertical = 8.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                text = username,
-                fontWeight = FontWeight.SemiBold,
-                fontSize = 14.sp,
-                color = MaterialTheme.colorScheme.onSurface
-            )
+            // Reviewer Image - FROM FRIEND'S CODE
+            if (userImage.isNotEmpty()) {
+                AsyncImage(
+                    model = userImage,
+                    contentDescription = "Reviewer Profile",
+                    modifier = Modifier
+                        .size(32.dp)
+                        .clip(CircleShape)
+                        .border(1.dp, Color.Gray, CircleShape),
+                    contentScale = ContentScale.Crop,
+                    placeholder = painterResource(R.drawable.ic_launcher_foreground),
+                    error = painterResource(R.drawable.ic_launcher_foreground)
+                )
+            } else {
+                Image(
+                    painter = painterResource(id = R.drawable.ic_launcher_foreground),
+                    contentDescription = "Reviewer Profile",
+                    modifier = Modifier
+                        .size(32.dp)
+                        .clip(CircleShape)
+                        .border(1.dp, Color.Gray, CircleShape),
+                    contentScale = ContentScale.Crop
+                )
+            }
+
             Spacer(modifier = Modifier.width(8.dp))
-            Row {
-                repeat(5) { index ->
-                    Icon(
-                        imageVector = if (index < rating) Icons.Default.Star else Icons.Outlined.Star,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.tertiary,
-                        modifier = Modifier.size(16.dp)
-                    )
+
+            Column {
+                Text(
+                    text = username,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 14.sp,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Row {
+                    repeat(5) { index ->
+                        Icon(
+                            imageVector = if (index < rating) Icons.Default.Star else Icons.Outlined.Star,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.tertiary, // KEEP YOUR COLOR
+                            modifier = Modifier.size(14.dp)
+                        )
+                    }
                 }
             }
         }
+        Spacer(modifier = Modifier.height(4.dp))
         Text(
             text = comment,
             fontSize = 14.sp,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            color = MaterialTheme.colorScheme.onSurfaceVariant // KEEP YOUR COLOR
         )
     }
 }
@@ -122,14 +149,22 @@ fun ItemDetailsScreen() {
     val currentUser = FirebaseAuth.getInstance().currentUser
     val currentUserId = currentUser?.uid ?: ""
 
-    // State variables
+    // State variables - ADD FROM FRIEND'S CODE
     val product by productViewModel.product.collectAsState()
     val owner by userViewModel.users.collectAsState()
     val reviews by reviewViewModel.reviews.collectAsState()
     val loading by productViewModel.loading.collectAsState()
+    val ownerProducts by productViewModel.allProducts.collectAsState() // ADDED FROM FRIEND'S CODE
 
     var showErrorDialog by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf("") }
+
+    // FROM FRIEND'S CODE: Owner Stats
+    var ownerAverageRating by remember { mutableFloatStateOf(0f) }
+    var ownerReviewCount by remember { mutableIntStateOf(0) }
+
+    // FROM FRIEND'S CODE: Reviewer Details Cache
+    val reviewerMap = remember { mutableStateMapOf<String, UserModel>() }
 
     LaunchedEffect(productId) {
         if (productId.isNotEmpty()) {
@@ -144,10 +179,41 @@ fun ItemDetailsScreen() {
                 userViewModel.getUserById(ownerId) { success, _, user ->
                     // User data is handled in the ViewModel
                 }
+                // FROM FRIEND'S CODE: Fetch owner's products to calculate stats
+                productViewModel.getProductsByOwner(ownerId)
             }
         }
     }
+
+    // FROM FRIEND'S CODE: Calculate Owner Stats when ownerProducts are loaded
+    LaunchedEffect(ownerProducts) {
+        if (ownerProducts.isNotEmpty()) {
+            val productIds = ownerProducts.map { it.productId }
+            reviewViewModel.getOwnerStats(productIds) { avg, count ->
+                ownerAverageRating = avg
+                ownerReviewCount = count
+            }
+        }
+    }
+
+    // FROM FRIEND'S CODE: Fetch Reviewer Details when reviews are loaded
+    LaunchedEffect(reviews) {
+        reviews.forEach { review ->
+            if (review.userId.isNotEmpty() && !reviewerMap.containsKey(review.userId)) {
+                // Use fetchUser to avoid updating the main 'users' state which tracks the item owner
+                userViewModel.fetchUser(review.userId) { user ->
+                    if (user != null) {
+                        reviewerMap[review.userId] = user
+                    }
+                }
+            }
+        }
+    }
+
     val isOwner = currentUserId == product?.ownerId
+    // FROM FRIEND'S CODE: Check if item is completed
+    val isCompleted = product?.status?.trim()
+        ?.equals("Completed", ignoreCase = true) ?: false
 
     Scaffold(
         topBar = {
@@ -173,7 +239,8 @@ fun ItemDetailsScreen() {
             )
         },
         bottomBar = {
-            if (!isOwner && currentUserId.isNotEmpty() && product != null) {
+            // FROM FRIEND'S CODE: Hide bottom bar for completed items
+            if (!isOwner && currentUserId.isNotEmpty() && product != null && !isCompleted) {
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
                     shadowElevation = 8.dp
@@ -186,7 +253,19 @@ fun ItemDetailsScreen() {
                     ) {
                         OutlinedButton(
                             onClick = {
-                                Toast.makeText(context, "Opening Chat...", Toast.LENGTH_SHORT).show()
+                                // CHAT UPDATE FROM FRIEND'S CODE - START
+                                val ownerId = product?.ownerId ?: ""
+                                if (ownerId.isNotEmpty()) {
+                                    val intent = Intent(context, UserDashboard::class.java).apply {
+                                        putExtra("openChat", true)
+                                        putExtra("chatUserId", ownerId)
+                                    }
+                                    context.startActivity(intent)
+                                    activity?.finish() // Close current activity after opening chat
+                                } else {
+                                    Toast.makeText(context, "Owner not available", Toast.LENGTH_SHORT).show()
+                                }
+                                // CHAT UPDATE FROM FRIEND'S CODE - END
                             },
                             modifier = Modifier
                                 .weight(1f)
@@ -408,35 +487,46 @@ fun ItemDetailsScreen() {
                                 color = MaterialTheme.colorScheme.primary
                             )
 
-                            val isDarkMode = isSystemInDarkTheme()
+                            // FROM FRIEND'S CODE: Improved ContainerTag with background colors
                             ContainerTag(
                                 text = productItem.type,
-                                color = if (productItem.type == "Rent") {
-                                    if (isDarkMode)
-                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
-                                    else
-                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
-                                } else {
-                                    if (isDarkMode)
-                                        MaterialTheme.colorScheme.secondaryContainer
-                                    else
-                                        MaterialTheme.colorScheme.secondary.copy(alpha = 0.15f)
-                                },
-                                textColor = if (productItem.type == "Rent") {
-                                    if (isDarkMode)
-                                        MaterialTheme.colorScheme.onPrimary
-                                    else
-                                        MaterialTheme.colorScheme.primary
-                                } else {
-                                    // For Barter
-                                    if (isDarkMode)
-                                        MaterialTheme.colorScheme.onSecondaryContainer
-                                    else
-                                        MaterialTheme.colorScheme.secondary
-                                }
+                                color = if (productItem.type == "Rent") Color(0xFFE0F7FA) else Color(0xFFFFF3E0),
+                                textColor = if (productItem.type == "Rent") Color(0xFF006064) else Color(0xFFE65100)
                             )
                         }
                         Spacer(modifier = Modifier.height(8.dp))
+
+                        // Product Location
+                        if (!productItem.location.isNullOrBlank()) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier
+                                    .clickable {
+                                        val uri = Uri.parse("geo:0,0?q=${Uri.encode(productItem.location)}")
+                                        val mapIntent = Intent(Intent.ACTION_VIEW, uri)
+                                        mapIntent.setPackage("com.google.android.apps.maps")
+                                        context.startActivity(mapIntent)
+                                    }
+                                    .padding(vertical = 6.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.LocationOn,
+                                    contentDescription = "Location",
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = productItem.location,
+                                    fontSize = 14.sp,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    maxLines = 1,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(8.dp))
+                        }
+
                         Text(
                             text = "Status: ${productItem.status}",
                             fontSize = 14.sp,
@@ -459,23 +549,43 @@ fun ItemDetailsScreen() {
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(50.dp)
-                                    .clip(CircleShape)
-                                    .background(MaterialTheme.colorScheme.surfaceVariant)
-                                    .border(
-                                        1.dp,
-                                        MaterialTheme.colorScheme.outline,
-                                        CircleShape
-                                    ),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Image(
-                                    painter = painterResource(id = R.drawable.ic_launcher_foreground),
+                            // FROM FRIEND'S CODE: Show owner profile image
+                            if (owner?.profileImageUrl.isNullOrEmpty()) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(50.dp)
+                                        .clip(CircleShape)
+                                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                                        .border(
+                                            1.dp,
+                                            MaterialTheme.colorScheme.outline,
+                                            CircleShape
+                                        ),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Image(
+                                        painter = painterResource(id = R.drawable.ic_launcher_foreground),
+                                        contentDescription = "Owner Profile",
+                                        modifier = Modifier.size(40.dp),
+                                        contentScale = ContentScale.Fit
+                                    )
+                                }
+                            } else {
+                                AsyncImage(
+                                    model = owner?.profileImageUrl,
                                     contentDescription = "Owner Profile",
-                                    modifier = Modifier.size(40.dp),
-                                    contentScale = ContentScale.Fit
+                                    modifier = Modifier
+                                        .size(50.dp)
+                                        .clip(CircleShape)
+                                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                                        .border(
+                                            1.dp,
+                                            MaterialTheme.colorScheme.outline,
+                                            CircleShape
+                                        ),
+                                    contentScale = ContentScale.Crop,
+                                    placeholder = painterResource(R.drawable.ic_launcher_foreground),
+                                    error = painterResource(R.drawable.ic_launcher_foreground)
                                 )
                             }
                             Spacer(modifier = Modifier.width(12.dp))
@@ -493,8 +603,9 @@ fun ItemDetailsScreen() {
                                         tint = MaterialTheme.colorScheme.tertiary,
                                         modifier = Modifier.size(16.dp)
                                     )
+                                    // FROM FRIEND'S CODE: Show calculated owner rating
                                     Text(
-                                        text = "4.8 (24 reviews)",
+                                        text = String.format("%.1f (%d reviews)", ownerAverageRating, ownerReviewCount),
                                         fontSize = 14.sp,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         modifier = Modifier.padding(start = 4.dp)
@@ -542,9 +653,12 @@ fun ItemDetailsScreen() {
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         } else {
+                            // FROM FRIEND'S CODE: Enhanced reviews with profile images
                             reviews.forEach { review ->
+                                val reviewer = reviewerMap[review.userId]
                                 ReviewItem(
-                                    username = review.userName,
+                                    username = reviewer?.name ?: review.userName,
+                                    userImage = reviewer?.profileImageUrl ?: "",
                                     rating = review.rating.toInt(),
                                     comment = review.comment
                                 )

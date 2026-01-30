@@ -9,6 +9,10 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.Alignment
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -18,6 +22,7 @@ import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -35,6 +40,17 @@ import com.example.tradeflow.ui.theme.Transparent
 import com.example.tradeflow.ui.theme.White
 import com.example.tradeflow.model.ProductModel
 import com.example.tradeflow.ui.components.ThemeWrapper
+import androidx.compose.ui.graphics.Color
+import androidx.compose.runtime.collectAsState
+import androidx.compose.foundation.background
+import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
+import com.example.tradeflow.viewmodel.UserNotificationViewModel
+import com.example.tradeflow.repository.UserNotificationRepoImpl
+import com.example.tradeflow.repository.ProductRepoImpl
+import com.google.firebase.auth.FirebaseAuth
+import com.example.tradeflow.repository.UserRepoImpl
 
 class UserDashboard : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -86,12 +102,55 @@ fun DashboardPageBody() {
 
     data class NavItem(val label: String, val iconOutlined: Int, val iconFilled: Int)
 
-    var selectedIndex by remember { mutableStateOf(0) }
+    // Friend's code: Check for intent extra to set initial tab
+    val initialTab = activity.intent.getStringExtra("start_tab")
+    val initialIndex = when (initialTab) {
+        "inbox" -> 1
+        "alert" -> 3
+        else -> 0
+    }
+
+    var selectedIndex by remember { mutableStateOf(initialIndex) }
     var addItemMode by remember { mutableStateOf(AddItemMode.ADD) }
     var editingProduct by remember { mutableStateOf<ProductModel?>(null) }
     var showEditSuccess by remember { mutableStateOf(false) }
 
+    var chatUserId by remember { mutableStateOf("") }
+    var initApplied by remember { mutableStateOf(false) }
     var isNavigating by remember { mutableStateOf(false) }
+
+    val openChat = activity.intent?.getBooleanExtra("openChat", false) ?: false
+    val initialChatUserId = activity.intent?.getStringExtra("chatUserId") ?: ""
+
+    // Friend's code: Real-time notification updates
+    val viewModel = remember { UserNotificationViewModel(UserNotificationRepoImpl(), ProductRepoImpl()) }
+    val unreadCount by viewModel.unreadCount.collectAsState()
+    val currentUser = FirebaseAuth.getInstance().currentUser
+    val userId = currentUser?.uid ?: ""
+
+    // Your code: Presence system
+    LaunchedEffect(Unit) {
+        UserRepoImpl().setupUserPresence()
+    }
+
+    // Friend's code: Real-time listener for unread count
+    androidx.compose.runtime.DisposableEffect(userId) {
+        if (userId.isNotEmpty()) {
+            viewModel.startListeningToUnreadCount(userId)
+        }
+        onDispose {
+            viewModel.stopListeningToUnreadCount()
+        }
+    }
+
+    // Your code: Chat initialization
+    LaunchedEffect(openChat, initialChatUserId, initApplied) {
+        if (openChat && initialChatUserId.isNotEmpty() && !initApplied) {
+            chatUserId = initialChatUserId
+            selectedIndex = 5  // Opens chat screen
+            initApplied = true
+        }
+    }
 
     val listItem = listOf(
         NavItem(label = "Explore", R.drawable.explore, R.drawable.explore_filled),
@@ -122,11 +181,21 @@ fun DashboardPageBody() {
                             }
                         },
                         icon = {
-                            Icon(
-                                painter = painterResource(if (isSelected) item.iconFilled else item.iconOutlined),
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onPrimary
-                            )
+                            // Friend's code: Custom badge UI
+                            if (item.label == "Alert") {
+                                BadgedNotificationIcon(
+                                    unreadCount = unreadCount,
+                                    iconPainter = painterResource(if (isSelected) item.iconFilled else item.iconOutlined),
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onPrimary
+                                )
+                            } else {
+                                Icon(
+                                    painter = painterResource(if (isSelected) item.iconFilled else item.iconOutlined),
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onPrimary
+                                )
+                            }
                         },
                         label = {
                             Text(
@@ -151,9 +220,16 @@ fun DashboardPageBody() {
                 .fillMaxSize()
                 .padding(padding)
         ) {
+            // Your code: Navigation destinations including chat
             when (selectedIndex) {
                 0 -> UserExploreScreen()
-                1 -> UserInboxScreen(onBackClick = { selectedIndex = 0 })
+                1 -> UserInboxScreen(
+                    onBackClick = { selectedIndex = 0 },
+                    onChatClick = { userId ->
+                        chatUserId = userId
+                        selectedIndex = 5
+                    }
+                )
                 2 -> UserAddItemScreen(
                     mode = addItemMode,
                     initialProduct = editingProduct,
@@ -169,7 +245,12 @@ fun DashboardPageBody() {
                         showEditSuccess = true
                     }
                 )
-                3 -> UserNotificationScreen(onBackClick = { selectedIndex = 0 })
+                3 -> UserNotificationScreen(
+                    // Friend's code: Pass viewModel
+                    viewModel = viewModel,
+                    onBackClick = { selectedIndex = 0 },
+                    onMessageClick = { selectedIndex = 1 } // Friend's code: Added onMessageClick
+                )
                 4 -> UserProfileScreen(
                     onBackClick = { selectedIndex = 0 },
                     onEditProduct = { product ->
@@ -180,7 +261,44 @@ fun DashboardPageBody() {
                     showEditSuccess = showEditSuccess,
                     onSnackbarShown = { showEditSuccess = false }
                 )
+                5 -> ChatScreen(
+                    receiverId = chatUserId,
+                    onBackClick = { selectedIndex = 1 }
+                )
                 else -> UserExploreScreen()
+            }
+        }
+    }
+}
+
+// Friend's code: Custom badge UI
+@Composable
+fun BadgedNotificationIcon(
+    unreadCount: Int,
+    iconPainter: Painter,
+    contentDescription: String?,
+    tint: Color
+) {
+    Box {
+        Icon(
+            painter = iconPainter,
+            contentDescription = contentDescription,
+            tint = tint
+        )
+        if (unreadCount > 0) {
+            Box(
+                modifier = Modifier
+                    .size(18.dp)
+                    .offset(x = 12.dp, y = (-8).dp)
+                    .background(Color.Red, CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = if (unreadCount > 99) "99+" else unreadCount.toString(),
+                    color = Color.White,
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold
+                )
             }
         }
     }

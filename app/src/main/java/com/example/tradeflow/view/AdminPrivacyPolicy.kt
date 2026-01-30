@@ -2,43 +2,38 @@ package com.example.tradeflow.view
 
 import android.content.Intent
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.runtime.Composable
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowForward
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.tradeflow.R
-import com.example.tradeflow.ui.theme.DarkGreen
+import com.example.tradeflow.repository.AdminRepoImpl
 import com.example.tradeflow.ui.theme.Greenish
+import com.example.tradeflow.viewmodel.AdminViewModel
 
 class AdminPrivacyPolicy : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -60,7 +55,19 @@ class AdminPrivacyPolicy : ComponentActivity() {
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
 fun AdminPrivacyPolicyScreen(onBackClick: () -> Unit = {}) {
-    val scrollState = rememberScrollState()
+    val context = LocalContext.current
+    val viewModel = remember { AdminViewModel(AdminRepoImpl()) }
+
+    // State for Change Password Dialog
+    var showChangePasswordDialog by remember { mutableStateOf(false) }
+    var currentPassword by remember { mutableStateOf("") }
+    var newPassword by remember { mutableStateOf("") }
+    var confirmPassword by remember { mutableStateOf("") }
+    var showCurrentPassword by remember { mutableStateOf(false) }
+    var showNewPassword by remember { mutableStateOf(false) }
+    var showConfirmPassword by remember { mutableStateOf(false) }
+    var isLoading by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf("") }
 
     Scaffold(
         topBar = {
@@ -101,291 +108,275 @@ fun AdminPrivacyPolicyScreen(onBackClick: () -> Unit = {}) {
                 .padding(padding)
                 .fillMaxSize()
                 .background(Color(0xFFF5F5F5))
-                .verticalScroll(scrollState)
-                .padding(24.dp)
+                .verticalScroll(rememberScrollState())
         ) {
-            // Header
-            Text(
-                text = "Admin Guidelines & Policies",
-                fontSize = 28.sp,
-                fontWeight = FontWeight.Bold,
-                color = Greenish,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth()
-            )
+            // Account Security Section
+            AdminSection("Account Security")
 
-            Spacer(modifier = Modifier.height(8.dp))
+            // Change Password Item
+            AdminPrivacyItem("Change Password") {
+                showChangePasswordDialog = true
+                currentPassword = ""
+                newPassword = ""
+                confirmPassword = ""
+                errorMessage = ""
+            }
+        }
+    }
 
-            Text(
-                text = "Last updated: December 2024",
-                fontSize = 14.sp,
-                color = Color.Gray,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            Spacer(modifier = Modifier.height(32.dp))
-
-            // Introduction
-            PolicySection(
-                title = "Administrator Responsibilities",
-                content = "As an administrator of TradeFlow, you have special privileges and responsibilities. This document outlines the rules and guidelines you must follow to maintain the integrity, safety, and fairness of our platform."
-            )
-
-            // Core Principles
-            PolicySection(
-                title = "Core Principles",
-                items = listOf(
-                    "Act with integrity and transparency in all administrative actions",
-                    "Protect user privacy and handle personal data responsibly",
-                    "Ensure fair and unbiased treatment of all users",
-                    "Maintain the security and stability of the platform",
-                    "Uphold community standards and enforce policies consistently"
+    // Change Password Dialog - Exact same as UserSettingPrivacyScreen
+    if (showChangePasswordDialog) {
+        AlertDialog(
+            onDismissRequest = { showChangePasswordDialog = false },
+            title = {
+                Text(
+                    "Change Password",
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.padding(bottom = 8.dp),
+                    color = Color(0xFF333333)
                 )
-            )
-
-            // User Data Protection
-            PolicySection(
-                title = "User Data Protection",
-                items = listOf(
-                    "Never access user data without legitimate administrative need",
-                    "Do not share, sell, or distribute user information to third parties",
-                    "Use encryption and secure methods when handling sensitive data",
-                    "Report any data breaches immediately to technical team",
-                    "Comply with all applicable data protection regulations (GDPR, etc.)",
-                    "Maintain confidentiality of user transactions and communications"
-                )
-            )
-
-            // Content Moderation
-            PolicySection(
-                title = "Content Moderation Rules",
-                items = listOf(
-                    "Review reported content within 24 hours",
-                    "Remove illegal, harmful, or prohibited content immediately",
-                    "Document all moderation actions with clear reasoning",
-                    "Provide users with explanation when content is removed",
-                    "Apply content policies consistently across all users",
-                    "Escalate complex cases to senior administrators"
-                )
-            )
-
-            // User Management
-            PolicySection(
-                title = "User Management Guidelines",
-                items = listOf(
-                    "Issue warnings before taking restrictive actions when appropriate",
-                    "Provide clear reasons for account restrictions or bans",
-                    "Allow users to appeal moderation decisions",
-                    "Document all user management actions in system logs",
-                    "Never use admin privileges for personal gain or favoritism",
-                    "Treat all users with respect regardless of their status"
-                )
-            )
-
-            // Prohibited Actions
-            PolicyCard(
-                title = "⚠️ Strictly Prohibited Actions",
-                items = listOf(
-                    "Accepting bribes or incentives from users",
-                    "Creating fake accounts or manipulating the credit system",
-                    "Using your position to gain unfair trading advantages",
-                    "Sharing admin credentials with unauthorized persons",
-                    "Deleting or modifying records to hide mistakes",
-                    "Harassing or discriminating against any user",
-                    "Accessing the platform while under influence of substances",
-                    "Using admin tools for personal transactions or benefits"
-                ),
-                isWarning = true
-            )
-
-            // Conflict of Interest
-            PolicySection(
-                title = "Conflict of Interest",
-                items = listOf(
-                    "Disclose any personal relationships with users you moderate",
-                    "Recuse yourself from decisions involving friends or family",
-                    "Report potential conflicts of interest to management",
-                    "Do not moderate content where you have financial interest",
-                    "Maintain professional boundaries with all users"
-                )
-            )
-
-            // Security Practices
-            PolicySection(
-                title = "Security Practices",
-                items = listOf(
-                    "Use strong, unique passwords and enable 2FA",
-                    "Never share your admin credentials with anyone",
-                    "Log out from admin sessions when finished",
-                    "Report suspicious activities immediately",
-                    "Keep admin devices secure and updated",
-                    "Use VPN when accessing admin panel from public networks",
-                    "Review access logs regularly for unauthorized access"
-                )
-            )
-
-            // Communication Standards
-            PolicySection(
-                title = "Communication Standards",
-                items = listOf(
-                    "Maintain professional tone in all user communications",
-                    "Respond to user inquiries within 48 hours",
-                    "Be clear and concise in your explanations",
-                    "Never engage in arguments with users",
-                    "Escalate abusive situations to senior staff",
-                    "Document important conversations for records"
-                )
-            )
-
-            // Compliance & Reporting
-            PolicySection(
-                title = "Compliance & Reporting",
-                items = listOf(
-                    "Submit weekly activity reports to management",
-                    "Report policy violations by other admins immediately",
-                    "Participate in mandatory training and policy updates",
-                    "Keep accurate records of all administrative actions",
-                    "Cooperate fully with internal or external audits",
-                    "Stay informed about platform policy changes"
-                )
-            )
-
-            // Consequences
-            PolicyCard(
-                title = "Consequences of Policy Violations",
-                items = listOf(
-                    "Minor violations: Written warning and retraining",
-                    "Moderate violations: Temporary suspension of admin privileges",
-                    "Serious violations: Permanent removal from admin role",
-                    "Illegal activities: Report to law enforcement and legal action",
-                    "All violations may result in account termination"
-                ),
-                isWarning = true
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Acknowledgment
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(containerColor = Greenish.copy(alpha = 0.1f)),
-                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-            ) {
+            },
+            text = {
                 Column(
-                    modifier = Modifier.padding(16.dp)
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    Text(
-                        text = "Administrator Acknowledgment",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = DarkGreen
+                    // Current Password Field
+                    OutlinedTextField(
+                        value = currentPassword,
+                        onValueChange = {
+                            currentPassword = it
+                            errorMessage = ""
+                        },
+                        label = { Text("Current Password") },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(8.dp),
+                        visualTransformation = if (showCurrentPassword) VisualTransformation.None
+                        else PasswordVisualTransformation(),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = Greenish,
+                            focusedLabelColor = Greenish,
+                            unfocusedBorderColor = Color(0xFFCCCCCC)
+                        ),
+                        trailingIcon = {
+                            IconButton(
+                                onClick = { showCurrentPassword = !showCurrentPassword },
+                                modifier = Modifier.size(20.dp)
+                            ) {
+                                Icon(
+                                    imageVector = if (showCurrentPassword) Icons.Default.Visibility
+                                    else Icons.Default.VisibilityOff,
+                                    contentDescription = if (showCurrentPassword) "Hide password"
+                                    else "Show password",
+                                    modifier = Modifier.size(20.dp),
+                                    tint = Greenish
+                                )
+                            }
+                        }
                     )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "By continuing to serve as an administrator, you acknowledge that you have read, understood, and agree to comply with all policies outlined in this document. Failure to adhere to these guidelines may result in disciplinary action up to and including termination.",
-                        fontSize = 14.sp,
-                        color = Color(0xFF333333),
-                        lineHeight = 20.sp
+
+                    // New Password Field
+                    OutlinedTextField(
+                        value = newPassword,
+                        onValueChange = {
+                            newPassword = it
+                            errorMessage = ""
+                        },
+                        label = { Text("New Password") },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(8.dp),
+                        visualTransformation = if (showNewPassword) VisualTransformation.None
+                        else PasswordVisualTransformation(),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = Greenish,
+                            focusedLabelColor = Greenish,
+                            unfocusedBorderColor = Color(0xFFCCCCCC)
+                        ),
+                        trailingIcon = {
+                            IconButton(
+                                onClick = { showNewPassword = !showNewPassword },
+                                modifier = Modifier.size(20.dp)
+                            ) {
+                                Icon(
+                                    imageVector = if (showNewPassword) Icons.Default.Visibility
+                                    else Icons.Default.VisibilityOff,
+                                    contentDescription = if (showNewPassword) "Hide password"
+                                    else "Show password",
+                                    modifier = Modifier.size(20.dp),
+                                    tint = Greenish
+                                )
+                            }
+                        }
                     )
+
+                    // Confirm Password Field
+                    OutlinedTextField(
+                        value = confirmPassword,
+                        onValueChange = {
+                            confirmPassword = it
+                            errorMessage = ""
+                        },
+                        label = { Text("Confirm New Password") },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(8.dp),
+                        visualTransformation = if (showConfirmPassword) VisualTransformation.None
+                        else PasswordVisualTransformation(),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = Greenish,
+                            focusedLabelColor = Greenish,
+                            unfocusedBorderColor = Color(0xFFCCCCCC)
+                        ),
+                        trailingIcon = {
+                            IconButton(
+                                onClick = { showConfirmPassword = !showConfirmPassword },
+                                modifier = Modifier.size(20.dp)
+                            ) {
+                                Icon(
+                                    imageVector = if (showConfirmPassword) Icons.Default.Visibility
+                                    else Icons.Default.VisibilityOff,
+                                    contentDescription = if (showConfirmPassword) "Hide password"
+                                    else "Show password",
+                                    modifier = Modifier.size(20.dp),
+                                    tint = Greenish
+                                )
+                            }
+                        }
+                    )
+
+                    // Error message
+                    if (errorMessage.isNotEmpty()) {
+                        Text(
+                            text = errorMessage,
+                            color = Color.Red,
+                            fontSize = 14.sp,
+                            modifier = Modifier.padding(top = 8.dp)
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    TextButton(
+                        onClick = { showChangePasswordDialog = false },
+                        enabled = !isLoading
+                    ) {
+                        Text("Cancel", color = Greenish)
+                    }
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    Button(
+                        onClick = {
+                            if (currentPassword.isEmpty()) {
+                                errorMessage = "Please enter current password"
+                                return@Button
+                            }
+
+                            if (newPassword.isEmpty()) {
+                                errorMessage = "Please enter new password"
+                                return@Button
+                            }
+
+                            if (newPassword.length < 6) {
+                                errorMessage = "New password must be at least 6 characters"
+                                return@Button
+                            }
+
+                            if (confirmPassword.isEmpty()) {
+                                errorMessage = "Please confirm new password"
+                                return@Button
+                            }
+
+                            if (newPassword != confirmPassword) {
+                                errorMessage = "Passwords don't match"
+                                return@Button
+                            }
+
+                            if (newPassword == currentPassword) {
+                                errorMessage = "New password must be different from current password"
+                                return@Button
+                            }
+
+                            // Call change password
+                            isLoading = true
+                            viewModel.changePassword(currentPassword, newPassword) { success, message ->
+                                isLoading = false
+
+                                if (success) {
+                                    Toast.makeText(context, "Password changed successfully!", Toast.LENGTH_SHORT).show()
+                                    showChangePasswordDialog = false
+                                } else {
+                                    errorMessage = message
+                                }
+                            }
+                        },
+                        enabled = !isLoading,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Greenish
+                        )
+                    ) {
+                        if (isLoading) {
+                            CircularProgressIndicator(
+                                color = Color.White,
+                                modifier = Modifier.size(16.dp),
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            Text("Change Password", color = Color.White)
+                        }
+                    }
                 }
             }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Footer
-            Text(
-                text = "© 2024 TradeFlow. All rights reserved.",
-                fontSize = 12.sp,
-                color = Color.Gray,
-                textAlign = TextAlign.Center,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 16.dp)
-            )
-        }
+        )
     }
 }
 
 @Composable
-fun PolicySection(
-    title: String,
-    content: String? = null,
-    items: List<String>? = null
-) {
-    Column(
+fun AdminSection(title: String) {
+    Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(bottom = 24.dp)
+            .background(Greenish.copy(alpha = 0.1f))
+            .padding(horizontal = 16.dp, vertical = 12.dp)
     ) {
         Text(
             text = title,
-            fontSize = 20.sp,
+            color = Greenish,
             fontWeight = FontWeight.Bold,
-            color = DarkGreen,
-            modifier = Modifier.padding(bottom = 12.dp)
+            fontSize = 14.sp
         )
-
-        if (content != null) {
-            Text(
-                text = content,
-                fontSize = 15.sp,
-                color = Color(0xFF333333),
-                lineHeight = 22.sp
-            )
-        }
-
-        if (items != null) {
-            items.forEach { item ->
-                Text(
-                    text = "• $item",
-                    fontSize = 15.sp,
-                    color = Color(0xFF333333),
-                    lineHeight = 22.sp,
-                    modifier = Modifier.padding(bottom = 8.dp, start = 8.dp)
-                )
-            }
-        }
     }
 }
 
 @Composable
-fun PolicyCard(
-    title: String,
-    items: List<String>,
-    isWarning: Boolean = false
-) {
-    Card(
+fun AdminPrivacyItem(title: String, onClick: () -> Unit) {
+    Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(bottom = 24.dp),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = if (isWarning) Color(0xFFFFF3E0) else Color.White
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            .clickable { onClick() }
+            .padding(vertical = 12.dp, horizontal = 16.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Column(
-            modifier = Modifier.padding(16.dp)
-        ) {
-            Text(
-                text = title,
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold,
-                color = if (isWarning) Color(0xFFE65100) else DarkGreen,
-                modifier = Modifier.padding(bottom = 12.dp)
-            )
-
-            items.forEach { item ->
-                Text(
-                    text = "• $item",
-                    fontSize = 14.sp,
-                    color = Color(0xFF333333),
-                    lineHeight = 20.sp,
-                    modifier = Modifier.padding(bottom = 6.dp, start = 8.dp)
-                )
-            }
-        }
+        Text(
+            text = title,
+            modifier = Modifier.weight(1f),
+            fontSize = 16.sp,
+            color = Color(0xFF333333)
+        )
+        // Using built-in Material icon instead of custom drawable
+        Icon(
+            imageVector = Icons.Default.ArrowForward,
+            contentDescription = null,
+            tint = Color(0xFF666666),
+            modifier = Modifier.size(20.dp)
+        )
     }
+    Divider(
+        color = Color(0xFFE0E0E0),
+        thickness = 0.5.dp
+    )
 }

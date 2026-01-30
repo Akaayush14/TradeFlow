@@ -147,7 +147,8 @@ fun UserExploreScreen() {
     }
 
     val availableProducts = allProducts.filter { product ->
-        !product.isDeleted && product.status == "Available" && product.isListed
+        !product.isDeleted && product.isListed && 
+        (product.status == "Available" || product.status == "Completed" || product.status == "Rented")
     }
 
     val filteredProducts = availableProducts.filter { product ->
@@ -243,104 +244,116 @@ fun UserExploreScreen() {
         },
         topBar = {
             Column {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(MaterialTheme.colorScheme.primary)
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.End,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.2f))
-                            .clickable {
-                                val intent = Intent(activity, UserPointsActivity::class.java)
-                                activity.startActivity(intent)
-                            }
-                            .padding(horizontal = 12.dp, vertical = 6.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = "$userPoints Points",
-                                color = MaterialTheme.colorScheme.onPrimary,
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                text = "Use >",
-                                color = MaterialTheme.colorScheme.onPrimary,
-                                fontSize = 12.sp
-                            )
-                        }
-                    }
-                }
                 TradeFlowTopBar(
                     title = {
-                        TextField(
-                            value = searchQuery,
-                            onValueChange = {
-                                searchQuery = it
-                                showAllRecommended = false
-                            },
-                            placeholder = {
-                                Text(
-                                    "Search items or users...",
-                                    color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f),
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            // Search Field
+                            TextField(
+                                value = searchQuery,
+                                onValueChange = {
+                                    searchQuery = it
+                                    showAllRecommended = false
+                                },
+                                placeholder = {
+                                    Text(
+                                        "Search",
+                                        color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f),
+                                        fontSize = 16.sp
+                                    )
+                                },
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = Icons.Default.Search,
+                                        contentDescription = "Search Icon",
+                                        tint = MaterialTheme.colorScheme.onPrimary
+                                    )
+                                },
+                                trailingIcon = {
+                                    if (searchQuery.isNotEmpty()) {
+                                        IconButton(onClick = { searchQuery = "" }) {
+                                            Icon(
+                                                imageVector = Icons.Default.Close,
+                                                contentDescription = "Clear Search",
+                                                tint = MaterialTheme.colorScheme.onPrimary
+                                            )
+                                        }
+                                    }
+                                },
+                                modifier = Modifier.weight(1f),
+                                colors = TextFieldDefaults.colors(
+                                    focusedContainerColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.2f),
+                                    unfocusedContainerColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.15f),
+                                    disabledContainerColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.15f),
+                                    focusedIndicatorColor = Color.Transparent,
+                                    unfocusedIndicatorColor = Color.Transparent,
+                                    cursorColor = MaterialTheme.colorScheme.onPrimary,
+                                    focusedTextColor = MaterialTheme.colorScheme.onPrimary,
+                                    unfocusedTextColor = MaterialTheme.colorScheme.onPrimary
+                                ),
+                                textStyle = TextStyle(
+                                    color = MaterialTheme.colorScheme.onPrimary,
                                     fontSize = 16.sp
-                                )
-                            },
-                            leadingIcon = {
-                                Icon(
-                                    imageVector = Icons.Default.Search,
-                                    contentDescription = "Search Icon",
-                                    tint = MaterialTheme.colorScheme.onPrimary
-                                )
-                            },
-                            trailingIcon = {
-                                if (searchQuery.isNotEmpty()) {
-                                    IconButton(onClick = { searchQuery = "" }) {
-                                        Icon(
-                                            imageVector = Icons.Default.Close,
-                                            contentDescription = "Clear Search",
-                                            tint = MaterialTheme.colorScheme.onPrimary
-                                        )
+                                ),
+                                shape = RoundedCornerShape(24.dp),
+                                singleLine = true,
+                                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                                keyboardActions = KeyboardActions(
+                                    onSearch = {
+                                        if (searchQuery.isNotBlank() && userId.isNotEmpty()) {
+                                            searchHistoryViewModel.saveSearch(userId, searchQuery)
+                                        }
                                     }
+                                )
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+
+                            // Map Button
+                            Box(
+                                modifier = Modifier
+                                    .height(48.dp)
+                                    .clip(RoundedCornerShape(24.dp))
+                                    .background(MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.2f))
+                                    .clickable {
+                                        val intent = Intent(context, MapActivity::class.java)
+                                        context.startActivity(intent)
+                                    }
+                                    .padding(horizontal = 16.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.LocationOn,
+                                        contentDescription = "Map",
+                                        tint = MaterialTheme.colorScheme.onPrimary,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                    Text(
+                                        text = "Map",
+                                        color = MaterialTheme.colorScheme.onPrimary,
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.Medium
+                                    )
                                 }
-                            },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(end = 8.dp),
-                            colors = TextFieldDefaults.colors(
-                                focusedContainerColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.2f),
-                                unfocusedContainerColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.15f),
-                                disabledContainerColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.15f),
-                                focusedIndicatorColor = Color.Transparent,
-                                unfocusedIndicatorColor = Color.Transparent,
-                                cursorColor = MaterialTheme.colorScheme.onPrimary,
-                                focusedTextColor = MaterialTheme.colorScheme.onPrimary,
-                                unfocusedTextColor = MaterialTheme.colorScheme.onPrimary
-                            ),
-                            textStyle = TextStyle(
+                            }
+                            Spacer(modifier = Modifier.width(8.dp))
+                            // Points Display
+                            Text(
+                                text = "$userPoints Pts",
                                 color = MaterialTheme.colorScheme.onPrimary,
-                                fontSize = 16.sp
-                            ),
-                            shape = RoundedCornerShape(24.dp),
-                            singleLine = true,
-                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                            keyboardActions = KeyboardActions(
-                                onSearch = {
-                                    if (searchQuery.isNotBlank() && userId.isNotEmpty()) {
-                                        searchHistoryViewModel.saveSearch(userId, searchQuery)
-                                    }
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.clickable {
+                                    val intent = Intent(activity, UserPointsActivity::class.java)
+                                    activity.startActivity(intent)
                                 }
                             )
-                        )
+                        }
                     },
                     actions = {
                         IconButton(onClick = {
@@ -603,7 +616,7 @@ fun RecommendationHeader(onSeeAllClick: () -> Unit) {
             )
         }
         Text(
-            text = "See All >",
+            text = "See All",
             fontSize = 14.sp,
             color = MaterialTheme.colorScheme.primary,
             fontWeight = FontWeight.Medium,
@@ -735,12 +748,23 @@ fun UserSearchCard(user: UserModel, onClick: () -> Unit) {
                     .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(
-                    imageVector = Icons.Default.Person,
-                    contentDescription = "Default Profile",
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(32.dp)
-                )
+                if (user.profileImageUrl.isNotEmpty()) {
+                    AsyncImage(
+                        model = user.profileImageUrl,
+                        contentDescription = "Profile Image",
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop,
+                        placeholder = painterResource(R.drawable.placeholderimage),
+                        error = painterResource(R.drawable.placeholderimage)
+                    )
+                } else {
+                    Icon(
+                        imageVector = Icons.Default.Person,
+                        contentDescription = "Default Profile",
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(32.dp)
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.width(12.dp))
@@ -861,7 +885,7 @@ fun ExploreItemCard(
                     Icon(
                         imageVector = if (isSaved) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
                         contentDescription = "Favorite",
-                        tint = if (isSaved) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.outline,
+                        tint = if (isSaved) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.size(16.dp)
                     )
                 }
@@ -888,6 +912,7 @@ fun ExploreItemCard(
                     val statusColor = when (product.status) {
                         "Available" -> MaterialTheme.colorScheme.primary
                         "Completed" -> MaterialTheme.colorScheme.tertiary
+                        "Rented" -> Color(0xFF4CAF50) // Greenish
                         "Pending" -> MaterialTheme.colorScheme.secondary
                         else -> MaterialTheme.colorScheme.outline
                     }
@@ -952,13 +977,13 @@ fun ExploreItemCard(
                                 painter = painterResource(R.drawable.location_on),
                                 contentDescription = "Location",
                                 modifier = Modifier.size(16.dp),
-                                colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.outline)
+                                colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.onSurface)
                             )
                             Spacer(modifier = Modifier.width(2.dp))
                             Text(
                                 text = product.location,
                                 fontSize = 10.sp,
-                                color = MaterialTheme.colorScheme.outline,
+                                color = MaterialTheme.colorScheme.onSurface,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                                 modifier = Modifier.widthIn(max = 60.dp)

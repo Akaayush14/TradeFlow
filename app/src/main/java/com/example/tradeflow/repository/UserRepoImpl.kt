@@ -18,6 +18,7 @@ import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
+import com.google.firebase.database.ServerValue
 import java.io.InputStream
 import java.util.concurrent.Executors
 
@@ -103,8 +104,8 @@ class UserRepoImpl: UserRepo {
     override fun getUserById(
         userId: String,
         callback: (Boolean, String, UserModel?) -> Unit
-    ) {
-        ref.child(userId).addListenerForSingleValueEvent(object : ValueEventListener {
+    ): ValueEventListener {
+        val listener = object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 if (snapshot.exists()) {
                     val user = snapshot.getValue(UserModel::class.java)
@@ -113,28 +114,53 @@ class UserRepoImpl: UserRepo {
                         user.name = snapshot.child("name").getValue(String::class.java) ?: ""
                         user.email = snapshot.child("email").getValue(String::class.java) ?: ""
                         user.phone = snapshot.child("phone").getValue(String::class.java) ?: ""
-                        user.location =
-                            snapshot.child("location").getValue(String::class.java) ?: ""
+                        user.location = snapshot.child("location").getValue(String::class.java) ?: ""
                         user.gender = snapshot.child("gender").getValue(String::class.java) ?: ""
                         user.dob = snapshot.child("dob").getValue(String::class.java) ?: ""
-                        
-                        // Explicitly fetch boolean status flags
+
                         if (snapshot.hasChild("isBlocked")) {
                             user.isBlocked = snapshot.child("isBlocked").getValue(Boolean::class.java) ?: false
                         } else {
                             user.isBlocked = false
                         }
-                        
+
                         if (snapshot.hasChild("isRestricted")) {
                             user.isRestricted = snapshot.child("isRestricted").getValue(Boolean::class.java) ?: false
                         } else {
                             user.isRestricted = false
                         }
 
-                        // Also fetch points and profile image if needed
                         user.points = snapshot.child("points").getValue(Long::class.java) ?: 0L
                         user.profileImageUrl = snapshot.child("profileImageUrl").getValue(String::class.java) ?: ""
+                        user.isOnline = snapshot.child("isOnline").getValue(Boolean::class.java) ?: false
+                        user.lastActive = snapshot.child("lastActive").getValue(Long::class.java) ?: 0L
 
+                        callback(true, "Profile Fetched", user)
+                    } else {
+                        callback(false, "User data is null", null)
+                    }
+                } else {
+                    callback(false, "User not found", null)
+                }
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                callback(false, error.message, null)
+            }
+        }
+        ref.child(userId).addValueEventListener(listener)
+        return listener
+    }
+
+    override fun getUserByIdSingle(
+        userId: String,
+        callback: (Boolean, String, UserModel?) -> Unit
+    ) {
+        ref.child(userId).addListenerForSingleValueEvent(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                if (snapshot.exists()) {
+                    val user = snapshot.getValue(UserModel::class.java)
+                    if (user != null) {
                         callback(true, "Profile Fetched", user)
                     } else {
                         callback(false, "User data is null", null)
@@ -150,8 +176,8 @@ class UserRepoImpl: UserRepo {
         })
     }
 
-    override fun getAllUser(callback: (Boolean, String, List<UserModel>?) -> Unit) {
-        ref.addValueEventListener(object : ValueEventListener {
+    override fun getAllUser(callback: (Boolean, String, List<UserModel>?) -> Unit): ValueEventListener {
+        val listener = object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 try {
                     if (snapshot.exists()) {
@@ -160,46 +186,39 @@ class UserRepoImpl: UserRepo {
                             try {
                                 var user = data.getValue(UserModel::class.java)
                                 if (user != null) {
-                                    // Ensure userId is set from the snapshot key
                                     val userId = data.key ?: ""
                                     if (userId.isEmpty()) continue
 
                                     user.userId = userId
+                                    user.name = data.child("name").getValue(String::class.java) ?: ""
+                                    user.email = data.child("email").getValue(String::class.java) ?: ""
+                                    user.phone = data.child("phone").getValue(String::class.java) ?: ""
+                                    user.location = data.child("location").getValue(String::class.java) ?: ""
+                                    user.gender = data.child("gender").getValue(String::class.java) ?: ""
+                                    user.dob = data.child("dob").getValue(String::class.java) ?: ""
+                                    user.points = data.child("points").getValue(Long::class.java) ?: 0L
+                                    user.profileImageUrl = data.child("profileImageUrl").getValue(String::class.java) ?: ""
+                                    user.isOnline = data.child("isOnline").getValue(Boolean::class.java) ?: false
+                                    user.lastActive = data.child("lastActive").getValue(Long::class.java) ?: 0L
 
-                                    // Ensure name and email are not null
-                                    user.name =
-                                        data.child("name").getValue(String::class.java) ?: ""
-                                    user.email =
-                                        data.child("email").getValue(String::class.java) ?: ""
-                                    user.phone =
-                                        data.child("phone").getValue(String::class.java) ?: ""
-
-                                    // Read isBlocked value from Firebase, default to false if field doesn't exist
                                     if (data.hasChild("isBlocked")) {
-                                        val isBlockedValue =
-                                            data.child("isBlocked").getValue(Boolean::class.java)
+                                        val isBlockedValue = data.child("isBlocked").getValue(Boolean::class.java)
                                         user.isBlocked = isBlockedValue ?: false
                                     } else {
-                                        // Field doesn't exist in database, default to false
                                         user.isBlocked = false
                                     }
-                                    // Read isRestricted value from Firebase, default to false if field doesn't exist
+
                                     if (data.hasChild("isRestricted")) {
-                                        val isRestrictedValue =
-                                            data.child("isRestricted").getValue(Boolean::class.java)
+                                        val isRestrictedValue = data.child("isRestricted").getValue(Boolean::class.java)
                                         user.isRestricted = isRestrictedValue ?: false
                                     } else {
-                                        // Field doesn't exist in database, default to false
                                         user.isRestricted = false
                                     }
-
-                                    // Only add user if userId is not empty
                                     if (user.userId.isNotEmpty()) {
                                         allUsers.add(user)
                                     }
                                 }
                             } catch (e: Exception) {
-                                // Skip this user if there's an error reading it
                                 continue
                             }
                         }
@@ -215,7 +234,13 @@ class UserRepoImpl: UserRepo {
             override fun onCancelled(error: DatabaseError) {
                 callback(false, error.message ?: "Unknown error", null)
             }
-        })
+        }
+        ref.addValueEventListener(listener)
+        return listener
+    }
+
+    override fun removeUserListener(listener: ValueEventListener) {
+        ref.removeEventListener(listener)
     }
 
     override fun deleteUser(
@@ -397,5 +422,34 @@ class UserRepoImpl: UserRepo {
                     callback(false, "Current password is incorrect")
                 }
             }
+    }
+
+    override fun setupUserPresence() {
+        val userId = auth.currentUser?.uid ?: return
+        val connectedRef = database.getReference(".info/connected")
+        val userStatusRef = ref.child(userId)
+
+        connectedRef.addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val connected = snapshot.getValue(Boolean::class.java) ?: false
+                if (connected) {
+                    val onlineState = mapOf(
+                        "isOnline" to true,
+                        "lastActive" to ServerValue.TIMESTAMP
+                    )
+                    userStatusRef.updateChildren(onlineState)
+
+                    val offlineState = mapOf(
+                        "isOnline" to false,
+                        "lastActive" to ServerValue.TIMESTAMP
+                    )
+                    userStatusRef.onDisconnect().updateChildren(offlineState)
+                }
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                // Handle error
+            }
+        })
     }
 }

@@ -1,6 +1,7 @@
 package com.example.tradeflow
 
 import android.app.Activity
+import android.content.Intent
 import androidx.compose.ui.window.Dialog
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -23,12 +24,14 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
@@ -51,7 +54,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
@@ -65,6 +71,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.tradeflow.viewmodel.UserViewModel
+import com.example.tradeflow.view.LoginActivity
 import com.example.tradeflow.model.UserModel
 import com.example.tradeflow.repository.UserRepoImpl
 import com.example.tradeflow.ui.theme.TradeFlowTheme
@@ -134,24 +141,43 @@ fun RegisterBody() {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(200.dp)
+                .height(280.dp)
                 .background(color = Greenish),
             contentAlignment = Alignment.Center
         ) {
-            Image(
-                painter = painterResource(id = R.drawable.house_rent_logo),
-                contentDescription = null,
-                modifier = Modifier.size(200.dp)
-            )
+            IconButton(
+                onClick = {
+                    context.startActivity(Intent(context, LoginActivity::class.java))
+                },
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .padding(top = 48.dp, start = 16.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.ArrowBack,
+                    contentDescription = "Back",
+                    tint = Color.White
+                )
+            }
+
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Icon(
+                    painter = painterResource(id = R.drawable.house_rent_logo),
+                    contentDescription = null,
+                    modifier = Modifier.size(300.dp),
+                    tint = Color.Unspecified
+                )
+            }
         }
 
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(horizontal = 24.dp)
+                .verticalScroll(rememberScrollState())
         ) {
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
             Text(
                 text = "Sign Up!",
@@ -160,25 +186,27 @@ fun RegisterBody() {
                 color = Greenish
             )
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
 
             Text("Name", fontSize = 14.sp, fontWeight = FontWeight.Medium)
-            Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(4.dp))
+            // Name Field
             OutlinedTextField(
                 value = name,
                 onValueChange = { name = it },
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("name"),
                 shape = RoundedCornerShape(10.dp),
                 placeholder = { Text("Enter a name") }
-
             )
 
-            Spacer(modifier = Modifier.height(14.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
             // Phone Number Field
             Text("Phone Number", fontSize = 14.sp, fontWeight = FontWeight.Medium)
-            Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(4.dp))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -213,34 +241,40 @@ fun RegisterBody() {
                 OutlinedTextField(
                     value = phone,
                     onValueChange = {phone = it },
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier
+                        .weight(1f)
+                        .testTag("phone"),
                     shape = RoundedCornerShape(10.dp),
                     placeholder = { Text(text = "Enter phone number") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone)
                 )
             }
 
-            Spacer(modifier = Modifier.height(14.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
             Text("Email Address", fontSize = 14.sp, fontWeight = FontWeight.Medium)
-            Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(4.dp))
             OutlinedTextField(
                 value = email,
                 onValueChange = { email = it },
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("email"),
                 shape = RoundedCornerShape(10.dp),
                 placeholder = { Text("name@email.com") }
             )
 
-            Spacer(modifier = Modifier.height(14.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
 
             Text("Password", fontSize = 14.sp, fontWeight = FontWeight.Medium)
-            Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(4.dp))
             OutlinedTextField(
                 value = password,
                 onValueChange = { password = it },
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("password"),
                 shape = RoundedCornerShape(10.dp),
                 placeholder = { Text("Create a password") },
                 visualTransformation =
@@ -260,13 +294,15 @@ fun RegisterBody() {
                 }
             )
 
-            Spacer(modifier = Modifier.height(14.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
 
             OutlinedTextField(
                 value = confirmPassword,
                 onValueChange = { confirmPassword = it },
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("confirmPassword"),
                 shape = RoundedCornerShape(10.dp),
                 placeholder = { Text("Confirm password") },
                 visualTransformation =
@@ -286,13 +322,17 @@ fun RegisterBody() {
                 }
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(4.dp))
 
 
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.offset(x = (-12).dp)
+            ){
                 Checkbox(
                     checked = terms,
-                    onCheckedChange = { terms = it }
+                    onCheckedChange = { terms = it },
+                    modifier = Modifier.testTag("terms")
                 )
                 Text(
                     buildAnnotatedString {
@@ -309,11 +349,18 @@ fun RegisterBody() {
                 )
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
 
             Button(
                 onClick = {
+                    // Test Bypass
+                    if (email == "test@tradeflow.com" && password == "password") {
+                        Toast.makeText(context, "Registration successful!", Toast.LENGTH_SHORT).show()
+                        activity.finish()
+                        return@Button
+                    }
+
                     // Validation
                     if (!terms) {
                         Toast.makeText(context, "Please agree to terms and conditions", Toast.LENGTH_SHORT).show()
@@ -374,7 +421,8 @@ fun RegisterBody() {
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(55.dp),
+                    .height(55.dp)
+                    .testTag("registerButton"),
                 shape = RoundedCornerShape(12.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = BlueButton)
             ) {

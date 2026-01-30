@@ -25,6 +25,8 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
 import com.example.tradeflow.R
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.FirebaseDatabase
@@ -46,7 +48,6 @@ fun ForgotBody() {
     var emailError by remember { mutableStateOf(false) }
     val context = LocalContext.current
     var email by remember { mutableStateOf("") }
-    var terms by remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
@@ -89,7 +90,7 @@ fun ForgotBody() {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
+                .padding(bottom = padding.calculateBottomPadding())
                 .background(Color.White)
         ) {
             Box(
@@ -99,6 +100,21 @@ fun ForgotBody() {
                     .background(color = Greenish),
                 contentAlignment = Alignment.Center
             ) {
+                IconButton(
+                    onClick = {
+                        context.startActivity(Intent(context, LoginActivity::class.java))
+                    },
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(top = 48.dp, start = 16.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.ArrowBack,
+                        contentDescription = "Back",
+                        tint = Color.White
+                    )
+                }
+
                 Image(
                     painter = painterResource(R.drawable.house_rent_logo),
                     contentDescription = null,
@@ -148,42 +164,12 @@ fun ForgotBody() {
                     )
                 }
 
-                Spacer(modifier = Modifier.height(12.dp))
-
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Checkbox(
-                        checked = terms,
-                        onCheckedChange = { terms = it }
-                    )
-
-                    Text(
-                        buildAnnotatedString {
-                            append("I've read and agree with the ")
-                            withStyle(SpanStyle(color = BlueButton)) {
-                                append("Terms and Conditions")
-                            }
-                            append(" and the ")
-                            withStyle(SpanStyle(color = BlueButton)) {
-                                append("Privacy Policy.")
-                            }
-                        },
-                        fontSize = 12.sp
-                    )
-                }
-
                 Spacer(modifier = Modifier.height(20.dp))
 
                 Button(
                     onClick = {
                         if (email.isEmpty() || !email.contains("@")) {
                             emailError = true
-                            return@Button
-                        }
-
-                        if (!terms) {
-                            Toast.makeText(context, "Please agree to terms and conditions", Toast.LENGTH_SHORT).show()
                             return@Button
                         }
 
@@ -242,24 +228,6 @@ fun ForgotBody() {
                     } else {
                         Text("Send Reset Link", color = Color.White, fontSize = 16.sp)
                     }
-                }
-
-                Spacer(modifier = Modifier.height(9.dp))
-
-                Row(
-                    horizontalArrangement = Arrangement.Center,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(
-                        text = "Back to Login",
-                        color = BlueButton,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.clickable {
-                            context.startActivity(
-                                Intent(context, LoginActivity::class.java)
-                            )
-                        }
-                    )
                 }
             }
         }

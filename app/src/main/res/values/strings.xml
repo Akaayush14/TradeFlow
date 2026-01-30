@@ -36,4 +36,6 @@
     <string name="title_activity_theme_preference">ThemePreference</string>
     <string name="title_activity_theme_setting_acitivity">ThemeSettingAcitivity</string>
     <string name="title_activity_theme_wrapper">ThemeWrapper</string>
+    <string name="title_activity_location_picker">LocationPickerActivity</string>
+    <string name="title_activity_chat_screen">ChatScreen</string>
 </resources>

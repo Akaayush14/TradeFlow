@@ -136,18 +136,18 @@ class ChatRepositoryImpl(private val context: Context) : ChatRepository {
             sendMessage("chat_bot", senderId, "No internet connection. Please check your network and try again.", {}, {})
             return
         }
-        
+
         // Prepare full prompt with context
         var fullPrompt = prompt
         try {
             val roomId = getRoomId(senderId, "chat_bot")
             val history = getRecentMessages(roomId, 6) // Get last 6 messages (approx 3 turns)
-            
+
             val contextString = history.joinToString("\n") { msg ->
                 val role = if (msg.senderId == "chat_bot") "AI" else "User"
                 "$role: ${msg.message}"
             }
-            
+
             fullPrompt = """
 $SYSTEM_PROMPT
 
@@ -157,28 +157,28 @@ $contextString
 User: $prompt
 AI:
 """.trimIndent()
-            
+
             Log.d("ChatBot", "Full prompt with context prepared")
         } catch (e: Exception) {
             Log.e("ChatBot", "Failed to fetch history for context", e)
             // Continue with original prompt if history fetch fails, but still prepend system prompt
-             fullPrompt = "$SYSTEM_PROMPT\n\nUser: $prompt\nAI:"
+            fullPrompt = "$SYSTEM_PROMPT\n\nUser: $prompt\nAI:"
         }
 
         var botReply: String? = null
         var lastError: Exception? = null
-        
+
         // Get keys from BuildConfig
         val apiKeys = BuildConfig.GEMINI_API_KEYS
-        
+
         Log.d("ChatBot", "Starting generation with ${apiKeys.size} available keys")
 
         for ((index, apiKey) in apiKeys.withIndex()) {
             if (apiKey.isBlank()) continue
-            
+
             try {
                 Log.d("ChatBot", "Trying Key #${index + 1}")
-                
+
                 // Try Primary Model (gemini-2.5-flash)
                 try {
                     val generativeModel = GenerativeModel(
@@ -191,7 +191,7 @@ AI:
                     break
                 } catch (e: Exception) {
                     Log.w("ChatBot", "Key #${index + 1} Primary model failed: ${e.message}")
-                    
+
                     // Try Fallback Model (gemini-2.0-flash-lite) with SAME key
                     // (In case it's just a model availability issue, not a key quota issue)
                     Log.d("ChatBot", "Trying Fallback model with Key #${index + 1}")
@@ -217,7 +217,7 @@ AI:
             // All keys failed
             val finalError = lastError ?: Exception("No valid API keys found")
             Log.e("ChatBot", "All API keys exhausted. Last error: ${finalError.message}")
-            
+
             val errorMessage = when {
                 finalError.message?.contains("API key", ignoreCase = true) == true ->
                     "API Configuration Error: Please check your API keys in local.properties."

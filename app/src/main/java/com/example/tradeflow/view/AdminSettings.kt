@@ -8,42 +8,20 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -51,27 +29,29 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import coil.compose.AsyncImage
 import com.example.tradeflow.R
-import com.example.tradeflow.model.AdminModel
+import com.example.tradeflow.theme.ThemeManager
+import com.example.tradeflow.ui.components.ThemeWrapper
 import com.example.tradeflow.repository.AdminRepoImpl
-import com.example.tradeflow.ui.theme.DarkGreen
-import com.example.tradeflow.ui.theme.Greenish
-import com.example.tradeflow.ui.theme.White
 import com.example.tradeflow.viewmodel.AdminViewModel
+import com.google.firebase.auth.FirebaseAuth
 
 class AdminSettings : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            AdminSettingsScreen(
-                onBackClick = {
-                    val intent = Intent(this, AdminDashExp::class.java)
-                    startActivity(intent)
-                    finish()
-                }
-            )
+            ThemeWrapper {
+                AdminSettingsScreen(
+                    onBackClick = {
+                        val intent = Intent(this, AdminDashExp::class.java)
+                        startActivity(intent)
+                        finish()
+                    }
+                )
+            }
         }
     }
 }
@@ -82,311 +62,637 @@ class AdminSettings : ComponentActivity() {
 fun AdminSettingsScreen(onBackClick: () -> Unit = {}) {
     val context = LocalContext.current
     var showLogoutDialog by remember { mutableStateOf(false) }
+    var selectedLanguage by remember { mutableStateOf("English") }
+    var showLanguageDialog by remember { mutableStateOf(false) }
+    var showThemeDialog by remember { mutableStateOf(false) }
 
-    // Admin view model for fetching profile details
+    // Get current user
+    val currentUser = FirebaseAuth.getInstance().currentUser
+    val userId = currentUser?.uid ?: ""
+    val userEmailFromAuth = currentUser?.email ?: ""
+
+    // Initialize ViewModel for ADMIN data - Use AdminViewModel
     val adminViewModel = remember { AdminViewModel(AdminRepoImpl()) }
-    val admin by adminViewModel.admin.collectAsState()
 
-    LaunchedEffect(Unit) {
-        val currentUser = adminViewModel.getCurrentUser()
-        currentUser?.let {
-            adminViewModel.getAdminById(it.uid)
+    // Get theme from ThemeManager
+    val currentThemeMode by remember { ThemeManager.themeMode }
+    var isLoading by remember { mutableStateOf(false) }
+
+    // State for admin data
+    var adminData by remember { mutableStateOf<com.example.tradeflow.model.AdminModel?>(null) }
+
+    // Load admin data using AdminViewModel
+    LaunchedEffect(userId) {
+        if (userId.isNotEmpty()) {
+            adminViewModel.getAdminById(userId)
         }
     }
 
-    // Handle back button press - navigate to AdminDashExp
+    // Observe admin data from ViewModel
+    val adminState by adminViewModel.admin.collectAsState()
+
+    // Update local adminData when ViewModel state changes
+    LaunchedEffect(adminState) {
+        adminData = adminState
+        if (adminData != null) {
+            println("✅ AdminSettings - Admin data loaded from ViewModel!")
+            println("   Name: ${adminData?.name}")
+            println("   Email: ${adminData?.email}")
+            println("   Image URL: ${adminData?.imageUrl}")
+        }
+    }
+
+    // Determine what to display - Use admin data
+    val displayName = remember(adminData) {
+        adminData?.name?.ifEmpty {
+            currentUser?.displayName?.ifEmpty { "Administrator" }
+        } ?: currentUser?.displayName?.ifEmpty { "Administrator" } ?: "Administrator"
+    }
+
+    val displayEmail = remember(adminData) {
+        adminData?.email?.ifEmpty {
+            userEmailFromAuth.ifEmpty { "No email" }
+        } ?: userEmailFromAuth.ifEmpty { "No email" }
+    }
+
+    val profileImageUrl = remember(adminData) {
+        adminData?.imageUrl?.ifEmpty { "" } ?: ""
+    }
+
+    println("📱 AdminSettings Display Values:")
+    println("   Display Name: '$displayName'")
+    println("   Display Email: '$displayEmail'")
+    println("   Profile URL: '$profileImageUrl'")
+    println("   User ID: '$userId'")
+    println("   AdminData exists: ${adminData != null}")
+
+    // Handle back button press
     BackHandler {
-        val intent = Intent(context, AdminDashExp::class.java)
-        context.startActivity(intent)
-        if (context is ComponentActivity) {
-            context.finish()
+        onBackClick()
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+    ) {
+        // Profile Header
+        Box(modifier = Modifier.fillMaxWidth()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(220.dp)
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                MaterialTheme.colorScheme.primary,
+                                MaterialTheme.colorScheme.primaryContainer,
+                                MaterialTheme.colorScheme.secondaryContainer
+                            )
+                        )
+                    )
+            ) {
+                // Bubbles
+                Box(
+                    modifier = Modifier
+                        .size(100.dp)
+                        .offset(x = (-30).dp, y = 30.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.1f))
+                )
+                Box(
+                    modifier = Modifier
+                        .size(80.dp)
+                        .offset(x = 300.dp, y = 60.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.08f))
+                )
+                Box(
+                    modifier = Modifier
+                        .size(120.dp)
+                        .offset(x = 250.dp, y = (-40).dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.05f))
+                )
+            }
+
+            // Profile content
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 130.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                // Profile picture
+                Box(
+                    modifier = Modifier
+                        .size(150.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.primaryContainer)
+                        .border(
+                            width = 4.dp,
+                            color = MaterialTheme.colorScheme.surface,
+                            shape = CircleShape
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (profileImageUrl.isNotEmpty()) {
+                        AsyncImage(
+                            model = profileImageUrl,
+                            contentDescription = "Profile Picture",
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .clip(CircleShape),
+                            contentScale = ContentScale.Crop,
+                            placeholder = painterResource(R.drawable.placeholderimage),
+                            error = painterResource(R.drawable.house_rent_logo)
+                        )
+                    } else {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_profile),
+                            contentDescription = "Profile Picture",
+                            modifier = Modifier.size(80.dp),
+                            tint = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                // Display admin username
+                Text(
+                    text = displayName,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+
+                // Display admin email
+                Text(
+                    text = displayEmail,
+                    fontSize = 14.sp,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(32.dp))
+
+        // Settings Items in LazyColumn
+        LazyColumn(
+            modifier = Modifier.fillMaxWidth(),
+            contentPadding = PaddingValues(bottom = 16.dp)
+        ) {
+            item {
+                AdminSettingsItem("Edit Profile", R.drawable.profile_filled) {
+                    val intent = Intent(context, EditAdminProfile::class.java)
+                    context.startActivity(intent)
+                }
+            }
+            item {
+                AdminThemeSettingsItem(
+                    currentThemeMode = currentThemeMode,
+                    isLoading = isLoading,
+                    onClick = { showThemeDialog = true }
+                )
+            }
+            item {
+                AdminSettingsItemWithValue("Language", selectedLanguage, R.drawable.language) {
+                    showLanguageDialog = true
+                }
+            }
+            item {
+                AdminSettingsItem("Privacy & Security", R.drawable.privacy) {
+                    val intent = Intent(context, AdminPrivacyPolicy::class.java)
+                    context.startActivity(intent)
+                }
+            }
+            item {
+                AdminSettingsItem("About us", R.drawable.aboutus) {
+                    val intent = Intent(context, AdminAboutUs::class.java)
+                    context.startActivity(intent)
+                }
+            }
+            item {
+                AdminSettingsItem("Terms and Conditions", R.drawable.ic_termsandcondition) {
+                    val intent = Intent(context, AdminTermsAndCondition::class.java)
+                    context.startActivity(intent)
+                }
+            }
+            item {
+                AdminSettingsItem("Logout", R.drawable.signout) {
+                    showLogoutDialog = true
+                }
+            }
         }
     }
 
-    // Logout Confirmation Dialog
+    // Logout Dialog
     if (showLogoutDialog) {
-        AlertDialog(
-            onDismissRequest = { showLogoutDialog = false },
-            containerColor = Color.White,
-            title = {
-                Text(
-                    text = "Logout",
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.Black
-                )
-            },
-            text = {
-                Text(
-                    text = "Do you really want to log out?",
-                    fontSize = 16.sp,
-                    color = Color.Gray
-                )
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        // Clear user session/preferences
-                        val sharedPreferences = context.getSharedPreferences("TradeFlowPrefs", Context.MODE_PRIVATE)
-                        sharedPreferences.edit().clear().apply()
-
-                        // Navigate to login screen
-                        val intent = Intent(context, LoginActivity::class.java)
-                        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-                        context.startActivity(intent)
-
-                        // Finish all activities
-                        if (context is ComponentActivity) {
-                            context.finishAffinity()
-                        }
-
-                        showLogoutDialog = false
-                    },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color.Red
-                    ),
-                    shape = RoundedCornerShape(8.dp)
-                ) {
-                    Text(
-                        text = "Yes",
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            },
-            dismissButton = {
-                Button(
-                    onClick = { showLogoutDialog = false },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF007AFF)
-                    ),
-                    shape = RoundedCornerShape(8.dp)
-                ) {
-                    Text(
-                        text = "No",
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold
-                    )
+        AdminThemeAwareLogoutDialog(
+            onCancel = { showLogoutDialog = false },
+            onConfirm = {
+                showLogoutDialog = false
+                // Clear theme cache on logout
+                ThemeManager.clear()
+                // Sign out from Firebase
+                FirebaseAuth.getInstance().signOut()
+                // Clear any local preferences
+                val sharedPreferences = context.getSharedPreferences("TradeFlowPrefs", Context.MODE_PRIVATE)
+                sharedPreferences.edit().clear().apply()
+                // Navigate to login screen
+                val intent = Intent(context, LoginActivity::class.java)
+                intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                context.startActivity(intent)
+                // Finish all activities
+                if (context is ComponentActivity) {
+                    context.finishAffinity()
                 }
             }
         )
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Greenish,
-                    titleContentColor = DarkGreen,
-                    navigationIconContentColor = DarkGreen
-                ),
-                navigationIcon = {
-                    IconButton(onClick = onBackClick) {
-                        Icon(
-                            painter = painterResource(id = R.drawable.ic_back),
-                            contentDescription = "Back",
-                            tint = Color.White
-                        )
+    // Language Dialog
+    if (showLanguageDialog) {
+        AdminLanguageDialog(
+            selectedLanguage = selectedLanguage,
+            onDismiss = { showLanguageDialog = false },
+            onLanguageSelected = { lang ->
+                selectedLanguage = lang
+                showLanguageDialog = false
+            }
+        )
+    }
+
+    if (showThemeDialog) {
+        AdminThemeSelectionDialog(
+            currentThemeMode = currentThemeMode,
+            isLoading = isLoading,
+            onDismiss = { showThemeDialog = false },
+            onThemeSelected = { themeMode ->
+                ThemeManager.setThemeMode(themeMode)
+                isLoading = true
+                showThemeDialog = false
+                if (userId.isNotEmpty()) {
+                    ThemeManager.saveTheme(userId, themeMode) { success, message ->
+                        isLoading = false
                     }
-                },
-                title = {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(end = 48.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "Settings",
-                            color = White,
-                            style = MaterialTheme.typography.titleLarge
-                        )
-                    }
+                } else {
+                    isLoading = false
                 }
+            }
+        )
+    }
+}
+
+@Composable
+fun AdminThemeAwareLogoutDialog(
+    onCancel: () -> Unit,
+    onConfirm: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onCancel,
+        containerColor = MaterialTheme.colorScheme.surface,
+        title = {
+            Text(
+                text = "Logout",
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
             )
         },
-    ) { padding ->
-        Box(
-            modifier = Modifier
-                .padding(padding)
-                .fillMaxSize()
-                .background(Color(0xFFF5F5F5))
-        ) {
-            Box(
-                modifier = Modifier.fillMaxSize()
+        text = {
+            Text(
+                text = "Do you really want to log out?",
+                fontSize = 16.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        },
+        confirmButton = {
+            Button(
+                onClick = onConfirm,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.error
+                ),
+                shape = RoundedCornerShape(8.dp)
             ) {
-                SettingsContent(
-                    admin = admin,
-                    onLogoutClick = { showLogoutDialog = true }
+                Text(
+                    text = "Yes",
+                    color = MaterialTheme.colorScheme.onError,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        },
+        dismissButton = {
+            Button(
+                onClick = onCancel,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary
+                ),
+                shape = RoundedCornerShape(8.dp)
+            ) {
+                Text(
+                    text = "No",
+                    color = MaterialTheme.colorScheme.onPrimary,
+                    fontWeight = FontWeight.Bold
                 )
             }
         }
-    }
+    )
 }
 
 @Composable
-fun SettingsContent(admin: AdminModel?, onLogoutClick: () -> Unit = {}) {
-    val context = LocalContext.current
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
-            .padding(top = 48.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        // Profile Section Header
-        Column(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(160.dp)
-                    .clip(CircleShape)
-                    .background(Color.White),
-                contentAlignment = Alignment.Center
-            ) {
-                if (admin != null && admin.imageUrl.isNotEmpty()) {
-                    AsyncImage(
-                        model = admin.imageUrl,
-                        contentDescription = "Profile Picture",
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
-                    )
-                } else {
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_user),
-                        contentDescription = "Profile Picture",
-                        modifier = Modifier.size(96.dp),
-                        tint = Color.Gray
-                    )
-                }
-            }
-            
-            Spacer(modifier = Modifier.height(16.dp))
-            
-            Text(
-                text = admin?.name ?: "Admin Name",
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.Black
-            )
-            
-            Text(
-                text = admin?.email ?: "admin@example.com",
-                fontSize = 14.sp,
-                color = Color.Blue
-            )
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Settings Menu
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(12.dp))
-                .background(Color.White)
-        ) {
-            SettingsMenuItem(
-                title = "Notifications",
-                iconRes = R.drawable.notification,
-                onClick = {
-                    val intent = Intent(context, AdminNotification::class.java)
-                    context.startActivity(intent)
-                }
-            )
-
-            HorizontalDivider(color = Color(0xFFE0E0E0))
-
-            SettingsMenuItem(
-                title = "Edit Profile",
-                iconRes = R.drawable.ic_profile,
-                onClick = {
-                    val intent = Intent(context, EditAdminProfile::class.java)
-                    context.startActivity(intent)
-                }
-            )
-
-            HorizontalDivider(color = Color(0xFFE0E0E0))
-
-            SettingsMenuItem(
-                title = "About us",
-                iconRes = R.drawable.ic_termsandcondition,
-                onClick = {
-                    val intent = Intent(context, AdminAboutUs::class.java)
-                    context.startActivity(intent)
-                }
-            )
-
-            HorizontalDivider(color = Color(0xFFE0E0E0))
-
-            SettingsMenuItem(
-                title = "Privacy & Security",
-                iconRes = R.drawable.ic_termsandcondition,
-                onClick = {
-                    val intent = Intent(context, AdminPrivacyPolicy::class.java)
-                    context.startActivity(intent)
-                }
-            )
-
-            HorizontalDivider(color = Color(0xFFE0E0E0))
-
-            SettingsMenuItem(
-                title = "Terms and Conditions",
-                iconRes = R.drawable.ic_termsandcondition,
-                onClick = {
-                    val intent = Intent(context, AdminTermsAndCondition::class.java)
-                    context.startActivity(intent)
-                }
-            )
-
-            HorizontalDivider(color = Color(0xFFE0E0E0))
-
-            SettingsMenuItem(
-                title = "Logout",
-                iconRes = R.drawable.signout,
-                onClick = onLogoutClick,
-                showArrow = false
-            )
-        }
-    }
-}
-
-@Composable
-fun SettingsMenuItem(
-    title: String,
-    iconRes: Int? = null,
-    onClick: () -> Unit,
-    showArrow: Boolean = false
+fun AdminThemeSettingsItem(
+    currentThemeMode: String,
+    isLoading: Boolean,
+    onClick: () -> Unit
 ) {
+    val themeDisplayName = when (currentThemeMode) {
+        "light" -> "Light"
+        "dark" -> "Dark"
+        else -> "System Default"
+    }
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 16.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
+            .clickable { onClick() }
+            .padding(vertical = 12.dp, horizontal = 16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            iconRes?.let {
-                Icon(
-                    painter = painterResource(id = it),
-                    contentDescription = title,
-                    tint = Color.Unspecified,
-                    modifier = Modifier.size(24.dp)
-                )
-            }
-            Text(
-                text = title,
-                fontSize = 16.sp,
-                color = Color.Black
+        Icon(
+            painter = painterResource(id = R.drawable.ic_settings),
+            contentDescription = "Theme",
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(24.dp)
+        )
+        Spacer(modifier = Modifier.width(16.dp))
+
+        Text(
+            text = "Theme",
+            modifier = Modifier.weight(1f),
+            fontSize = 16.sp,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+
+        if (isLoading) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(16.dp),
+                strokeWidth = 2.dp,
+                color = MaterialTheme.colorScheme.primary
             )
+            Spacer(modifier = Modifier.width(8.dp))
         }
 
-        if (showArrow) {
-            // No trailing arrow per spec
+        Text(
+            text = themeDisplayName,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+            fontSize = 14.sp
+        )
+        Spacer(modifier = Modifier.width(6.dp))
+        Icon(
+            Icons.Default.KeyboardArrowRight,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+            modifier = Modifier.size(20.dp)
+        )
+    }
+    Divider(
+        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f),
+        thickness = 0.5.dp
+    )
+}
+
+@Composable
+fun AdminThemeSelectionDialog(
+    currentThemeMode: String,
+    isLoading: Boolean,
+    onDismiss: () -> Unit,
+    onThemeSelected: (String) -> Unit
+) {
+    val themes = listOf(
+        "Light" to "light",
+        "Dark" to "dark",
+        "System Default" to "system"
+    )
+
+    Dialog(onDismissRequest = onDismiss) {
+        Card(
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface
+            )
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp)
+            ) {
+                Text(
+                    text = "Select Theme",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                themes.forEach { (displayName, value) ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable(
+                                enabled = !isLoading,
+                                onClick = { onThemeSelected(value) }
+                            )
+                            .padding(vertical = 12.dp, horizontal = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        val iconRes = when (value) {
+                            "light" -> R.drawable.ic_sun
+                            "dark" -> R.drawable.ic_moon
+                            else -> R.drawable.ic_settings
+                        }
+
+                        Icon(
+                            painter = painterResource(iconRes),
+                            contentDescription = displayName,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(24.dp)
+                        )
+
+                        Spacer(modifier = Modifier.width(16.dp))
+
+                        Text(
+                            text = displayName,
+                            modifier = Modifier.weight(1f),
+                            fontSize = 16.sp,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+
+                        // Checkmark if selected
+                        if (value == currentThemeMode) {
+                            Icon(
+                                Icons.Default.CheckCircle,
+                                contentDescription = "Selected",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    }
+
+                    // Divider except for last item
+                    if (displayName != themes.last().first) {
+                        Divider(
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f),
+                            thickness = 0.5.dp
+                        )
+                    }
+                }
+
+                // Loading indicator
+                if (isLoading) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    LinearProgressIndicator(
+                        modifier = Modifier.fillMaxWidth(),
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun AdminSettingsItem(title: String, iconRes: Int? = null, onClick: () -> Unit = {}) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() }
+            .padding(vertical = 12.dp, horizontal = 16.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        if (iconRes != null) {
+            Icon(
+                painter = painterResource(iconRes),
+                contentDescription = null,
+                modifier = Modifier.size(24.dp),
+                tint = MaterialTheme.colorScheme.primary
+            )
+            Spacer(modifier = Modifier.width(16.dp))
+        }
+        Text(
+            text = title,
+            modifier = Modifier.weight(1f),
+            fontSize = 16.sp,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+        Icon(
+            Icons.Default.KeyboardArrowRight,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+            modifier = Modifier.size(20.dp)
+        )
+    }
+    Divider(
+        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f),
+        thickness = 0.5.dp
+    )
+}
+
+@Composable
+fun AdminSettingsItemWithValue(title: String, value: String, iconRes: Int? = null, onClick: () -> Unit = {}) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() }
+            .padding(vertical = 12.dp, horizontal = 16.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        if (iconRes != null) {
+            Icon(
+                painter = painterResource(iconRes),
+                contentDescription = null,
+                modifier = Modifier.size(24.dp),
+                tint = MaterialTheme.colorScheme.primary
+            )
+            Spacer(modifier = Modifier.width(16.dp))
+        }
+        Text(
+            text = title,
+            modifier = Modifier.weight(1f),
+            fontSize = 16.sp,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+        Text(
+            text = value,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+            fontSize = 14.sp
+        )
+        Spacer(modifier = Modifier.width(6.dp))
+        Icon(
+            Icons.Default.KeyboardArrowRight,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+            modifier = Modifier.size(20.dp)
+        )
+    }
+    Divider(
+        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f),
+        thickness = 0.5.dp
+    )
+}
+
+@Composable
+fun AdminLanguageDialog(
+    selectedLanguage: String,
+    onDismiss: () -> Unit,
+    onLanguageSelected: (String) -> Unit
+) {
+    val languages = listOf("English", "Nepali", "Hindi", "Chinese")
+    Dialog(onDismissRequest = onDismiss) {
+        Card(
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface
+            )
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text(
+                    text = "Select Language",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 18.sp,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                languages.forEach { lang ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onLanguageSelected(lang) }
+                            .padding(vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = lang,
+                            modifier = Modifier.weight(1f),
+                            fontSize = 16.sp,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        if (lang == selectedLanguage) {
+                            Icon(
+                                Icons.Default.CheckCircle,
+                                contentDescription = "Selected",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    }
+                    if (lang != languages.last()) {
+                        Divider(
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f),
+                            thickness = 0.5.dp
+                        )
+                    }
+                }
+            }
         }
     }
 }
