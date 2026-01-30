@@ -86,7 +86,7 @@ class UserNotificationViewModel(
 
                 // Create request with all details
                 val primaryOffer = offerProducts.firstOrNull()
-                val offeredItemsList = offerProducts.map { 
+                val offeredItemsList = offerProducts.map {
                     com.example.tradeflow.model.OfferedItem(
                         productId = it.productId,
                         productName = it.name,
@@ -245,10 +245,10 @@ class UserNotificationViewModel(
 
                     // Filter for COMPLETED, RETURNED or ACCEPTED status and distinct by requestId
                     val completed = allRequests
-                        .filter { 
-                            it.status.equals("COMPLETED", ignoreCase = true) || 
-                            it.status.equals("RETURNED", ignoreCase = true) ||
-                            it.status.equals("ACCEPTED", ignoreCase = true)
+                        .filter {
+                            it.status.equals("COMPLETED", ignoreCase = true) ||
+                                    it.status.equals("RETURNED", ignoreCase = true) ||
+                                    it.status.equals("ACCEPTED", ignoreCase = true)
                         }
                         .distinctBy { it.requestId }
                         .sortedByDescending { if (it.completedAt > 0) it.completedAt else it.createdAt }
@@ -328,11 +328,13 @@ class UserNotificationViewModel(
                         repository.updateRequestStatus(requestId, "ACCEPTED") { updateSuccess, _ ->
                             if (updateSuccess) {
                                 // Determine new product status based on request type
-                                val newProductStatus = if (request.productType == "RENT") "Rented" else "Completed"
-                                
-                                // Update product status
-                                productRepository.updateProductStatus(request.productId, newProductStatus) { _, _ -> }
-                                
+                                // For RENT, we wait until deposit is paid before marking as Rented
+                                if (!request.productType.equals("RENT", ignoreCase = true)) {
+                                    val newProductStatus = "Completed"
+                                    // Update product status
+                                    productRepository.updateProductStatus(request.productId, newProductStatus) { _, _ -> }
+                                }
+
                                 if (request.productType == "BARTER" && request.offerProductId.isNotEmpty()) {
                                     productRepository.updateProductStatus(request.offerProductId, "Completed") { _, _ -> }
                                 }
@@ -477,7 +479,7 @@ class UserNotificationViewModel(
                                             "Barter request accepted!"
                                         }
                                     }
-                                    "RENT" -> "Your rental request for ${request.productName} has been approved!"
+                                    "RENT" -> "Your rental request for ${request.productName} has been approved! Please pay the security deposit to confirm."
                                     else -> "Your request for ${request.productName} has been accepted!"
                                 }
 
@@ -533,7 +535,7 @@ class UserNotificationViewModel(
                             if (updateSuccess) {
                                 // Update product status to Available
                                 productRepository.updateProductStatus(request.productId, "Available") { _, _ -> }
-                                
+
                                 if (request.productType == "BARTER" && request.offerProductId.isNotEmpty()) {
                                     productRepository.updateProductStatus(request.offerProductId, "Available") { _, _ -> }
                                 }

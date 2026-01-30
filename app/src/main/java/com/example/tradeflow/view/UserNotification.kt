@@ -43,6 +43,9 @@ import com.example.tradeflow.viewmodel.UserNotificationViewModel
 import com.google.firebase.auth.FirebaseAuth
 import java.text.SimpleDateFormat
 import java.util.*
+import android.content.Intent
+import androidx.compose.ui.platform.LocalContext
+import com.example.tradeflow.ui.theme.Greenish
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -203,6 +206,7 @@ fun UserNotificationScreen(
                                 items(notificationList) { notification ->
                                     EnhancedNotificationCard(
                                         notification = notification,
+                                        currentUserId = userId,
                                         onClick = {
                                             viewModel.markAsRead(notification.notificationId)
                                             onNotificationClick(notification)
@@ -379,6 +383,7 @@ fun UserNotificationScreen(
 @Composable
 fun EnhancedNotificationCard(
     notification: UserNotificationModel,
+    currentUserId: String,
     onClick: () -> Unit,
     onAccept: () -> Unit = {},
     onReject: () -> Unit = {},
@@ -576,19 +581,60 @@ fun EnhancedNotificationCard(
             // Action Buttons
             when {
                 notification.status == "ACCEPTED" -> {
-                    // FROM FRIEND'S CODE: Better accepted status display
-                    Surface(
-                        shape = RoundedCornerShape(4.dp),
-                        color = MaterialTheme.colorScheme.tertiary,
-                        modifier = Modifier.padding(vertical = 8.dp)
-                    ) {
-                        Text(
-                            text = "Request accepted",
-                            fontSize = 12.sp,
-                            color = MaterialTheme.colorScheme.onTertiary,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                            fontWeight = FontWeight.Medium
-                        )
+                    val context = LocalContext.current
+                    if (notification.requestType.equals("RENT", ignoreCase = true)) {
+                        Column(modifier = Modifier.fillMaxWidth()) {
+                            Surface(
+                                shape = RoundedCornerShape(4.dp),
+                                color = MaterialTheme.colorScheme.tertiary,
+                                modifier = Modifier.padding(vertical = 8.dp)
+                            ) {
+                                Text(
+                                    text = "Request accepted",
+                                    fontSize = 12.sp,
+                                    color = MaterialTheme.colorScheme.onTertiary,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+                            
+                            // Only show Pay Deposit button to the Requester (Sender)
+                            if (notification.senderId == currentUserId) {
+                                Spacer(modifier = Modifier.height(8.dp))
+                                
+                                Button(
+                                    onClick = {
+                                        val intent = Intent(context, RentalPaymentActivity::class.java)
+                                        intent.putExtra("requestId", notification.requestId)
+                                        intent.putExtra("productId", notification.productId)
+                                        intent.putExtra("ownerId", notification.senderId)
+                                        context.startActivity(intent)
+                                    },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = Greenish
+                                    ),
+                                    shape = RoundedCornerShape(8.dp)
+                                ) {
+                                    Text("Pay Deposit", fontWeight = FontWeight.Bold)
+                                }
+                            }
+                        }
+                    } else {
+                        // FROM FRIEND'S CODE: Better accepted status display
+                        Surface(
+                            shape = RoundedCornerShape(4.dp),
+                            color = MaterialTheme.colorScheme.tertiary,
+                            modifier = Modifier.padding(vertical = 8.dp)
+                        ) {
+                            Text(
+                                text = "Request accepted",
+                                fontSize = 12.sp,
+                                color = MaterialTheme.colorScheme.onTertiary,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
                     }
                 }
                 notification.status == "REJECTED" -> {

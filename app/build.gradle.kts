@@ -28,6 +28,12 @@ android {
         val apiKey = localProperties.getProperty("GEMINI_API_KEY") ?: ""
         buildConfigField("String", "GEMINI_API_KEY", "\"$apiKey\"")
 
+        val stripeSecretKey = localProperties.getProperty("STRIPE_SECRET_KEY") ?: ""
+        buildConfigField("String", "STRIPE_SECRET_KEY", "\"$stripeSecretKey\"")
+
+        val stripePublishableKey = localProperties.getProperty("STRIPE_PUBLISHABLE_KEY") ?: ""
+        buildConfigField("String", "STRIPE_PUBLISHABLE_KEY", "\"$stripePublishableKey\"")
+
         val apiKey1 = localProperties.getProperty("GEMINI_API_KEY_1") ?: ""
         val apiKey2 = localProperties.getProperty("GEMINI_API_KEY_2") ?: ""
         val apiKey3 = localProperties.getProperty("GEMINI_API_KEY_3") ?: ""
@@ -123,10 +129,15 @@ dependencies {
 
     // Gemini
     implementation("com.google.ai.client.generativeai:generativeai:0.9.0")
-//    unit testing
+
+    // Stripe
+    implementation("com.stripe:stripe-android:20.48.0")
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+
+    //unit testing
     testImplementation("org.mockito:mockito-core:5.11.0")
     testImplementation("org.mockito.kotlin:mockito-kotlin:5.2.1")
-//    Instrumented test
+    //Instrumented test
     androidTestImplementation("androidx.test:runner:1.2.0")
     androidTestImplementation("androidx.test:rules:1.2.0")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")

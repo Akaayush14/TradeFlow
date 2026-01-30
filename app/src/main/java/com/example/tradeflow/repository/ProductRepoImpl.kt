@@ -366,6 +366,27 @@ class ProductRepoImpl: ProductRepo {
         }
     }
 
+    override fun updateProductRentalInfo(
+        productId: String,
+        status: String,
+        rentalEndDate: Long,
+        activeRequestId: String,
+        callback: (Boolean, String) -> Unit
+    ) {
+        val updates = HashMap<String, Any>()
+        updates["status"] = status
+        updates["rentalEndDate"] = rentalEndDate
+        updates["activeRequestId"] = activeRequestId
+        
+        ref.child(productId).updateChildren(updates).addOnCompleteListener {
+            if (it.isSuccessful) {
+                callback(true, "Product rental info updated")
+            } else {
+                callback(false, "${it.exception?.message}")
+            }
+        }
+    }
+
     override fun getLatLngFromAddress(context: Context, address: String): LatLng? {
         return try {
             val geocoder = Geocoder(context, Locale.getDefault())

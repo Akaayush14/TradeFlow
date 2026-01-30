@@ -282,6 +282,14 @@
             android:theme="@style/Theme.TradeFlow"
             android:windowSoftInputMode="adjustResize">
         </activity>
+        <activity
+            android:name=".view.RentalPaymentActivity"
+            android:exported="false"
+            android:theme="@style/Theme.TradeFlow" />
+        <activity
+            android:name=".view.FinalPaymentActivity"
+            android:exported="false"
+            android:theme="@style/Theme.TradeFlow" />
     </application>
 
 </manifest>

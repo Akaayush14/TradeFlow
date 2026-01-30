@@ -44,6 +44,7 @@ class PointDealViewModel(
 
     // Client-side lock to prevent race conditions (double claiming)
     private val _processingDealIds = mutableSetOf<String>()
+    private val _processedPurchaseIds = mutableSetOf<String>()
 
     fun addPointDeal(model: PointDealModel, callback: (Boolean, String) -> Unit) {
         repo.addPointDeal(model, callback)
@@ -319,7 +320,12 @@ class PointDealViewModel(
         }
     }
 
-    fun buyPoints(userId: String, points: Long, amount: Double) {
+    fun buyPoints(userId: String, points: Long, amount: Double, purchaseId: String) {
+        if (_processedPurchaseIds.contains(purchaseId)) {
+            return
+        }
+        _processedPurchaseIds.add(purchaseId)
+
         userRepo.getUserByIdSingle(userId) { success, message, user ->
             if (success && user != null) {
                 val updatedPoints = user.points + points
@@ -337,10 +343,15 @@ class PointDealViewModel(
                         ) { _, _ -> }
                         _redemptionStatus.postValue(Pair(true, "Points purchased successfully!"))
                     } else {
+                        // If update fails, we might want to allow retrying, so remove the ID?
+                        // For now, keep it to prevent double charging risk, or remove it?
+                        // If it fails, the user didn't get points. We should probably remove it.
+                        _processedPurchaseIds.remove(purchaseId)
                         _redemptionStatus.postValue(Pair(false, pointsMessage))
                     }
                 }
             } else {
+                _processedPurchaseIds.remove(purchaseId)
                 _redemptionStatus.postValue(Pair(false, "User not found"))
             }
         }

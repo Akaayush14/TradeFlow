@@ -271,6 +271,24 @@ class UserNotificationRepoImpl : UserNotificationRepo {
         }
     }
 
+    fun updateRequestDetails(
+        requestId: String,
+        updates: Map<String, Any>,
+        callback: (Boolean, String) -> Unit
+    ) {
+        try {
+            requestsRef.child(requestId).updateChildren(updates)
+                .addOnSuccessListener {
+                    callback(true, "Request updated")
+                }
+                .addOnFailureListener { e ->
+                    callback(false, "Error: ${e.message}")
+                }
+        } catch (e: Exception) {
+            callback(false, "Error: ${e.message}")
+        }
+    }
+
     override fun getRequestsByOwner(
         ownerId: String,
         callback: (Boolean, String, List<RequestModel>?) -> Unit

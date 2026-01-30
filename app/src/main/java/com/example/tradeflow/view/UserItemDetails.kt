@@ -52,6 +52,14 @@ import android.content.Intent
 import androidx.compose.material.icons.filled.LocationOn
 import android.net.Uri
 
+import com.example.tradeflow.model.RequestModel
+import com.example.tradeflow.repository.UserNotificationRepoImpl
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+
 class UserItemDetails : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -166,6 +174,11 @@ fun ItemDetailsScreen() {
     // FROM FRIEND'S CODE: Reviewer Details Cache
     val reviewerMap = remember { mutableStateMapOf<String, UserModel>() }
 
+    // EARLY RETURN / RENT PAYMENT STATE
+    var activeRequest by remember { mutableStateOf<RequestModel?>(null) }
+    var showRentDialog by remember { mutableStateOf(false) }
+    var rentAmountInput by remember { mutableStateOf("") }
+    
     LaunchedEffect(productId) {
         if (productId.isNotEmpty()) {
             productViewModel.getProductById(productId)
@@ -174,13 +187,37 @@ fun ItemDetailsScreen() {
     }
 
     LaunchedEffect(product) {
-        product?.ownerId?.let { ownerId ->
-            if (ownerId.isNotEmpty()) {
-                userViewModel.getUserById(ownerId) { success, _, user ->
+        product?.let { p ->
+            // Check for rental expiration
+            if (p.status == "Rented" && p.rentalEndDate > 0 && System.currentTimeMillis() > p.rentalEndDate) {
+                productViewModel.updateProductStatus(p.productId, "Available") { success, _ ->
+                    if (success) {
+                        productViewModel.getProductById(p.productId)
+                    }
+                }
+            }
+            
+            // FETCH ACTIVE REQUEST IF EXISTS
+            if (p.activeRequestId.isNotEmpty()) {
+                UserNotificationRepoImpl().getRequestById(p.activeRequestId) { success, _, req ->
+                    if (success) {
+                        activeRequest = req
+                        // Pre-fill rent amount if calculating
+                        if (req?.rentalStartDate != null && req.rentalStartDate > 0) {
+                            val days = ((System.currentTimeMillis() - req.rentalStartDate) / (1000 * 60 * 60 * 24)).coerceAtLeast(1)
+                            val estimatedRent = days * req.rentalPricePerDay
+                            rentAmountInput = String.format("%.2f", estimatedRent)
+                        }
+                    }
+                }
+            }
+
+            if (p.ownerId.isNotEmpty()) {
+                userViewModel.getUserById(p.ownerId) { success, _, user ->
                     // User data is handled in the ViewModel
                 }
                 // FROM FRIEND'S CODE: Fetch owner's products to calculate stats
-                productViewModel.getProductsByOwner(ownerId)
+                productViewModel.getProductsByOwner(p.ownerId)
             }
         }
     }
@@ -214,6 +251,8 @@ fun ItemDetailsScreen() {
     // FROM FRIEND'S CODE: Check if item is completed
     val isCompleted = product?.status?.trim()
         ?.equals("Completed", ignoreCase = true) ?: false
+    val isRented = product?.status?.trim()
+        ?.equals("Rented", ignoreCase = true) ?: false
 
     Scaffold(
         topBar = {
@@ -239,8 +278,139 @@ fun ItemDetailsScreen() {
             )
         },
         bottomBar = {
-            // FROM FRIEND'S CODE: Hide bottom bar for completed items
-            if (!isOwner && currentUserId.isNotEmpty() && product != null && !isCompleted) {
+            val isRenter = activeRequest?.requesterId == currentUserId
+            
+            // RENTER ACTIONS
+            if (isRenter && !isCompleted && currentUserId.isNotEmpty()) {
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shadowElevation = 8.dp
+                ) {
+                     Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                         if (activeRequest?.status == "CONFIRMED") {
+                             Button(
+                                onClick = {
+                                    activeRequest?.let { req ->
+                                        UserNotificationRepoImpl().updateRequestStatus(req.requestId, "RETURN_REQUESTED") { success, _ ->
+                                            if (success) {
+                                                activeRequest = activeRequest?.copy(status = "RETURN_REQUESTED")
+                                                Toast.makeText(context, "Return requested sent to owner", Toast.LENGTH_SHORT).show()
+                                            }
+                                        }
+                                    }
+                                },
+                                modifier = Modifier.weight(1f).height(50.dp),
+                                shape = RoundedCornerShape(12.dp)
+                             ) {
+                                 Text("Return Early")
+                             }
+
+                             OutlinedButton(
+                                onClick = {
+                                    val ownerId = product?.ownerId ?: ""
+                                    if (ownerId.isNotEmpty()) {
+                                        val intent = Intent(context, UserDashboard::class.java).apply {
+                                            putExtra("openChat", true)
+                                            putExtra("chatUserId", ownerId)
+                                        }
+                                        context.startActivity(intent)
+                                        activity?.finish()
+                                    } else {
+                                        Toast.makeText(context, "Owner not available", Toast.LENGTH_SHORT).show()
+                                    }
+                                },
+                                modifier = Modifier.weight(1f).height(50.dp),
+                                shape = RoundedCornerShape(12.dp)
+                             ) {
+                                 Icon(
+                                     Icons.Default.Email,
+                                     contentDescription = "Message",
+                                     modifier = Modifier.size(20.dp)
+                                 )
+                                 Spacer(modifier = Modifier.width(8.dp))
+                                 Text("Message")
+                             }
+                         } else if (activeRequest?.status == "PAYMENT_PENDING") {
+                             Button(
+                                onClick = {
+                                     val intent = Intent(context, FinalPaymentActivity::class.java)
+                                     intent.putExtra("requestId", activeRequest?.requestId)
+                                     intent.putExtra("amount", activeRequest?.finalRentAmount)
+                                     context.startActivity(intent)
+                                },
+                                modifier = Modifier.fillMaxWidth().height(50.dp),
+                                shape = RoundedCornerShape(12.dp)
+                             ) {
+                                 Text("Pay Rent: Rs ${activeRequest?.finalRentAmount}")
+                             }
+                         } else if (activeRequest?.status == "RETURN_REQUESTED") {
+                             Box(modifier = Modifier.fillMaxWidth().height(50.dp), contentAlignment = Alignment.Center) {
+                                 Text("Waiting for Owner to calculate rent...", fontWeight = FontWeight.SemiBold)
+                             }
+                         } else {
+                              OutlinedButton(
+                                onClick = {
+                                    val ownerId = product?.ownerId ?: ""
+                                    if (ownerId.isNotEmpty()) {
+                                        val intent = Intent(context, UserDashboard::class.java).apply {
+                                            putExtra("openChat", true)
+                                            putExtra("chatUserId", ownerId)
+                                        }
+                                        context.startActivity(intent)
+                                        activity?.finish()
+                                    }
+                                },
+                                modifier = Modifier.fillMaxWidth().height(50.dp),
+                                shape = RoundedCornerShape(12.dp)
+                            ) { Text("Message Owner") }
+                         }
+                    }
+                }
+            }
+            // OWNER ACTIONS
+            else if (isOwner && !isCompleted) {
+                 if (activeRequest?.status == "RETURN_REQUESTED") {
+                      Surface(modifier = Modifier.fillMaxWidth(), shadowElevation = 8.dp) {
+                          Row(modifier = Modifier.padding(16.dp)) {
+                              Button(
+                                onClick = { showRentDialog = true },
+                                modifier = Modifier.fillMaxWidth().height(50.dp),
+                                shape = RoundedCornerShape(12.dp)
+                              ) { Text("Calculate Rent") }
+                          }
+                      }
+                 } else if (activeRequest?.status == "RENT_PAID") {
+                      Surface(modifier = Modifier.fillMaxWidth(), shadowElevation = 8.dp) {
+                          Row(modifier = Modifier.padding(16.dp)) {
+                              Button(
+                                onClick = {
+                                    activeRequest?.let { req ->
+                                        UserNotificationRepoImpl().updateRequestStatus(req.requestId, "COMPLETED") { success, _ ->
+                                            if (success) {
+                                                 productViewModel.updateProductStatus(req.productId, "Available") { _, _ -> 
+                                                     Toast.makeText(context, "Deposit Returned & Item Available", Toast.LENGTH_SHORT).show()
+                                                     activity?.finish()
+                                                 }
+                                            }
+                                        }
+                                    }
+                                },
+                                modifier = Modifier.fillMaxWidth().height(50.dp),
+                                shape = RoundedCornerShape(12.dp)
+                              ) { Text("Confirm Deposit Returned") }
+                          }
+                      }
+                 } else {
+                     // Default Owner View (Edit/Delete or just Message logic if any)
+                 }
+            }
+            // DEFAULT USER (Not Renter, Not Owner, or No Active Request)
+            else if (!isOwner && currentUserId.isNotEmpty() && product != null && !isCompleted) {
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
                     shadowElevation = 8.dp
@@ -283,41 +453,39 @@ fun ItemDetailsScreen() {
 
                         Button(
                             onClick = {
-                                if (owner == null) {
-                                    errorMessage = "Owner information not available. Please try again."
-                                    showErrorDialog = true
-                                } else {
-                                    if (product?.type == "Rent") {
-                                        val intent = Intent(context, RentalRequestActivity::class.java)
-                                        // Pass product ID and owner ID instead of objects
-                                        intent.putExtra("productId", product?.productId ?: "")
-                                        intent.putExtra("ownerId", product?.ownerId ?: "")
-                                        context.startActivity(intent)
+                                if (!isRented) {
+                                    if (owner == null) {
+                                        errorMessage = "Owner information not available. Please try again."
+                                        showErrorDialog = true
                                     } else {
-                                        val intent = Intent(context, BarterRequestActivity::class.java)
-                                        // Pass product ID and owner ID instead of objects
-                                        intent.putExtra("productId", product?.productId ?: "")
-                                        intent.putExtra("ownerId", product?.ownerId ?: "")
-                                        context.startActivity(intent)
+                                        if (product?.type == "Rent") {
+                                            val intent = Intent(context, RentalRequestActivity::class.java)
+                                            // Pass product ID and owner ID instead of objects
+                                            intent.putExtra("productId", product?.productId ?: "")
+                                            intent.putExtra("ownerId", product?.ownerId ?: "")
+                                            context.startActivity(intent)
+                                        } else {
+                                            val intent = Intent(context, BarterRequestActivity::class.java)
+                                            // Pass product ID and owner ID instead of objects
+                                            intent.putExtra("productId", product?.productId ?: "")
+                                            intent.putExtra("ownerId", product?.ownerId ?: "")
+                                            context.startActivity(intent)
+                                        }
                                     }
                                 }
                             },
                             modifier = Modifier
                                 .weight(1f)
                                 .height(50.dp),
+                            shape = RoundedCornerShape(12.dp),
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.primary
+                                containerColor = if (isRented) Color.Gray else MaterialTheme.colorScheme.primary
                             ),
-                            shape = RoundedCornerShape(12.dp)
+                            enabled = !isRented
                         ) {
                             Text(
-                                text = when (product?.type) {
-                                    "Barter" -> "Barter Now"
-                                    "Rent" -> "Rent Now"
-                                    else -> "Send Request"
-                                },
-                                fontSize = 14.sp,
-                                color = MaterialTheme.colorScheme.onPrimary
+                                if (isRented) "Currently Rented" else (if (product?.type == "Rent") "Rent Now" else "Barter Now"),
+                                fontWeight = FontWeight.Bold
                             )
                         }
                     }
@@ -674,6 +842,65 @@ fun ItemDetailsScreen() {
                     }
                 }
             }
+        }
+
+        // RENT CALCULATION DIALOG
+        if (showRentDialog) {
+            AlertDialog(
+                onDismissRequest = { showRentDialog = false },
+                title = { Text("Calculate Final Rent", fontWeight = FontWeight.Bold) },
+                text = {
+                    Column {
+                        Text("Enter the total rent amount to be paid by the renter:")
+                        Spacer(modifier = Modifier.height(8.dp))
+                        OutlinedTextField(
+                            value = rentAmountInput,
+                            onValueChange = { rentAmountInput = it },
+                            label = { Text("Amount (Rs)") },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            val amount = rentAmountInput.toDoubleOrNull()
+                            if (amount != null && amount >= 0) {
+                                activeRequest?.let { req ->
+                                    val updates = mapOf(
+                                        "status" to "PAYMENT_PENDING",
+                                        "finalRentAmount" to amount,
+                                        "returnDate" to System.currentTimeMillis()
+                                    )
+                                    UserNotificationRepoImpl().updateRequestDetails(req.requestId, updates) { success, _ ->
+                                        if (success) {
+                                            activeRequest = activeRequest?.copy(
+                                                status = "PAYMENT_PENDING",
+                                                finalRentAmount = amount
+                                            )
+                                            showRentDialog = false
+                                            Toast.makeText(context, "Rent request sent to renter", Toast.LENGTH_SHORT).show()
+                                        } else {
+                                            Toast.makeText(context, "Failed to update request", Toast.LENGTH_SHORT).show()
+                                        }
+                                    }
+                                }
+                            } else {
+                                Toast.makeText(context, "Invalid Amount", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    ) {
+                        Text("Send Request")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showRentDialog = false }) {
+                        Text("Cancel")
+                    }
+                }
+            )
         }
 
         // Error Dialog

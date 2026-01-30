@@ -21,8 +21,9 @@ data class ProductModel(
     var imageUrl4: String = "",
     var imageUrls: List<String> = emptyList(),
     var isListed: Boolean = false,
-    var securityDeposit: Double = 0.0 // Added field
-
+    var securityDeposit: Double = 0.0, // Added field
+    var rentalEndDate: Long = 0L, // Timestamp when rental ends
+    var activeRequestId: String = "" // Links to the current active rental request
 ) : Serializable {
     fun toMap(): Map<String, Any?>{
         return mapOf(
@@ -44,7 +45,9 @@ data class ProductModel(
             "isDeleted" to isDeleted,
             "completedAt" to completedAt,
             "isListed" to isListed,
-            "securityDeposit" to securityDeposit
+            "securityDeposit" to securityDeposit,
+            "rentalEndDate" to rentalEndDate,
+            "activeRequestId" to activeRequestId
         )
     }
 }
