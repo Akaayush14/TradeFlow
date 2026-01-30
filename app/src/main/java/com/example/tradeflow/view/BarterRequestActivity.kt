@@ -89,6 +89,7 @@ fun BarterRequestScreen() {
 
     // Credit Points State
     var creditAmountStr by remember { mutableStateOf("") }
+    var creditPointAction by remember { mutableStateOf("OFFER") } // "OFFER" or "REQUEST"
     val creditAmount = creditAmountStr.toDoubleOrNull() ?: 0.0
 
     // Load product data
@@ -153,11 +154,18 @@ fun BarterRequestScreen() {
     val theirItemValue = productData?.price ?: 0.0
     val yourItemValue = userProducts.filter { selectedItems.contains(it.productId) }
         .sumOf { it.price }
-    val difference = theirItemValue - yourItemValue
+    val rawDifference = theirItemValue - yourItemValue
+
     val availablePoints = currentUserData?.points?.toDouble() ?: 0.0
-    val totalOfferValue = yourItemValue + creditAmount
-    val isShort = totalOfferValue < theirItemValue
-    val shortAmount = theirItemValue - totalOfferValue
+    
+    // Effective Values based on Action
+    val totalMySide = if (creditPointAction == "OFFER") yourItemValue + creditAmount else yourItemValue
+    val totalTheirSide = if (creditPointAction == "REQUEST") theirItemValue + creditAmount else theirItemValue
+    
+    val finalDifference = totalTheirSide - totalMySide
+    val isShort = finalDifference > 0.1 // Still need more value from me (or less from them)
+    val isExcess = finalDifference < -0.1 // I am giving too much
+    val isBalanced = kotlin.math.abs(finalDifference) < 0.1
 
     Scaffold(
         topBar = {
@@ -247,20 +255,22 @@ fun BarterRequestScreen() {
                 AddCreditPointsCard(
                     creditAmountStr = creditAmountStr,
                     onCreditChange = { creditAmountStr = it },
+                    creditPointAction = creditPointAction,
+                    onActionChange = { creditPointAction = it },
                     availablePoints = availablePoints,
-                    difference = if (difference > 0) difference else 0.0
+                    rawDifference = rawDifference
                 )
             }
 
             // Trade Summary
             item {
                 TradeSummaryCard(
-                    yourItemValue = yourItemValue,
+                    totalMySide = totalMySide,
+                    totalTheirSide = totalTheirSide,
                     creditPoints = creditAmount,
-                    totalOffer = totalOfferValue,
-                    theirItemValue = theirItemValue,
+                    creditPointAction = creditPointAction,
                     isShort = isShort,
-                    shortAmount = shortAmount
+                    shortAmount = finalDifference
                 )
             }
 
@@ -275,7 +285,7 @@ fun BarterRequestScreen() {
             // Action button
             item {
                 BarterActionButton(
-                    isEnabled = selectedItems.isNotEmpty() && !isLoading && creditAmount <= availablePoints,
+                    isEnabled = selectedItems.isNotEmpty() && !isLoading && (creditPointAction == "REQUEST" || creditAmount <= availablePoints),
                     isLoading = isLoading,
                     selectedCount = selectedItems.size,
                     onClick = {
@@ -296,7 +306,7 @@ fun BarterRequestScreen() {
                         } else if (selectedItems.isEmpty()) {
                             errorMessage = "Please select at least one item to offer"
                             showErrorDialog = true
-                        } else if (creditAmount > availablePoints) {
+                        } else if (creditPointAction == "OFFER" && creditAmount > availablePoints) {
                             errorMessage = "Insufficient credit points"
                             showErrorDialog = true
                         } else {
@@ -314,7 +324,8 @@ fun BarterRequestScreen() {
                                     requestType = "BARTER",
                                     message = message,
                                     offerProducts = selectedProductList,
-                                    creditPoints = creditAmount
+                                    creditPoints = creditAmount,
+                                    creditPointAction = creditPointAction
                                 ) { success, msg ->
                                     isLoading = false
                                     if (success) {
@@ -410,6 +421,7 @@ fun ValueCalculationCard(
 ) {
     val difference = theirItemValue - yourItemValue
     val needsMore = difference > 0
+    val surplus = difference < 0
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -470,15 +482,22 @@ fun ValueCalculationCard(
                 Text("Difference:", fontWeight = FontWeight.Bold, color = Color.Black.copy(alpha = 0.7f))
                 Column(horizontalAlignment = Alignment.End) {
                     Text(
-                        "Rs${if (needsMore) difference else 0.0}",
+                        "Rs${kotlin.math.abs(difference)}",
                         fontWeight = FontWeight.Bold,
-                        color = if (needsMore) Color(0xFF4CAF50) else Color.Gray // Green if needs more? Wait, if difference is positive, user needs to add more.
+                        color = if (needsMore) Color(0xFFEF6C00) else if (surplus) Color(0xFF1565C0) else Color.Gray
                     )
                     if (needsMore) {
                         Text(
                             "(You need to add more)",
                             fontSize = 12.sp,
-                            color = Color(0xFF4CAF50),
+                            color = Color(0xFFEF6C00),
+                            fontWeight = FontWeight.Bold
+                        )
+                    } else if (surplus) {
+                        Text(
+                            "(You can ask for points)",
+                            fontSize = 12.sp,
+                            color = Color(0xFF1565C0),
                             fontWeight = FontWeight.Bold
                         )
                     }
@@ -492,20 +511,32 @@ fun ValueCalculationCard(
 fun AddCreditPointsCard(
     creditAmountStr: String,
     onCreditChange: (String) -> Unit,
+    creditPointAction: String,
+    onActionChange: (String) -> Unit,
     availablePoints: Double,
-    difference: Double
+    rawDifference: Double
 ) {
-    val needsPoints = difference > 0
+    val needsPointsFromMe = rawDifference > 0 // They > Me -> I need to pay
+    val needsPointsFromThem = rawDifference < 0 // Me > They -> I need to ask
     
+    // Auto-suggestion logic message
+    val suggestionMessage = if (needsPointsFromMe) {
+        "Value Mismatch: Their item is worth more. You should OFFER points."
+    } else if (needsPointsFromThem) {
+        "Value Mismatch: Your item is worth more. You should REQUEST points."
+    } else {
+        "Values are balanced."
+    }
+
     Column {
-        if (needsPoints) {
+        if (needsPointsFromMe || needsPointsFromThem) {
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
                 colors = CardDefaults.cardColors(
-                    containerColor = Color(0xFFFFF3E0) // Light Orange
+                    containerColor = if (needsPointsFromMe) Color(0xFFFFF3E0) else Color(0xFFE3F2FD) // Orange vs Blue
                 ),
-                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFFFB74D))
+                border = androidx.compose.foundation.BorderStroke(1.dp, if (needsPointsFromMe) Color(0xFFFFB74D) else Color(0xFF64B5F6))
             ) {
                 Row(
                     modifier = Modifier.padding(12.dp),
@@ -514,14 +545,14 @@ fun AddCreditPointsCard(
                     Text("💡 ", fontSize = 18.sp)
                     Column {
                         Text(
-                            "Value Mismatch!",
+                            "Recommendation",
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFFE65100)
+                            color = if (needsPointsFromMe) Color(0xFFE65100) else Color(0xFF0D47A1)
                         )
                         Text(
-                            "You can add credit points below to balance the trade.",
+                            suggestionMessage,
                             fontSize = 12.sp,
-                            color = Color(0xFFEF6C00)
+                            color = if (needsPointsFromMe) Color(0xFFEF6C00) else Color(0xFF1565C0)
                         )
                     }
                 }
@@ -543,9 +574,9 @@ fun AddCreditPointsCard(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("💳 ", fontSize = 16.sp) // Credit card emoji replacement
+                        Text("💳 ", fontSize = 16.sp)
                         Text(
-                            "Add Credit Points",
+                            "Balance with Points",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = Color.White
@@ -566,8 +597,57 @@ fun AddCreditPointsCard(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
+                // Toggle Action
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(Color.White.copy(alpha = 0.2f))
+                        .padding(4.dp),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    val offerSelected = creditPointAction == "OFFER"
+                    val requestSelected = creditPointAction == "REQUEST"
+                    
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(if (offerSelected) Color.White else Color.Transparent)
+                            .clickable { onActionChange("OFFER") }
+                            .padding(vertical = 8.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            "OFFER (Pay)",
+                            color = if (offerSelected) Color(0xFF7986CB) else Color.White,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 12.sp
+                        )
+                    }
+                    
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(if (requestSelected) Color.White else Color.Transparent)
+                            .clickable { onActionChange("REQUEST") }
+                            .padding(vertical = 8.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            "REQUEST (Ask)",
+                            color = if (requestSelected) Color(0xFF7986CB) else Color.White,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 12.sp
+                        )
+                    }
+                }
+                
+                Spacer(modifier = Modifier.height(16.dp))
+
                 Text(
-                    "Enter credit amount to add:",
+                    if (creditPointAction == "OFFER") "Amount to OFFER:" else "Amount to REQUEST:",
                     color = Color.White,
                     fontSize = 14.sp
                 )
@@ -586,22 +666,6 @@ fun AddCreditPointsCard(
                     leadingIcon = {
                         Text("Rs", fontWeight = FontWeight.Bold, color = Color(0xFF7986CB))
                     },
-                    trailingIcon = {
-                        Column {
-                            Icon(
-                                painter = painterResource(android.R.drawable.arrow_up_float), // Using system arrow
-                                contentDescription = "Up",
-                                modifier = Modifier.size(16.dp).clickable { /* Increment logic? */ },
-                                tint = Color.Gray
-                            )
-                            Icon(
-                                painter = painterResource(android.R.drawable.arrow_down_float), // Using system arrow
-                                contentDescription = "Down",
-                                modifier = Modifier.size(16.dp).clickable { /* Decrement logic? */ },
-                                tint = Color.Gray
-                            )
-                        }
-                    },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     shape = RoundedCornerShape(12.dp),
                     colors = OutlinedTextFieldDefaults.colors(
@@ -616,41 +680,13 @@ fun AddCreditPointsCard(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Button(
-                        onClick = { onCreditChange("") },
-                        colors = ButtonDefaults.buttonColors(containerColor = Color.White.copy(alpha = 0.2f)),
-                        shape = RoundedCornerShape(20.dp),
-                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
-                        modifier = Modifier.height(32.dp)
-                    ) {
-                        Text("Clear", color = Color.White, fontSize = 12.sp)
-                    }
-
-                    listOf(500, 1000, 2000).forEach { amount ->
-                        Button(
-                            onClick = {
-                                val current = creditAmountStr.toDoubleOrNull() ?: 0.0
-                                onCreditChange((current + amount).toString())
-                            },
-                            colors = ButtonDefaults.buttonColors(containerColor = Color.White.copy(alpha = 0.2f)),
-                            shape = RoundedCornerShape(20.dp),
-                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
-                            modifier = Modifier.height(32.dp)
-                        ) {
-                            Text("+$amount", color = Color.White, fontSize = 12.sp)
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(12.dp))
-
+                // Auto Balance Button
                 Button(
                     onClick = {
-                        onCreditChange(if (difference > 0) difference.toString() else "0")
+                        val absDiff = kotlin.math.abs(rawDifference)
+                        val suggestedAction = if (rawDifference > 0) "OFFER" else "REQUEST"
+                        onActionChange(suggestedAction)
+                        onCreditChange(if (absDiff > 0) absDiff.toString() else "0")
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = Color.White.copy(alpha = 0.2f)),
                     shape = RoundedCornerShape(20.dp),
@@ -670,7 +706,10 @@ fun AddCreditPointsCard(
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        "Credit points will be deducted from your account when the trade is accepted.",
+                        if (creditPointAction == "OFFER") 
+                            "Points will be deducted from YOUR account."
+                        else 
+                            "Points will be deducted from THEIR account.",
                         color = Color.White.copy(alpha = 0.7f),
                         fontSize = 11.sp,
                         lineHeight = 14.sp
@@ -683,10 +722,10 @@ fun AddCreditPointsCard(
 
 @Composable
 fun TradeSummaryCard(
-    yourItemValue: Double,
+    totalMySide: Double,
+    totalTheirSide: Double,
     creditPoints: Double,
-    totalOffer: Double,
-    theirItemValue: Double,
+    creditPointAction: String,
     isShort: Boolean,
     shortAmount: Double
 ) {
@@ -717,57 +756,36 @@ fun TradeSummaryCard(
 
             Spacer(modifier = Modifier.height(16.dp))
 
+            // My Side
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text("Your Item(s):", color = Color.Black)
-                Text("Rs$yourItemValue", color = Color.Black)
+                Text("Your Total Offer:", color = Color.Black)
+                Text("Rs$totalMySide", color = Color.Black)
             }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text("Credit Points:", color = Color.Black)
-                Text("Rs$creditPoints", color = Color.Black)
+            if (creditPoints > 0) {
+                Text(
+                    text = if (creditPointAction == "OFFER") "(Includes Rs$creditPoints credit)" else "(You request Rs$creditPoints credit)",
+                    fontSize = 12.sp,
+                    color = Color.Gray
+                )
             }
 
             Spacer(modifier = Modifier.height(8.dp))
             Divider(color = Color(0xFF4CAF50), thickness = 2.dp)
             Spacer(modifier = Modifier.height(8.dp))
 
+            // Their Side
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text(
-                    "Total Offer:",
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF2E7D32),
-                    fontSize = 18.sp
-                )
-                Text(
-                    "Rs$totalOffer",
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF2E7D32),
-                    fontSize = 18.sp
-                )
+                Text("Target Value:", color = Color.Black)
+                Text("Rs$totalTheirSide", color = Color.Black)
             }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text("Their Item:", color = Color.Black)
-                Text("Rs$theirItemValue", color = Color.Black)
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
+            
+             Spacer(modifier = Modifier.height(12.dp))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -776,7 +794,7 @@ fun TradeSummaryCard(
                 Text("Status:", color = Color(0xFF2E7D32))
                 if (isShort) {
                     Text(
-                        "⚠ Short by Rs${String.format("%.1f", shortAmount)}",
+                        "⚠ Gap: Rs${String.format("%.1f", shortAmount)}",
                         color = Color(0xFFFF9800), // Orange
                         fontWeight = FontWeight.Bold
                     )

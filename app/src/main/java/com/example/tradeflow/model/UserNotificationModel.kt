@@ -24,6 +24,7 @@ data class UserNotificationModel(
     val rentalPeriod: String = "", // e.g., "Jan 15-20, 2026"
     val rentalPrice: String = "", // e.g., "$45/day"
     val creditPoints: Double = 0.0, // Credit points offered
+    val creditPointAction: String = "OFFER", // "OFFER" or "REQUEST"
 
     val requestId: String = "",
     val isRead: Boolean = false,
@@ -53,6 +54,7 @@ data class UserNotificationModel(
             "rentalPeriod" to rentalPeriod,
             "rentalPrice" to rentalPrice,
             "creditPoints" to creditPoints,
+            "creditPointAction" to creditPointAction,
             "requestId" to requestId,
             "isRead" to isRead,
             "status" to status,
