@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.collectAsState
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.window.Dialog
 import com.example.tradeflow.model.PointDealModel
 import com.example.tradeflow.model.UserModel
@@ -983,7 +984,9 @@ private fun TransactionItem(
                         text = tx.source,
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color.Black
+                        color = Color.Black,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     val amountText = if (tx.amount > 0.0) " • Rs ${tx.amount.toInt()}" else ""

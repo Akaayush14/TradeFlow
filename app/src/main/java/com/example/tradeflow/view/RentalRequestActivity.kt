@@ -15,6 +15,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.CalendarToday
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Security
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -22,7 +25,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
@@ -210,7 +216,7 @@ fun RentalRequestScreen() {
                 }
             }
 
-            // Duration Selection
+            // Duration Selection and Price
             item {
                 DurationSelectionSection(
                     selectedStartDate = selectedStartDate,
@@ -225,6 +231,24 @@ fun RentalRequestScreen() {
                         }
                     }
                 )
+            }
+
+            // Security Deposit (If applicable)
+            if ((productData?.securityDeposit ?: 0.0) > 0) {
+                item {
+                    SecurityDepositCard(depositAmount = productData?.securityDeposit ?: 0.0)
+                }
+            }
+
+            // Payment Summary (If rental days > 0)
+            if (rentalDays > 0) {
+                item {
+                    PaymentSummaryCard(
+                        rentalDays = rentalDays,
+                        rentalFee = totalPrice,
+                        securityDeposit = productData?.securityDeposit ?: 0.0
+                    )
+                }
             }
 
             // Message
@@ -269,7 +293,8 @@ fun RentalRequestScreen() {
                                 message = message,
                                 rentalStartDate = selectedStartDate!!,
                                 rentalEndDate = selectedEndDate!!,
-                                rentalPricePerDay = product.price
+                                rentalPricePerDay = product.price,
+                                securityDeposit = product.securityDeposit
                             ) { success, msg ->
                                 isLoading = false
                                 if (success) {
@@ -492,12 +517,12 @@ fun DurationSelectionSection(
                 isEnabled = selectedStartDate != null
             )
 
-            // Summary
+            // Duration Summary (Green Card)
             if (rentalDays > 0) {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.primaryContainer
+                        containerColor = Color(0xFFE0F2F1) // Light teal
                     )
                 ) {
                     Column(
@@ -512,12 +537,12 @@ fun DurationSelectionSection(
                         ) {
                             Text(
                                 "Duration:",
-                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                                color = Color(0xFF00695C)
                             )
                             Text(
                                 "$rentalDays days",
                                 fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                                color = Color(0xFF00695C)
                             )
                         }
                         Row(
@@ -526,31 +551,231 @@ fun DurationSelectionSection(
                         ) {
                             Text(
                                 "Price per day:",
-                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                                color = Color(0xFF00695C)
                             )
                             Text(
                                 "Rs${String.format("%.2f", pricePerDay)}",
-                                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                color = Color(0xFF00695C),
                                 fontWeight = FontWeight.Medium
                             )
                         }
+                        Divider(
+                            color = Color(0xFF80CBC4),
+                            thickness = 1.dp,
+                            modifier = Modifier.padding(vertical = 4.dp)
+                        )
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Text(
                                 "Total Price:",
-                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                                color = Color(0xFF004D40),
+                                fontWeight = FontWeight.Bold
                             )
                             Text(
                                 "Rs${String.format("%.2f", totalPrice)}",
-                                color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 16.sp
+                                color = Color(0xFF004D40),
+                                fontWeight = FontWeight.Bold
                             )
                         }
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+fun SecurityDepositCard(depositAmount: Double) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(
+                1.dp,
+                Color(0xFFFFC107), // Amber/Yellow border
+                RoundedCornerShape(12.dp)
+            ),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color(0xFFFFFDE7) // Light yellow bg (optional) or Surface
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Default.Lock,
+                    contentDescription = "Security Deposit",
+                    tint = Color(0xFFFFA000), // Amber 700
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "Security Deposit Required",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp,
+                    color = Color.Black
+                )
+            }
+
+            // Explanation box
+            Card(
+                colors = CardDefaults.cardColors(
+                    containerColor = Color(0xFFFFF8E1) // Very light amber
+                ),
+                shape = RoundedCornerShape(8.dp)
+            ) {
+                Text(
+                    text = buildAnnotatedString {
+                        withStyle(style = androidx.compose.ui.text.SpanStyle(fontWeight = FontWeight.Bold, color = Color(0xFF795548))) {
+                            append("Why deposit? ")
+                        }
+                        append("This refundable amount protects the owner's item. It will be returned to you after the rental period ends and the item is returned in good condition.")
+                    },
+                    fontSize = 12.sp,
+                    color = Color(0xFF5D4037), // Brownish text
+                    modifier = Modifier.padding(12.dp),
+                    lineHeight = 18.sp
+                )
+            }
+
+            // Amount display
+            OutlinedTextField(
+                value = "Rs${String.format("%.2f", depositAmount)}",
+                onValueChange = {},
+                readOnly = true,
+                label = { Text("Deposit Amount:", fontWeight = FontWeight.Medium) },
+                modifier = Modifier.fillMaxWidth(),
+                colors = OutlinedTextFieldDefaults.colors(
+                    unfocusedBorderColor = Color(0xFFFFC107),
+                    focusedBorderColor = Color(0xFFFFC107),
+                    unfocusedTextColor = Color(0xFFFF6F00),
+                    focusedTextColor = Color(0xFFFF6F00)
+                ),
+                textStyle = androidx.compose.ui.text.TextStyle(
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 18.sp
+                )
+            )
+
+            // Refund Policy Info
+            Row(verticalAlignment = Alignment.Top) {
+                Icon(
+                    imageVector = Icons.Default.Info,
+                    contentDescription = "Info",
+                    tint = Color(0xFF42A5F5), // Blue
+                    modifier = Modifier.size(16.dp).padding(top = 2.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = buildAnnotatedString {
+                        withStyle(style = androidx.compose.ui.text.SpanStyle(fontWeight = FontWeight.Bold)) {
+                            append("Refund Policy: ")
+                        }
+                        append("Full deposit returned within 24 hours after item return. Partial deduction may apply if item is damaged.")
+                    },
+                    fontSize = 11.sp,
+                    color = Color.Gray,
+                    lineHeight = 16.sp
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun PaymentSummaryCard(
+    rentalDays: Int,
+    rentalFee: Double,
+    securityDeposit: Double
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color(0xFF5C6BC0) // Indigo/Blueish
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Default.Security, // Or wallet/payment icon
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "Payment Summary",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp,
+                    color = Color.White
+                )
+            }
+            
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    "Rental Fee ($rentalDays days):",
+                    color = Color.White.copy(alpha = 0.9f),
+                    fontSize = 14.sp
+                )
+                Text(
+                    "Rs${String.format("%.2f", rentalFee)}",
+                    color = Color.White,
+                    fontSize = 14.sp
+                )
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    "Security Deposit:",
+                    color = Color.White.copy(alpha = 0.9f),
+                    fontSize = 14.sp
+                )
+                Text(
+                    "Rs${String.format("%.2f", securityDeposit)}",
+                    color = Color.White,
+                    fontSize = 14.sp
+                )
+            }
+
+            Divider(
+                color = Color.White.copy(alpha = 0.3f),
+                thickness = 1.dp,
+                modifier = Modifier.padding(vertical = 8.dp)
+            )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    "Total to Pay:",
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp
+                )
+                Text(
+                    "Rs${String.format("%.2f", rentalFee + securityDeposit)}",
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 18.sp
+                )
             }
         }
     }
@@ -563,48 +788,50 @@ fun DateSelectionRow(
     onClick: () -> Unit,
     isEnabled: Boolean
 ) {
-    val dateFormat = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
-    val dateStr = date?.let { dateFormat.format(Date(it)) } ?: "Select date"
-
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(8.dp))
-            .background(
-                if (isEnabled)
-                    MaterialTheme.colorScheme.surfaceVariant
-                else
-                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-            )
-            .clickable(enabled = isEnabled) { onClick() }
-            .padding(16.dp),
+        modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Column {
-            Text(
-                text = label,
-                fontSize = 12.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Text(
-                text = dateStr,
-                fontWeight = FontWeight.SemiBold,
-                color = if (isEnabled)
-                    MaterialTheme.colorScheme.onSurface
-                else
-                    MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-
-        Icon(
-            Icons.Default.CalendarToday,
-            contentDescription = "Calendar",
-            tint = if (isEnabled)
-                MaterialTheme.colorScheme.primary
-            else
-                MaterialTheme.colorScheme.onSurfaceVariant
+        Text(
+            text = label,
+            fontSize = 14.sp,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
+        Surface(
+            shape = RoundedCornerShape(8.dp),
+            color = if (isEnabled) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+            modifier = Modifier
+                .clip(RoundedCornerShape(8.dp))
+                .clickable(enabled = isEnabled, onClick = onClick)
+                .border(
+                    1.dp,
+                    if (isEnabled) MaterialTheme.colorScheme.outline else MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+                    RoundedCornerShape(8.dp)
+                )
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Default.CalendarToday,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = if (date != null) {
+                        SimpleDateFormat("MMM dd, yyyy", Locale.getDefault()).format(Date(date))
+                    } else {
+                        "Select Date"
+                    },
+                    fontSize = 14.sp,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
+        }
     }
 }
 
@@ -626,37 +853,29 @@ fun MessageSection(
                 .padding(16.dp)
         ) {
             Text(
-                text = "Message to Owner (Optional)",
+                text = "Message to Owner",
                 fontWeight = FontWeight.Bold,
                 fontSize = 16.sp,
-                color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.padding(bottom = 12.dp)
+                color = MaterialTheme.colorScheme.onSurface
             )
-
+            Spacer(modifier = Modifier.height(8.dp))
             OutlinedTextField(
                 value = message,
                 onValueChange = onMessageChange,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(120.dp),
                 placeholder = {
                     Text(
-                        "Add a message for the owner...",
+                        "Hi, I'm interested in renting this item...",
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 },
-                modifier = Modifier.fillMaxWidth(),
-                minLines = 3,
-                maxLines = 5,
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = MaterialTheme.colorScheme.primary,
-                    unfocusedBorderColor = MaterialTheme.colorScheme.outline,
-                    cursorColor = MaterialTheme.colorScheme.primary,
-                    focusedTextColor = MaterialTheme.colorScheme.onSurface,
-                    unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
-                    focusedLabelColor = MaterialTheme.colorScheme.primary,
-                    unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
+                    focusedContainerColor = MaterialTheme.colorScheme.surface,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surface,
                 ),
-                textStyle = androidx.compose.ui.text.TextStyle(
-                    color = MaterialTheme.colorScheme.onSurface
-                )
+                shape = RoundedCornerShape(12.dp)
             )
         }
     }
@@ -672,15 +891,15 @@ fun ActionButton(
 ) {
     Button(
         onClick = onClick,
-        enabled = isEnabled,
         modifier = Modifier
             .fillMaxWidth()
             .height(56.dp),
+        enabled = isEnabled,
+        shape = RoundedCornerShape(12.dp),
         colors = ButtonDefaults.buttonColors(
             containerColor = MaterialTheme.colorScheme.primary,
-            disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant
-        ),
-        shape = RoundedCornerShape(12.dp)
+            disabledContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+        )
     ) {
         if (isLoading) {
             CircularProgressIndicator(
@@ -688,21 +907,12 @@ fun ActionButton(
                 color = MaterialTheme.colorScheme.onPrimary
             )
         } else {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(
-                    text = "Send Rental Request",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onPrimary
-                )
-                if (rentalDays > 0) {
-                    Text(
-                        text = "$rentalDays days • Rs${String.format("%.2f", totalPrice)}",
-                        fontSize = 12.sp,
-                        color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f)
-                    )
-                }
-            }
+            Text(
+                text = if (rentalDays > 0) "Request to Rent" else "Select Dates",
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onPrimary
+            )
         }
     }
 }

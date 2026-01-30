@@ -249,7 +249,10 @@ fun DashboardPageBody() {
                     // Friend's code: Pass viewModel
                     viewModel = viewModel,
                     onBackClick = { selectedIndex = 0 },
-                    onMessageClick = { selectedIndex = 1 } // Friend's code: Added onMessageClick
+                    onMessageClick = { userId -> 
+                        chatUserId = userId
+                        selectedIndex = 5 
+                    } // Friend's code: Added onMessageClick
                 )
                 4 -> UserProfileScreen(
                     onBackClick = { selectedIndex = 0 },

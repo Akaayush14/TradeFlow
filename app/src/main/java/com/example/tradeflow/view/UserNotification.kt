@@ -51,7 +51,7 @@ fun UserNotificationScreen(
     onBackClick: () -> Unit = {},
     onNotificationClick: (UserNotificationModel) -> Unit = {},
     onViewDetails: (String) -> Unit = {},
-    onMessageClick: () -> Unit = {} // ADDED FROM FRIEND'S CODE
+    onMessageClick: (String) -> Unit = {} // ADDED FROM FRIEND'S CODE
 ) {
     val notifications by viewModel.notifications.collectAsState()
     val myRequests by viewModel.myRequests.collectAsState()
@@ -216,7 +216,7 @@ fun UserNotificationScreen(
                                             showRejectDialog = true
                                         },
                                         onViewDetails = { onViewDetails(notification.requestId) },
-                                        onMessage = onMessageClick // ADDED FROM FRIEND'S CODE
+                                        onMessage = { onMessageClick(notification.senderId) } // ADDED FROM FRIEND'S CODE
                                     )
                                 }
                             }
@@ -424,26 +424,28 @@ fun EnhancedNotificationCard(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     // User Avatar with status indicator - USING DYNAMIC IMAGE
-                    Box {
-                        AsyncImage(
-                            model = senderImage.ifEmpty { R.drawable.placeholderimage },
-                            contentDescription = "Sender",
-                            modifier = Modifier
-                                .size(40.dp)
-                                .clip(CircleShape),
-                            contentScale = ContentScale.Crop,
-                            error = painterResource(R.drawable.placeholderimage)
-                        )
-                        // Unread indicator
-                        if (!notification.isRead) {
-                            Box(
+                    if (notification.type != "ADMIN_UPDATE") {
+                        Box {
+                            AsyncImage(
+                                model = senderImage.ifEmpty { R.drawable.placeholderimage },
+                                contentDescription = "Sender",
                                 modifier = Modifier
-                                    .size(12.dp)
-                                    .clip(CircleShape)
-                                    .background(MaterialTheme.colorScheme.primary)
-                                    .border(2.dp, MaterialTheme.colorScheme.surface, CircleShape)
-                                    .align(Alignment.TopEnd)
+                                    .size(40.dp)
+                                    .clip(CircleShape),
+                                contentScale = ContentScale.Crop,
+                                error = painterResource(R.drawable.placeholderimage)
                             )
+                            // Unread indicator
+                            if (!notification.isRead) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(12.dp)
+                                        .clip(CircleShape)
+                                        .background(MaterialTheme.colorScheme.primary)
+                                        .border(2.dp, MaterialTheme.colorScheme.surface, CircleShape)
+                                        .align(Alignment.TopEnd)
+                                )
+                            }
                         }
                     }
 
@@ -473,24 +475,26 @@ fun EnhancedNotificationCard(
                         }
 
                         // Request Type Badge
-                        Surface(
-                            shape = RoundedCornerShape(4.dp),
-                            color = if (notification.requestType == "BARTER")
-                                MaterialTheme.colorScheme.errorContainer
-                            else
-                                MaterialTheme.colorScheme.primaryContainer,
-                            modifier = Modifier.padding(top = 2.dp)
-                        ) {
-                            Text(
-                                text = notification.requestType.ifEmpty { "Message" },
-                                fontSize = 10.sp,
+                        if (notification.requestType.isNotEmpty()) {
+                            Surface(
+                                shape = RoundedCornerShape(4.dp),
                                 color = if (notification.requestType == "BARTER")
-                                    MaterialTheme.colorScheme.onErrorContainer
+                                    MaterialTheme.colorScheme.errorContainer
                                 else
-                                    MaterialTheme.colorScheme.onPrimaryContainer,
-                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                                fontWeight = FontWeight.Medium
-                            )
+                                    MaterialTheme.colorScheme.primaryContainer,
+                                modifier = Modifier.padding(top = 2.dp)
+                            ) {
+                                Text(
+                                    text = notification.requestType,
+                                    fontSize = 10.sp,
+                                    color = if (notification.requestType == "BARTER")
+                                        MaterialTheme.colorScheme.onErrorContainer
+                                    else
+                                        MaterialTheme.colorScheme.onPrimaryContainer,
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
                         }
                     }
                 }

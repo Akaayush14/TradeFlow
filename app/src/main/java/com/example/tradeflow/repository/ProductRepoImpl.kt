@@ -155,8 +155,14 @@ class ProductRepoImpl: ProductRepo {
         ref.child(productID).addListenerForSingleValueEvent(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 if (snapshot.exists()) {
-                    var data = snapshot.getValue(ProductModel::class.java)
+                    val data = snapshot.getValue(ProductModel::class.java)
                     if (data != null) {
+                        // Handle isListed safely
+                        data.isListed = if (snapshot.hasChild("isListed")) {
+                            snapshot.child("isListed").getValue(Boolean::class.java) ?: false
+                        } else {
+                            false // default if field does not exist
+                        }
                         Log.d("TF_FIRESTORE_FETCH", "Fetched productId=${data.productId} imageUrl=${data.imageUrl} imageUrls=${data.imageUrls}")
                         callback(true, "product fetched", data)
                     } else {
@@ -186,11 +192,17 @@ class ProductRepoImpl: ProductRepo {
                     if (snapshot.exists()) {
                         val allProducts = mutableListOf<ProductModel>()
                         for (data in snapshot.children) {
-                            var product = data.getValue(ProductModel::class.java)
-                            if (product != null) {
-                                allProducts.add(product)
+                        val product = data.getValue(ProductModel::class.java)
+                        if (product != null) {
+                            // Handle isListed safely
+                            product.isListed = if (data.hasChild("isListed")) {
+                                data.child("isListed").getValue(Boolean::class.java) ?: false
+                            } else {
+                                false // default if field does not exist
                             }
+                            allProducts.add(product)
                         }
+                    }
                         callback(true, "fetched", allProducts)
                     } else {
                         callback(true, "No products found in this category", emptyList())
@@ -213,11 +225,17 @@ class ProductRepoImpl: ProductRepo {
                     if (snapshot.exists()) {
                         val allProducts = mutableListOf<ProductModel>()
                         for (data in snapshot.children) {
-                            var product = data.getValue(ProductModel::class.java)
-                            if (product != null) {
-                                allProducts.add(product)
+                        val product = data.getValue(ProductModel::class.java)
+                        if (product != null) {
+                            // Handle isListed safely
+                            product.isListed = if (data.hasChild("isListed")) {
+                                data.child("isListed").getValue(Boolean::class.java) ?: false
+                            } else {
+                                false // default if field does not exist
                             }
+                            allProducts.add(product)
                         }
+                    }
                         callback(true, "fetched", allProducts)
                     } else {
                         callback(true, "No products found", emptyList())
@@ -239,8 +257,14 @@ class ProductRepoImpl: ProductRepo {
                 if (snapshot.exists()) {
                     val allProducts = mutableListOf<ProductModel>()
                     for (data in snapshot.children) {
-                        var product = data.getValue(ProductModel::class.java)
+                        val product = data.getValue(ProductModel::class.java)
                         if (product != null) {
+                            // Handle isListed safely
+                            product.isListed = if (data.hasChild("isListed")) {
+                                data.child("isListed").getValue(Boolean::class.java) ?: false
+                            } else {
+                                false // default if field does not exist
+                            }
                             allProducts.add(product)
                         }
                     }
