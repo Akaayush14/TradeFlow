@@ -43,6 +43,9 @@ import com.example.tradeflow.viewmodel.UserNotificationViewModel
 import com.google.firebase.auth.FirebaseAuth
 import java.text.SimpleDateFormat
 import java.util.*
+import android.content.Intent
+import androidx.compose.ui.platform.LocalContext
+import com.example.tradeflow.ui.theme.Greenish
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -51,7 +54,7 @@ fun UserNotificationScreen(
     onBackClick: () -> Unit = {},
     onNotificationClick: (UserNotificationModel) -> Unit = {},
     onViewDetails: (String) -> Unit = {},
-    onMessageClick: () -> Unit = {} // ADDED FROM FRIEND'S CODE
+    onMessageClick: (String) -> Unit = {} // ADDED FROM FRIEND'S CODE
 ) {
     val notifications by viewModel.notifications.collectAsState()
     val myRequests by viewModel.myRequests.collectAsState()
@@ -203,6 +206,7 @@ fun UserNotificationScreen(
                                 items(notificationList) { notification ->
                                     EnhancedNotificationCard(
                                         notification = notification,
+                                        currentUserId = userId,
                                         onClick = {
                                             viewModel.markAsRead(notification.notificationId)
                                             onNotificationClick(notification)
@@ -216,7 +220,7 @@ fun UserNotificationScreen(
                                             showRejectDialog = true
                                         },
                                         onViewDetails = { onViewDetails(notification.requestId) },
-                                        onMessage = onMessageClick // ADDED FROM FRIEND'S CODE
+                                        onMessage = { onMessageClick(notification.senderId) } // ADDED FROM FRIEND'S CODE
                                     )
                                 }
                             }
@@ -379,6 +383,7 @@ fun UserNotificationScreen(
 @Composable
 fun EnhancedNotificationCard(
     notification: UserNotificationModel,
+    currentUserId: String,
     onClick: () -> Unit,
     onAccept: () -> Unit = {},
     onReject: () -> Unit = {},
@@ -424,26 +429,28 @@ fun EnhancedNotificationCard(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     // User Avatar with status indicator - USING DYNAMIC IMAGE
-                    Box {
-                        AsyncImage(
-                            model = senderImage.ifEmpty { R.drawable.placeholderimage },
-                            contentDescription = "Sender",
-                            modifier = Modifier
-                                .size(40.dp)
-                                .clip(CircleShape),
-                            contentScale = ContentScale.Crop,
-                            error = painterResource(R.drawable.placeholderimage)
-                        )
-                        // Unread indicator
-                        if (!notification.isRead) {
-                            Box(
+                    if (notification.type != "ADMIN_UPDATE") {
+                        Box {
+                            AsyncImage(
+                                model = senderImage.ifEmpty { R.drawable.placeholderimage },
+                                contentDescription = "Sender",
                                 modifier = Modifier
-                                    .size(12.dp)
-                                    .clip(CircleShape)
-                                    .background(MaterialTheme.colorScheme.primary)
-                                    .border(2.dp, MaterialTheme.colorScheme.surface, CircleShape)
-                                    .align(Alignment.TopEnd)
+                                    .size(40.dp)
+                                    .clip(CircleShape),
+                                contentScale = ContentScale.Crop,
+                                error = painterResource(R.drawable.placeholderimage)
                             )
+                            // Unread indicator
+                            if (!notification.isRead) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(12.dp)
+                                        .clip(CircleShape)
+                                        .background(MaterialTheme.colorScheme.primary)
+                                        .border(2.dp, MaterialTheme.colorScheme.surface, CircleShape)
+                                        .align(Alignment.TopEnd)
+                                )
+                            }
                         }
                     }
 
@@ -473,24 +480,26 @@ fun EnhancedNotificationCard(
                         }
 
                         // Request Type Badge
-                        Surface(
-                            shape = RoundedCornerShape(4.dp),
-                            color = if (notification.requestType == "BARTER")
-                                MaterialTheme.colorScheme.errorContainer
-                            else
-                                MaterialTheme.colorScheme.primaryContainer,
-                            modifier = Modifier.padding(top = 2.dp)
-                        ) {
-                            Text(
-                                text = notification.requestType.ifEmpty { "Message" },
-                                fontSize = 10.sp,
+                        if (notification.requestType.isNotEmpty()) {
+                            Surface(
+                                shape = RoundedCornerShape(4.dp),
                                 color = if (notification.requestType == "BARTER")
-                                    MaterialTheme.colorScheme.onErrorContainer
+                                    MaterialTheme.colorScheme.errorContainer
                                 else
-                                    MaterialTheme.colorScheme.onPrimaryContainer,
-                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                                fontWeight = FontWeight.Medium
-                            )
+                                    MaterialTheme.colorScheme.primaryContainer,
+                                modifier = Modifier.padding(top = 2.dp)
+                            ) {
+                                Text(
+                                    text = notification.requestType,
+                                    fontSize = 10.sp,
+                                    color = if (notification.requestType == "BARTER")
+                                        MaterialTheme.colorScheme.onErrorContainer
+                                    else
+                                        MaterialTheme.colorScheme.onPrimaryContainer,
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
                         }
                     }
                 }
@@ -572,19 +581,60 @@ fun EnhancedNotificationCard(
             // Action Buttons
             when {
                 notification.status == "ACCEPTED" -> {
-                    // FROM FRIEND'S CODE: Better accepted status display
-                    Surface(
-                        shape = RoundedCornerShape(4.dp),
-                        color = MaterialTheme.colorScheme.tertiary,
-                        modifier = Modifier.padding(vertical = 8.dp)
-                    ) {
-                        Text(
-                            text = "Request accepted",
-                            fontSize = 12.sp,
-                            color = MaterialTheme.colorScheme.onTertiary,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                            fontWeight = FontWeight.Medium
-                        )
+                    val context = LocalContext.current
+                    if (notification.requestType.equals("RENT", ignoreCase = true)) {
+                        Column(modifier = Modifier.fillMaxWidth()) {
+                            Surface(
+                                shape = RoundedCornerShape(4.dp),
+                                color = MaterialTheme.colorScheme.tertiary,
+                                modifier = Modifier.padding(vertical = 8.dp)
+                            ) {
+                                Text(
+                                    text = "Request accepted",
+                                    fontSize = 12.sp,
+                                    color = MaterialTheme.colorScheme.onTertiary,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+                            
+                            // Only show Pay Deposit button to the Requester (Sender)
+                            if (notification.senderId == currentUserId) {
+                                Spacer(modifier = Modifier.height(8.dp))
+                                
+                                Button(
+                                    onClick = {
+                                        val intent = Intent(context, RentalPaymentActivity::class.java)
+                                        intent.putExtra("requestId", notification.requestId)
+                                        intent.putExtra("productId", notification.productId)
+                                        intent.putExtra("ownerId", notification.senderId)
+                                        context.startActivity(intent)
+                                    },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = Greenish
+                                    ),
+                                    shape = RoundedCornerShape(8.dp)
+                                ) {
+                                    Text("Pay Deposit", fontWeight = FontWeight.Bold)
+                                }
+                            }
+                        }
+                    } else {
+                        // FROM FRIEND'S CODE: Better accepted status display
+                        Surface(
+                            shape = RoundedCornerShape(4.dp),
+                            color = MaterialTheme.colorScheme.tertiary,
+                            modifier = Modifier.padding(vertical = 8.dp)
+                        ) {
+                            Text(
+                                text = "Request accepted",
+                                fontSize = 12.sp,
+                                color = MaterialTheme.colorScheme.onTertiary,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
                     }
                 }
                 notification.status == "REJECTED" -> {

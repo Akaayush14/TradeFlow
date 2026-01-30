@@ -69,6 +69,7 @@ fun AdminPointDealsScreen(onBackClick: () -> Unit) {
     var showAddDialog by remember { mutableStateOf(false) }
     var dealToEdit by remember { mutableStateOf<PointDealModel?>(null) }
     var selectedTab by remember { mutableStateOf("Deals") } // "Deals" or "Gifts"
+    var isProcessing by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         viewModel.getAllPointDeals()
@@ -185,9 +186,12 @@ fun AdminPointDealsScreen(onBackClick: () -> Unit) {
         AddDealDialog(
             users = users ?: emptyList(),
             dealToEdit = dealToEdit,
+            isProcessing = isProcessing,
             onDismiss = { showAddDialog = false },
             onAdd = { deal ->
+                isProcessing = true
                 viewModel.addPointDeal(deal) { success, msg ->
+                    isProcessing = false
                     Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
                     if (success) {
                         showAddDialog = false
@@ -196,7 +200,9 @@ fun AdminPointDealsScreen(onBackClick: () -> Unit) {
                 }
             },
             onUpdate = { deal ->
+                isProcessing = true
                 viewModel.updatePointDeal(deal) { success, msg ->
+                    isProcessing = false
                     Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
                     if (success) {
                         showAddDialog = false
@@ -205,7 +211,9 @@ fun AdminPointDealsScreen(onBackClick: () -> Unit) {
                 }
             },
             onGiftUser = { userId, points, title ->
+                isProcessing = true
                 viewModel.giftPointsToUser(userId, points, title) { success, msg ->
+                    isProcessing = false
                     Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
                     if (success) {
                         showAddDialog = false
@@ -268,6 +276,7 @@ fun AdminDealCard(deal: PointDealModel, onEdit: () -> Unit, onDelete: () -> Unit
 fun AddDealDialog(
     users: List<UserModel>,
     dealToEdit: PointDealModel? = null,
+    isProcessing: Boolean,
     onDismiss: () -> Unit,
     onAdd: (PointDealModel) -> Unit,
     onUpdate: (PointDealModel) -> Unit,
@@ -493,6 +502,7 @@ fun AddDealDialog(
         },
         confirmButton = {
             Button(
+                enabled = !isProcessing,
                 onClick = {
                     val points = pointsInput.toLongOrNull() ?: 0L
 
@@ -534,12 +544,20 @@ fun AddDealDialog(
                 shape = MaterialTheme.shapes.medium,
                 modifier = Modifier.padding(start = 8.dp)
             ) {
-                Text(
-                    text = if (dealType == "Gift Free Points" && targetUserId.isNotEmpty()) "Give Points"
-                    else if (dealToEdit != null) "Update Deal"
-                    else "Create Deal",
-                    color = White
-                )
+                if (isProcessing) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp),
+                        color = White,
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Text(
+                        text = if (dealType == "Gift Free Points" && targetUserId.isNotEmpty()) "Give Points"
+                        else if (dealToEdit != null) "Update Deal"
+                        else "Create Deal",
+                        color = White
+                    )
+                }
             }
         },
         dismissButton = {

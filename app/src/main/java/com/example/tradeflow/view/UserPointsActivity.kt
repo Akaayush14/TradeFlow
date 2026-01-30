@@ -41,12 +41,38 @@ import com.example.tradeflow.viewmodel.PointDealViewModel
 import com.example.tradeflow.viewmodel.PointHistoryViewModel
 import com.example.tradeflow.viewmodel.UserViewModel
 import com.google.firebase.auth.FirebaseAuth
+import com.stripe.android.PaymentConfiguration
+import com.stripe.android.paymentsheet.PaymentSheet
+import com.stripe.android.paymentsheet.PaymentSheetResult
+import com.stripe.android.paymentsheet.rememberPaymentSheet
+import okhttp3.Call
+import okhttp3.Callback
+import okhttp3.FormBody
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
+import okhttp3.Response
+import org.json.JSONObject
+import java.io.IOException
 import java.text.SimpleDateFormat
 import java.util.*
+import com.example.tradeflow.BuildConfig
+
+// TODO: FOR TESTING ONLY! Replace with your actual Stripe Secret Key (sk_test_...) to test without a backend.
+val TEST_STRIPE_SECRET_KEY = BuildConfig.STRIPE_SECRET_KEY
+const val BACKEND_URL = "https://your-backend-url.com/create-payment-intent"
 
 class UserPointsActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Initialize Stripe with your publishable key
+        PaymentConfiguration.init(
+            context = this,
+            publishableKey = BuildConfig.STRIPE_PUBLISHABLE_KEY // Replace with your actual Stripe Publishable Key
+        )
+
         enableEdgeToEdge()
         setContent {
             ThemeWrapper {
@@ -73,6 +99,25 @@ fun PointsScreen() {
     var selectedTab by remember { mutableStateOf("Buy Deals") }
     var showRedeemConfirmation by remember { mutableStateOf(false) }
     var selectedDeal by remember { mutableStateOf<PointDealModel?>(null) }
+    var onPaymentSuccess by remember { mutableStateOf<() -> Unit>({}) }
+    var isProcessing by remember { mutableStateOf(false) }
+
+    val paymentSheet = rememberPaymentSheet { paymentSheetResult ->
+        isProcessing = false
+        when (paymentSheetResult) {
+            is PaymentSheetResult.Completed -> {
+                Toast.makeText(context, "Payment Successful", Toast.LENGTH_SHORT).show()
+                onPaymentSuccess()
+                onPaymentSuccess = {} // Reset callback to prevent accidental re-execution
+            }
+            is PaymentSheetResult.Canceled -> {
+                Toast.makeText(context, "Payment Canceled", Toast.LENGTH_SHORT).show()
+            }
+            is PaymentSheetResult.Failed -> {
+                Toast.makeText(context, "Payment Failed: ${paymentSheetResult.error.message}", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
 
     val redemptionStatus by pointDealViewModel.redemptionStatus.observeAsState()
 
@@ -225,15 +270,21 @@ fun PointsScreen() {
                                 HorizontalDivider(modifier = Modifier.weight(1f))
                             }
 
-                            // Pay with Khalti Button
-                            KhaltiPaymentButton(
+                            // Pay with Stripe Button
+                            StripePaymentButton(
                                 onClick = {
                                     selectedDeal?.let { deal ->
                                         val amountRs = requiredPoints.toDouble()
-                                        pointDealViewModel.buyDealDirectly(userId, deal, amountRs)
+                                        onPaymentSuccess = {
+                                            pointDealViewModel.buyDealDirectly(userId, deal, amountRs)
+                                            showRedeemConfirmation = false
+                                            selectedDeal = null
+                                        }
+                                        paymentSheet.presentWithPaymentIntent(
+                                            "pi_mock_secret",
+                                            PaymentSheet.Configuration("TradeFlow")
+                                        )
                                     }
-                                    showRedeemConfirmation = false
-                                    selectedDeal = null
                                 }
                             )
                         }
@@ -250,7 +301,7 @@ fun PointsScreen() {
                 }
             }
         } else {
-            // Insufficient points - Show Khalti Payment Dialog
+            // Insufficient points - Show Payment Dialog
             Dialog(
                 onDismissRequest = {
                     showRedeemConfirmation = false
@@ -283,14 +334,21 @@ fun PointsScreen() {
                             textAlign = androidx.compose.ui.text.style.TextAlign.Center
                         )
 
-                        KhaltiPaymentButton(
+                        StripePaymentButton(
+                            enabled = !isProcessing,
                             onClick = {
                                 selectedDeal?.let { deal ->
                                     val amountRs = requiredPoints.toDouble()
-                                    pointDealViewModel.buyDealDirectly(userId, deal, amountRs)
+                                    onPaymentSuccess = {
+                                        pointDealViewModel.buyDealDirectly(userId, deal, amountRs)
+                                        showRedeemConfirmation = false
+                                        selectedDeal = null
+                                    }
+                                    paymentSheet.presentWithPaymentIntent(
+                                        "pi_mock_secret",
+                                        PaymentSheet.Configuration("TradeFlow")
+                                    )
                                 }
-                                showRedeemConfirmation = false
-                                selectedDeal = null
                             }
                         )
 
@@ -353,10 +411,104 @@ fun PointsScreen() {
                 "Buy Points" -> {
                     item {
                         BuyPointsSection(
+                            isProcessing = isProcessing,
                             onPayClick = { points ->
+                                if (isProcessing) return@BuyPointsSection
+                                isProcessing = true
                                 val amountRs = points.toDouble()
-                                // Simulate successful payment
-                                pointDealViewModel.buyPoints(userId, points.toLong(), amountRs)
+                                val purchaseId = UUID.randomUUID().toString()
+                                onPaymentSuccess = {
+                                    pointDealViewModel.buyPoints(userId, points.toLong(), amountRs, purchaseId)
+                                }
+
+                                val client = OkHttpClient()
+                                val request: Request
+
+                                if (TEST_STRIPE_SECRET_KEY.isNotEmpty()) {
+                                    // TEST MODE: Call Stripe API directly (INSECURE - FOR DEV ONLY)
+                                    Toast.makeText(context, "Test Mode: Calling Stripe API directly...", Toast.LENGTH_SHORT).show()
+
+                                    val formBody = FormBody.Builder()
+                                        .add("amount", (points * 100).toString()) // Amount in cents
+                                        .add("currency", "npr")
+                                        .add("automatic_payment_methods[enabled]", "true")
+                                        .build()
+
+                                    request = Request.Builder()
+                                        .url("https://api.stripe.com/v1/payment_intents")
+                                        .addHeader("Authorization", "Bearer $TEST_STRIPE_SECRET_KEY")
+                                        .post(formBody)
+                                        .build()
+                                } else {
+                                    // PRODUCTION MODE: Call your backend
+                                    if (BACKEND_URL.contains("your-backend-url.com")) {
+                                        Toast.makeText(context, "Error: Backend URL not set. See code comments.", Toast.LENGTH_LONG).show()
+                                        isProcessing = false
+                                        return@BuyPointsSection
+                                    }
+
+                                    val mediaType = "application/json; charset=utf-8".toMediaType()
+                                    val json = JSONObject()
+                                        .put("amount", points * 100)
+                                        .put("currency", "npr")
+                                        .toString()
+
+                                    val body = json.toRequestBody(mediaType)
+                                    request = Request.Builder()
+                                        .url(BACKEND_URL)
+                                        .post(body)
+                                        .build()
+
+                                    Toast.makeText(context, "Fetching payment details from backend...", Toast.LENGTH_SHORT).show()
+                                }
+
+                                client.newCall(request).enqueue(object : Callback {
+                                    override fun onFailure(call: Call, e: IOException) {
+                                        activity?.runOnUiThread {
+                                            isProcessing = false
+                                            Toast.makeText(context, "Connection failed: ${e.message}", Toast.LENGTH_LONG).show()
+                                        }
+                                    }
+
+                                    override fun onResponse(call: Call, response: Response) {
+                                        val responseBody = response.body?.string()
+
+                                        if (response.isSuccessful && responseBody != null) {
+                                            try {
+                                                val json = JSONObject(responseBody)
+                                                // Stripe API returns 'client_secret', some backends might return 'clientSecret'
+                                                val clientSecret = json.optString("client_secret").ifEmpty {
+                                                    json.optString("clientSecret")
+                                                }
+
+                                                if (clientSecret.isNotEmpty()) {
+                                                    activity?.runOnUiThread {
+                                                        paymentSheet.presentWithPaymentIntent(
+                                                            clientSecret,
+                                                            PaymentSheet.Configuration("TradeFlow")
+                                                        )
+                                                    }
+                                                } else {
+                                                    activity?.runOnUiThread {
+                                                        isProcessing = false
+                                                        Toast.makeText(context, "Error: Missing client_secret in response", Toast.LENGTH_SHORT).show()
+                                                    }
+                                                }
+                                            } catch (e: Exception) {
+                                                activity?.runOnUiThread {
+                                                    isProcessing = false
+                                                    Toast.makeText(context, "Parse error: ${e.message}", Toast.LENGTH_SHORT).show()
+                                                }
+                                            }
+                                        } else {
+                                            activity?.runOnUiThread {
+                                                isProcessing = false
+                                                Toast.makeText(context, "Server error: ${response.code} - ${response.message}", Toast.LENGTH_LONG).show()
+                                                Log.e("Stripe", "Error: $responseBody")
+                                            }
+                                        }
+                                    }
+                                })
                             }
                         )
                     }
@@ -575,11 +727,12 @@ private fun PointsSummaryCard(
 
 @Composable
 private fun BuyPointsSection(
-    onPayClick: (Int) -> Unit
+    isProcessing: Boolean,
+    onPayClick: (Long) -> Unit
 ) {
     var pointsInput by remember { mutableStateOf("500") }
-    val increments = listOf(100, 250, 500, 1000)
-    val points = pointsInput.toIntOrNull() ?: 0
+    val increments = listOf(100L, 250L, 500L, 1000L)
+    val points = pointsInput.toLongOrNull() ?: 0L
     val ratePerPoint = 1 // Rs 1 per point
     val totalPayable = points * ratePerPoint
 
@@ -598,6 +751,7 @@ private fun BuyPointsSection(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(10.dp),
             singleLine = true,
+            enabled = !isProcessing,
             colors = OutlinedTextFieldDefaults.colors(
                 focusedTextColor = MaterialTheme.colorScheme.onSurface,
                 unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
@@ -614,11 +768,12 @@ private fun BuyPointsSection(
             increments.forEach { inc ->
                 FilledTonalButton(
                     onClick = {
-                        val current = pointsInput.toIntOrNull() ?: 0
+                        val current = pointsInput.toLongOrNull() ?: 0L
                         pointsInput = (current + inc).toString()
                     },
                     modifier = Modifier.weight(1f),
                     shape = RoundedCornerShape(8.dp),
+                    enabled = !isProcessing,
                     colors = ButtonDefaults.filledTonalButtonColors(
                         containerColor = MaterialTheme.colorScheme.secondaryContainer,
                         contentColor = MaterialTheme.colorScheme.onSecondaryContainer
@@ -643,8 +798,9 @@ private fun BuyPointsSection(
             color = MaterialTheme.colorScheme.primary
         )
 
-        KhaltiPaymentButton(
-            onClick = { if (points > 0) onPayClick(points) }
+        StripePaymentButton(
+            enabled = !isProcessing && points > 0,
+            onClick = { onPayClick(points) }
         )
     }
 }
@@ -909,7 +1065,8 @@ private fun PointInfoItem(number: String, title: String, description: String) {
 }
 
 @Composable
-fun KhaltiPaymentButton(
+fun StripePaymentButton(
+    enabled: Boolean = true,
     onClick: () -> Unit
 ) {
     Column(
@@ -918,17 +1075,21 @@ fun KhaltiPaymentButton(
     ) {
         Button(
             onClick = onClick,
+            enabled = enabled,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(50.dp),
             shape = RoundedCornerShape(12.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF6A1B9A))
+            colors = ButtonDefaults.buttonColors(
+                containerColor = Color(0xFF635BFF), // Stripe Blurple
+                disabledContainerColor = Color(0xFF635BFF).copy(alpha = 0.5f)
+            )
         ) {
-            Text(text = "Pay with Khalti", color = Color.White, fontSize = 16.sp)
+            Text(text = "Pay with Stripe", color = Color.White, fontSize = 16.sp)
         }
 
         Text(
-            text = "Secure payment powered by Khalti",
+            text = "Secure payment powered by Stripe",
             fontSize = 12.sp,
             color = Color.Gray
         )

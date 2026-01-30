@@ -33,6 +33,10 @@ class ProductViewModel(private val repo: ProductRepo) : ViewModel() {
         repo.updateProduct(model, callback)
     }
 
+    fun updateProductStatus(productId: String, status: String, callback: (Boolean, String) -> Unit) {
+        repo.updateProductStatus(productId, status, callback)
+    }
+
     fun deleteProduct(productID: String, callback: (Boolean, String) -> Unit) {
         repo.deleteProduct(productID, callback)
     }

@@ -41,7 +41,15 @@ data class RequestModel(
 
     // NEW: Additional metadata
     val responseMessage: String = "",
-    val completedAt: Long = 0L
+    val completedAt: Long = 0L,
+    val creditPoints: Double = 0.0, // Credit points offered/requested in trade
+    val creditPointAction: String = "OFFER", // "OFFER" (Requester pays) or "REQUEST" (Requester asks)
+    val securityDeposit: Double = 0.0, // Added field
+
+    // EARLY RETURN / RENT PAYMENT FIELDS
+    val returnDate: Long = 0L,
+    val finalRentAmount: Double = 0.0,
+    val isRentPaid: Boolean = false
 ) {
     fun toMap(): Map<String, Any?> {
         return mapOf(
@@ -75,7 +83,13 @@ data class RequestModel(
             "createdAt" to createdAt,
             "updatedAt" to updatedAt,
             "responseMessage" to responseMessage,
-            "completedAt" to completedAt
+            "completedAt" to completedAt,
+            "creditPoints" to creditPoints,
+            "creditPointAction" to creditPointAction,
+            "securityDeposit" to securityDeposit,
+            "returnDate" to returnDate,
+            "finalRentAmount" to finalRentAmount,
+            "isRentPaid" to isRentPaid
         )
     }
 }

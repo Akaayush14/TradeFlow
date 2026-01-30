@@ -6,6 +6,7 @@ import com.google.firebase.database.*
 class PointTransactionRepoImpl : PointTransactionRepo {
     private val db = FirebaseDatabase.getInstance()
     private val ref = db.getReference("PointTransactions")
+    private val activeQueries = java.util.HashMap<ValueEventListener, Query>()
 
     override fun saveTransaction(
         tx: PointTransaction,
@@ -31,12 +32,14 @@ class PointTransactionRepoImpl : PointTransactionRepo {
         val thirtyDaysMillis = 30L * 24 * 60 * 60 * 1000
         val cutoff = currentTime - thirtyDaysMillis
 
+        val query = ref.orderByChild("userId").equalTo(userId)
+
         val listener = object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 val list = mutableListOf<PointTransaction>()
                 for (child in snapshot.children) {
                     val tx = child.getValue(PointTransaction::class.java)
-                    if (tx != null && tx.userId == userId && tx.timestamp >= cutoff) {
+                    if (tx != null && tx.timestamp >= cutoff) {
                         list.add(tx)
                     }
                 }
@@ -44,9 +47,12 @@ class PointTransactionRepoImpl : PointTransactionRepo {
                 onChange(list)
             }
 
-            override fun onCancelled(error: DatabaseError) { }
+            override fun onCancelled(error: DatabaseError) {
+                android.util.Log.e("PointTransactionRepo", "observeRecentTransactions cancelled: ${error.message}")
+            }
         }
-        ref.addValueEventListener(listener)
+        query.addValueEventListener(listener)
+        activeQueries[listener] = query
         return listener
     }
 
@@ -87,6 +93,11 @@ class PointTransactionRepoImpl : PointTransactionRepo {
     }
 
     override fun removeListener(listener: ValueEventListener) {
-        ref.removeEventListener(listener)
+        val query = activeQueries.remove(listener)
+        if (query != null) {
+            query.removeEventListener(listener)
+        } else {
+            ref.removeEventListener(listener)
+        }
     }
 }

@@ -52,6 +52,14 @@ interface ProductRepo {
         callback: (Boolean, String) -> Unit
     )
 
+    fun updateProductRentalInfo(
+        productId: String,
+        status: String,
+        rentalEndDate: Long,
+        activeRequestId: String,
+        callback: (Boolean, String) -> Unit
+    )
+
     suspend fun uploadImages(context: Context, uris: List<Uri?>): List<String>
     fun getLatLngFromAddress(context: Context, address: String): LatLng?
 }

@@ -9,11 +9,12 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -21,7 +22,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
@@ -36,7 +39,7 @@ import com.example.tradeflow.viewmodel.ProductViewModel
 import com.example.tradeflow.viewmodel.UserNotificationViewModel
 import com.example.tradeflow.viewmodel.UserViewModel
 import com.google.firebase.auth.FirebaseAuth
-import androidx.compose.ui.res.painterResource
+import kotlin.math.max
 
 class BarterRequestActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -83,6 +86,11 @@ fun BarterRequestScreen() {
     var showSuccessDialog by remember { mutableStateOf(false) }
     var showErrorDialog by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf("") }
+
+    // Credit Points State
+    var creditAmountStr by remember { mutableStateOf("") }
+    var creditPointAction by remember { mutableStateOf("OFFER") } // "OFFER" or "REQUEST"
+    val creditAmount = creditAmountStr.toDoubleOrNull() ?: 0.0
 
     // Load product data
     var productData by remember { mutableStateOf<ProductModel?>(null) }
@@ -142,6 +150,23 @@ fun BarterRequestScreen() {
         productData = productDetails
     }
 
+    // Calculations
+    val theirItemValue = productData?.price ?: 0.0
+    val yourItemValue = userProducts.filter { selectedItems.contains(it.productId) }
+        .sumOf { it.price }
+    val rawDifference = theirItemValue - yourItemValue
+
+    val availablePoints = currentUserData?.points?.toDouble() ?: 0.0
+    
+    // Effective Values based on Action
+    val totalMySide = if (creditPointAction == "OFFER") yourItemValue + creditAmount else yourItemValue
+    val totalTheirSide = if (creditPointAction == "REQUEST") theirItemValue + creditAmount else theirItemValue
+    
+    val finalDifference = totalTheirSide - totalMySide
+    val isShort = finalDifference > 0.1 // Still need more value from me (or less from them)
+    val isExcess = finalDifference < -0.1 // I am giving too much
+    val isBalanced = kotlin.math.abs(finalDifference) < 0.1
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -167,117 +192,154 @@ fun BarterRequestScreen() {
             )
         }
     ) { padding ->
-        Column(
+        LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
                 .background(MaterialTheme.colorScheme.background)
-                .padding(16.dp)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             // Product they want
-            productData?.let { product ->
-                ProductWantCard(product = product, owner = ownerData)
+            item {
+                productData?.let { product ->
+                    ProductWantCard(product = product, owner = ownerData)
+                }
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
-
             // Selection instruction
-            SelectionInstructionCard(selectedCount = selectedItems.size)
-
-            Spacer(modifier = Modifier.height(16.dp))
+            item {
+                SelectionInstructionCard(selectedCount = selectedItems.size)
+            }
 
             // User's products to offer
             if (isLoadingProducts) {
-                Box(
-                    modifier = Modifier.fillMaxWidth(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+                item {
+                    Box(
+                        modifier = Modifier.fillMaxWidth(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+                    }
                 }
             } else if (userProducts.isEmpty()) {
-                EmptyStateCard()
+                item {
+                    EmptyStateCard()
+                }
             } else {
-                LazyColumn(
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                    modifier = Modifier.weight(1f)
-                ) {
-                    items(userProducts) { userProduct ->
-                        UserProductCard(
-                            product = userProduct,
-                            isSelected = selectedItems.contains(userProduct.productId),
-                            onSelectionChange = { isSelected ->
-                                selectedItems = if (isSelected) {
-                                    selectedItems + userProduct.productId
-                                } else {
-                                    selectedItems - userProduct.productId
-                                }
+                items(userProducts) { userProduct ->
+                    UserProductCard(
+                        product = userProduct,
+                        isSelected = selectedItems.contains(userProduct.productId),
+                        onSelectionChange = { isSelected ->
+                            selectedItems = if (isSelected) {
+                                selectedItems + userProduct.productId
+                            } else {
+                                selectedItems - userProduct.productId
                             }
-                        )
-                    }
+                        }
+                    )
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            // Value Calculation
+            item {
+                ValueCalculationCard(
+                    theirItemValue = theirItemValue,
+                    yourItemValue = yourItemValue
+                )
+            }
+
+            // Add Credit Points
+            item {
+                AddCreditPointsCard(
+                    creditAmountStr = creditAmountStr,
+                    onCreditChange = { creditAmountStr = it },
+                    creditPointAction = creditPointAction,
+                    onActionChange = { creditPointAction = it },
+                    availablePoints = availablePoints,
+                    rawDifference = rawDifference
+                )
+            }
+
+            // Trade Summary
+            item {
+                TradeSummaryCard(
+                    totalMySide = totalMySide,
+                    totalTheirSide = totalTheirSide,
+                    creditPoints = creditAmount,
+                    creditPointAction = creditPointAction,
+                    isShort = isShort,
+                    shortAmount = finalDifference
+                )
+            }
 
             // Message section
-            BarterMessageSection(
-                message = message,
-                onMessageChange = { message = it }
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
+            item {
+                BarterMessageSection(
+                    message = message,
+                    onMessageChange = { message = it }
+                )
+            }
 
             // Action button
-            BarterActionButton(
-                isEnabled = selectedItems.isNotEmpty() && !isLoading,
-                isLoading = isLoading,
-                selectedCount = selectedItems.size,
-                onClick = {
-                    val product = productData
-                    val owner = ownerData
-                    val user = currentUserData
+            item {
+                BarterActionButton(
+                    isEnabled = selectedItems.isNotEmpty() && !isLoading && (creditPointAction == "REQUEST" || creditAmount <= availablePoints),
+                    isLoading = isLoading,
+                    selectedCount = selectedItems.size,
+                    onClick = {
+                        val product = productData
+                        val owner = ownerData
+                        val user = currentUserData
 
-                    // Null checks before sending request
-                    if (product == null) {
-                        errorMessage = "Product information not available"
-                        showErrorDialog = true
-                    } else if (owner == null) {
-                        errorMessage = "Owner information not available"
-                        showErrorDialog = true
-                    } else if (user == null) {
-                        errorMessage = "User information not available. Please try again."
-                        showErrorDialog = true
-                    } else if (selectedItems.isEmpty()) {
-                        errorMessage = "Please select at least one item to offer"
-                        showErrorDialog = true
-                    } else {
-                        val selectedProductList = userProducts.filter {
-                            selectedItems.contains(it.productId)
-                        }
+                        // Null checks before sending request
+                        if (product == null) {
+                            errorMessage = "Product information not available"
+                            showErrorDialog = true
+                        } else if (owner == null) {
+                            errorMessage = "Owner information not available"
+                            showErrorDialog = true
+                        } else if (user == null) {
+                            errorMessage = "User information not available. Please try again."
+                            showErrorDialog = true
+                        } else if (selectedItems.isEmpty()) {
+                            errorMessage = "Please select at least one item to offer"
+                            showErrorDialog = true
+                        } else if (creditPointAction == "OFFER" && creditAmount > availablePoints) {
+                            errorMessage = "Insufficient credit points"
+                            showErrorDialog = true
+                        } else {
+                            val selectedProductList = userProducts.filter {
+                                selectedItems.contains(it.productId)
+                            }
 
-                        if (selectedProductList.isNotEmpty()) {
-                            isLoading = true
+                            if (selectedProductList.isNotEmpty()) {
+                                isLoading = true
 
-                            notificationViewModel.createItemRequest(
-                                product = product,
-                                owner = owner,
-                                requester = user,
-                                requestType = "BARTER",
-                                message = message,
-                                offerProducts = selectedProductList
-                            ) { success, msg ->
-                                isLoading = false
-                                if (success) {
-                                    showSuccessDialog = true
-                                } else {
-                                    errorMessage = msg
-                                    showErrorDialog = true
+                                notificationViewModel.createItemRequest(
+                                    product = product,
+                                    owner = owner,
+                                    requester = user,
+                                    requestType = "BARTER",
+                                    message = message,
+                                    offerProducts = selectedProductList,
+                                    creditPoints = creditAmount,
+                                    creditPointAction = creditPointAction
+                                ) { success, msg ->
+                                    isLoading = false
+                                    if (success) {
+                                        showSuccessDialog = true
+                                    } else {
+                                        errorMessage = msg
+                                        showErrorDialog = true
+                                    }
                                 }
                             }
                         }
                     }
-                }
-            )
+                )
+            }
         }
     }
 
@@ -297,7 +359,7 @@ fun BarterRequestScreen() {
             },
             text = {
                 Text(
-                    "Your barter request has been sent to the owner. You'll be notified when they respond.",
+                    "Your barter request has been sent successfully to the owner.",
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             },
@@ -311,13 +373,11 @@ fun BarterRequestScreen() {
                         containerColor = MaterialTheme.colorScheme.primary
                     )
                 ) {
-                    Text(
-                        "OK",
-                        color = MaterialTheme.colorScheme.onPrimary
-                    )
+                    Text("OK", color = MaterialTheme.colorScheme.onPrimary)
                 }
             },
-            containerColor = MaterialTheme.colorScheme.surface
+            containerColor = MaterialTheme.colorScheme.surface,
+            tonalElevation = 8.dp
         )
     }
 
@@ -335,7 +395,7 @@ fun BarterRequestScreen() {
             text = {
                 Text(
                     errorMessage,
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             },
             confirmButton = {
@@ -345,117 +405,459 @@ fun BarterRequestScreen() {
                         containerColor = MaterialTheme.colorScheme.primary
                     )
                 ) {
-                    Text(
-                        "OK",
-                        color = MaterialTheme.colorScheme.onPrimary
-                    )
+                    Text("OK", color = MaterialTheme.colorScheme.onPrimary)
                 }
             },
-            containerColor = MaterialTheme.colorScheme.surface
+            containerColor = MaterialTheme.colorScheme.surface,
+            tonalElevation = 8.dp
         )
     }
 }
 
 @Composable
-fun ProductWantCard(product: ProductModel, owner: UserModel?) {
-    val allImages = remember(product) {
-        val list = mutableListOf<String>()
-        if (product.imageUrl.isNotEmpty()) list.add(product.imageUrl)
-        if (product.imageUrls.isNotEmpty()) list.addAll(product.imageUrls)
-        if (product.imageUrl2.isNotEmpty()) list.add(product.imageUrl2)
-        if (product.imageUrl3.isNotEmpty()) list.add(product.imageUrl3)
-        if (product.imageUrl4.isNotEmpty()) list.add(product.imageUrl4)
-        list.filter { it.isNotEmpty() }.distinct()
-    }
+fun ValueCalculationCard(
+    theirItemValue: Double,
+    yourItemValue: Double
+) {
+    val difference = theirItemValue - yourItemValue
+    val needsMore = difference > 0
+    val surplus = difference < 0
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        elevation = CardDefaults.cardElevation(4.dp),
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        )
+            containerColor = Color(0xFFFFF9E6) // Light Yellow background
+        ),
+        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFFFD54F))
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-        ) {
-            Text(
-                text = "You want to barter for:",
-                fontSize = 12.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
-
+        Column(modifier = Modifier.padding(16.dp)) {
             Row(
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                AsyncImage(
-                    model = product.imageUrl,
-                    contentDescription = "Product",
-                    modifier = Modifier
-                        .size(60.dp)
-                        .clip(RoundedCornerShape(8.dp)),
-                    error = painterResource(R.drawable.placeholderimage),
-                    contentScale = androidx.compose.ui.layout.ContentScale.Crop
-                )
-
-                Column(modifier = Modifier.weight(1f)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("📊 ", fontSize = 16.sp) // Bar chart emoji
                     Text(
-                        text = product.name,
+                        "Value Calculation",
+                        style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
-                        fontSize = 16.sp,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    Text(
-                        text = "Owner: ${owner?.name ?: "Unknown"}",
-                        fontSize = 12.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        text = "Value: Rs${product.price}",
-                        color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.SemiBold
+                        color = Color.Black
                     )
                 }
+                Text("🧮", fontSize = 16.sp) // Abacus emoji
+            }
 
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text("Their Item Value:", color = Color.Gray)
+                Text("Rs$theirItemValue", fontWeight = FontWeight.Bold, color = Color.Black)
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+            Divider(color = Color.Gray.copy(alpha = 0.2f), thickness = 1.dp) // Dotted effect simulated with low alpha
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text("Your Item(s) Value:", color = Color.Gray)
+                Text("Rs$yourItemValue", fontWeight = FontWeight.Bold, color = Color(0xFF009688)) // Teal color
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+            Divider(color = Color.Gray.copy(alpha = 0.2f), thickness = 1.dp)
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text("Difference:", fontWeight = FontWeight.Bold, color = Color.Black.copy(alpha = 0.7f))
+                Column(horizontalAlignment = Alignment.End) {
+                    Text(
+                        "Rs${kotlin.math.abs(difference)}",
+                        fontWeight = FontWeight.Bold,
+                        color = if (needsMore) Color(0xFFEF6C00) else if (surplus) Color(0xFF1565C0) else Color.Gray
+                    )
+                    if (needsMore) {
+                        Text(
+                            "(You need to add more)",
+                            fontSize = 12.sp,
+                            color = Color(0xFFEF6C00),
+                            fontWeight = FontWeight.Bold
+                        )
+                    } else if (surplus) {
+                        Text(
+                            "(You can ask for points)",
+                            fontSize = 12.sp,
+                            color = Color(0xFF1565C0),
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun AddCreditPointsCard(
+    creditAmountStr: String,
+    onCreditChange: (String) -> Unit,
+    creditPointAction: String,
+    onActionChange: (String) -> Unit,
+    availablePoints: Double,
+    rawDifference: Double
+) {
+    val needsPointsFromMe = rawDifference > 0 // They > Me -> I need to pay
+    val needsPointsFromThem = rawDifference < 0 // Me > They -> I need to ask
+    
+    // Auto-suggestion logic message
+    val suggestionMessage = if (needsPointsFromMe) {
+        "Value Mismatch: Their item is worth more. You should OFFER points."
+    } else if (needsPointsFromThem) {
+        "Value Mismatch: Your item is worth more. You should REQUEST points."
+    } else {
+        "Values are balanced."
+    }
+
+    Column {
+        if (needsPointsFromMe || needsPointsFromThem) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = if (needsPointsFromMe) Color(0xFFFFF3E0) else Color(0xFFE3F2FD) // Orange vs Blue
+                ),
+                border = androidx.compose.foundation.BorderStroke(1.dp, if (needsPointsFromMe) Color(0xFFFFB74D) else Color(0xFF64B5F6))
+            ) {
+                Row(
+                    modifier = Modifier.padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("💡 ", fontSize = 18.sp)
+                    Column {
+                        Text(
+                            "Recommendation",
+                            fontWeight = FontWeight.Bold,
+                            color = if (needsPointsFromMe) Color(0xFFE65100) else Color(0xFF0D47A1)
+                        )
+                        Text(
+                            suggestionMessage,
+                            fontSize = 12.sp,
+                            color = if (needsPointsFromMe) Color(0xFFEF6C00) else Color(0xFF1565C0)
+                        )
+                    }
+                }
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+        }
+
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = Color(0xFF7986CB) // Purple/Blue shade
+            )
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text("💳 ", fontSize = 16.sp)
+                        Text(
+                            "Balance with Points",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
+                    }
+                    Surface(
+                        color = Color.White.copy(alpha = 0.2f),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Text(
+                            "Available: Rs$availablePoints",
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            color = Color.White,
+                            fontSize = 12.sp
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Toggle Action
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(Color.White.copy(alpha = 0.2f))
+                        .padding(4.dp),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    val offerSelected = creditPointAction == "OFFER"
+                    val requestSelected = creditPointAction == "REQUEST"
+                    
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(if (offerSelected) Color.White else Color.Transparent)
+                            .clickable { onActionChange("OFFER") }
+                            .padding(vertical = 8.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            "OFFER (Pay)",
+                            color = if (offerSelected) Color(0xFF7986CB) else Color.White,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 12.sp
+                        )
+                    }
+                    
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(if (requestSelected) Color.White else Color.Transparent)
+                            .clickable { onActionChange("REQUEST") }
+                            .padding(vertical = 8.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            "REQUEST (Ask)",
+                            color = if (requestSelected) Color(0xFF7986CB) else Color.White,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 12.sp
+                        )
+                    }
+                }
+                
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Text(
+                    if (creditPointAction == "OFFER") "Amount to OFFER:" else "Amount to REQUEST:",
+                    color = Color.White,
+                    fontSize = 14.sp
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+
+                OutlinedTextField(
+                    value = creditAmountStr,
+                    onValueChange = { newValue ->
+                        if (newValue.isEmpty() || newValue.matches(Regex("^\\d*\\.?\\d*$"))) {
+                            onCreditChange(newValue)
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Color.White, RoundedCornerShape(12.dp)),
+                    leadingIcon = {
+                        Text("Rs", fontWeight = FontWeight.Bold, color = Color(0xFF7986CB))
+                    },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedContainerColor = Color.White,
+                        unfocusedContainerColor = Color.White,
+                        focusedBorderColor = Color.Transparent,
+                        unfocusedBorderColor = Color.Transparent,
+                        focusedTextColor = Color.Black,
+                        unfocusedTextColor = Color.Black
+                    )
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Auto Balance Button
+                Button(
+                    onClick = {
+                        val absDiff = kotlin.math.abs(rawDifference)
+                        val suggestedAction = if (rawDifference > 0) "OFFER" else "REQUEST"
+                        onActionChange(suggestedAction)
+                        onCreditChange(if (absDiff > 0) absDiff.toString() else "0")
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.White.copy(alpha = 0.2f)),
+                    shape = RoundedCornerShape(20.dp),
+                    modifier = Modifier.fillMaxWidth().height(36.dp)
+                ) {
+                    Text("Auto Balance", color = Color.White)
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        painter = painterResource(android.R.drawable.ic_dialog_info),
+                        contentDescription = "Info",
+                        tint = Color.White.copy(alpha = 0.7f),
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        if (creditPointAction == "OFFER") 
+                            "Points will be deducted from YOUR account."
+                        else 
+                            "Points will be deducted from THEIR account.",
+                        color = Color.White.copy(alpha = 0.7f),
+                        fontSize = 11.sp,
+                        lineHeight = 14.sp
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun TradeSummaryCard(
+    totalMySide: Double,
+    totalTheirSide: Double,
+    creditPoints: Double,
+    creditPointAction: String,
+    isShort: Boolean,
+    shortAmount: Double
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color(0xFFE8F5E9) // Light Green
+        ),
+        border = androidx.compose.foundation.BorderStroke(2.dp, Color(0xFF4CAF50))
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
-                    Icons.Default.SwapHoriz,
-                    contentDescription = "Swap",
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(32.dp)
+                    Icons.Default.CheckCircle,
+                    contentDescription = null,
+                    tint = Color(0xFF4CAF50),
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    "Trade Summary",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF2E7D32)
                 )
             }
 
-            if (allImages.size > 1) {
-                Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // My Side
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text("Your Total Offer:", color = Color.Black)
+                Text("Rs$totalMySide", color = Color.Black)
+            }
+            if (creditPoints > 0) {
                 Text(
-                    text = "More images:",
-                    fontSize = 10.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(bottom = 4.dp)
+                    text = if (creditPointAction == "OFFER") "(Includes Rs$creditPoints credit)" else "(You request Rs$creditPoints credit)",
+                    fontSize = 12.sp,
+                    color = Color.Gray
                 )
-                androidx.compose.foundation.lazy.LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    items(allImages) { imgUrl ->
-                        AsyncImage(
-                            model = imgUrl,
-                            contentDescription = "Sub image",
-                            modifier = Modifier
-                                .size(60.dp)
-                                .clip(RoundedCornerShape(4.dp))
-                                .border(
-                                    1.dp,
-                                    MaterialTheme.colorScheme.outline,
-                                    RoundedCornerShape(4.dp)
-                                ),
-                            contentScale = androidx.compose.ui.layout.ContentScale.Crop,
-                            error = painterResource(R.drawable.placeholderimage)
-                        )
-                    }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+            Divider(color = Color(0xFF4CAF50), thickness = 2.dp)
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Their Side
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text("Target Value:", color = Color.Black)
+                Text("Rs$totalTheirSide", color = Color.Black)
+            }
+            
+             Spacer(modifier = Modifier.height(12.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text("Status:", color = Color(0xFF2E7D32))
+                if (isShort) {
+                    Text(
+                        "⚠ Gap: Rs${String.format("%.1f", shortAmount)}",
+                        color = Color(0xFFFF9800), // Orange
+                        fontWeight = FontWeight.Bold
+                    )
+                } else {
+                    Text(
+                        "✅ Balanced",
+                        color = Color(0xFF4CAF50),
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun ProductWantCard(product: ProductModel, owner: UserModel?) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+        )
+    ) {
+        Row(
+            modifier = Modifier.padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            AsyncImage(
+                model = product.imageUrl,
+                contentDescription = "Product",
+                modifier = Modifier
+                    .size(80.dp)
+                    .clip(RoundedCornerShape(8.dp)),
+                error = painterResource(R.drawable.placeholderimage),
+                contentScale = androidx.compose.ui.layout.ContentScale.Crop
+            )
+
+            Spacer(modifier = Modifier.width(12.dp))
+
+            Column {
+                Text(
+                    text = "You want:",
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = product.name,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = "Rs${product.price}",
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.SemiBold
+                )
+                if (owner != null) {
+                    Text(
+                        text = "From: ${owner.name}",
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             }
         }
@@ -467,33 +869,29 @@ fun SelectionInstructionCard(selectedCount: Int) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.secondaryContainer
-        )
+            containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f)
+        ),
+        shape = RoundedCornerShape(8.dp)
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.padding(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
-                Icons.Default.SwapHoriz,
-                contentDescription = "Swap",
-                tint = MaterialTheme.colorScheme.onSecondaryContainer
+                painter = painterResource(R.drawable.ic_items), // Ensure this resource exists or use default
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                modifier = Modifier.size(24.dp)
             )
-
-            Column(modifier = Modifier.weight(1f)) {
+            Spacer(modifier = Modifier.width(12.dp))
+            Column {
                 Text(
-                    text = "Select items to offer in exchange",
-                    fontWeight = FontWeight.SemiBold,
+                    text = "Select items to offer",
+                    fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSecondaryContainer
                 )
                 Text(
-                    text = if (selectedCount == 0)
-                        "Choose from your available barter items below"
-                    else
-                        "$selectedCount item${if (selectedCount > 1) "s" else ""} selected",
+                    text = "$selectedCount items selected",
                     fontSize = 12.sp,
                     color = MaterialTheme.colorScheme.onSecondaryContainer
                 )
@@ -504,31 +902,58 @@ fun SelectionInstructionCard(selectedCount: Int) {
 
 @Composable
 fun EmptyStateCard() {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        )
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(24.dp),
+        contentAlignment = Alignment.Center
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(32.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(
-                text = "No Barter Items Available",
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Icon(
+                painter = painterResource(R.drawable.ic_items),
+                contentDescription = null,
+                modifier = Modifier.size(48.dp),
+                tint = MaterialTheme.colorScheme.outline
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = "You don't have any available barter items to offer.\nAdd some items to your profile first!",
-                fontSize = 12.sp,
+                "You don't have any barter items available.",
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center
             )
         }
+    }
+}
+
+@Composable
+fun BarterMessageSection(
+    message: String,
+    onMessageChange: (String) -> Unit
+) {
+    Column {
+        Text(
+            text = "Message to Owner (Optional)",
+            fontWeight = FontWeight.Bold,
+            fontSize = 16.sp,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        OutlinedTextField(
+            value = message,
+            onValueChange = onMessageChange,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(100.dp),
+            placeholder = { Text("Add a message for the owner...") },
+            shape = RoundedCornerShape(12.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedContainerColor = MaterialTheme.colorScheme.surface,
+                unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                cursorColor = MaterialTheme.colorScheme.primary,
+                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                unfocusedBorderColor = MaterialTheme.colorScheme.outline
+            )
+        )
     }
 }
 
@@ -551,37 +976,46 @@ fun UserProductCard(
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(
             containerColor = if (isSelected)
-                MaterialTheme.colorScheme.primaryContainer
+                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.1f)
             else
                 MaterialTheme.colorScheme.surface
         ),
         elevation = CardDefaults.cardElevation(
-            defaultElevation = if (isSelected) 8.dp else 2.dp
+            defaultElevation = if (isSelected) 4.dp else 1.dp
         )
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
+                .padding(12.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             // Selection checkbox
             Box(
                 modifier = Modifier
-                    .size(40.dp)
-                    .clickable { onSelectionChange(!isSelected) },
+                    .size(24.dp)
+                    .clip(CircleShape)
+                    .background(
+                        if (isSelected) MaterialTheme.colorScheme.primary
+                        else Color.Transparent
+                    )
+                    .border(
+                        1.dp,
+                        if (isSelected) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.outline,
+                        CircleShape
+                    ),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(
-                    Icons.Default.CheckCircle,
-                    contentDescription = if (isSelected) "Selected" else "Not selected",
-                    tint = if (isSelected)
-                        MaterialTheme.colorScheme.primary
-                    else
-                        MaterialTheme.colorScheme.outline,
-                    modifier = Modifier.fillMaxSize()
-                )
+                if (isSelected) {
+                    Icon(
+                        Icons.Default.CheckCircle,
+                        contentDescription = "Selected",
+                        tint = Color.White,
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
             }
 
             // Product image
@@ -603,74 +1037,19 @@ fun UserProductCard(
                     fontSize = 14.sp,
                     color = MaterialTheme.colorScheme.onSurface
                 )
-                Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = product.description,
                     fontSize = 12.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 2
+                    maxLines = 1
                 )
-                Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = "Rs${product.price}",
                     color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.SemiBold
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 14.sp
                 )
             }
-        }
-    }
-}
-
-@Composable
-fun BarterMessageSection(
-    message: String,
-    onMessageChange: (String) -> Unit
-) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        )
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-        ) {
-            Text(
-                text = "Message to Owner (Optional)",
-                fontWeight = FontWeight.Bold,
-                fontSize = 16.sp,
-                color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.padding(bottom = 12.dp)
-            )
-
-            OutlinedTextField(
-                value = message,
-                onValueChange = onMessageChange,
-                placeholder = {
-                    Text(
-                        "Add a message for the owner...",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                },
-                modifier = Modifier.fillMaxWidth(),
-                minLines = 3,
-                maxLines = 5,
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = MaterialTheme.colorScheme.primary,
-                    unfocusedBorderColor = MaterialTheme.colorScheme.outline,
-                    cursorColor = MaterialTheme.colorScheme.primary,
-                    focusedTextColor = MaterialTheme.colorScheme.onSurface,
-                    unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
-                    focusedLabelColor = MaterialTheme.colorScheme.primary,
-                    unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
-                ),
-                textStyle = androidx.compose.ui.text.TextStyle(
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-            )
         }
     }
 }
@@ -689,7 +1068,7 @@ fun BarterActionButton(
             .fillMaxWidth()
             .height(56.dp),
         colors = ButtonDefaults.buttonColors(
-            containerColor = MaterialTheme.colorScheme.primary,
+            containerColor = Color(0xFF009688), // Teal color from screenshot
             disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant
         ),
         shape = RoundedCornerShape(12.dp)
@@ -700,21 +1079,12 @@ fun BarterActionButton(
                 color = MaterialTheme.colorScheme.onPrimary
             )
         } else {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(
-                    text = "Send Barter Request",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onPrimary
-                )
-                if (selectedCount > 0) {
-                    Text(
-                        text = "$selectedCount item${if (selectedCount > 1) "s" else ""} offered",
-                        fontSize = 12.sp,
-                        color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f)
-                    )
-                }
-            }
+            Text(
+                text = "Send Barter Request",
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.White
+            )
         }
     }
 }
