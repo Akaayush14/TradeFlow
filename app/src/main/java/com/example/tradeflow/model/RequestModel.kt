@@ -43,7 +43,8 @@ data class RequestModel(
     val responseMessage: String = "",
     val completedAt: Long = 0L,
     val creditPoints: Double = 0.0, // Credit points offered/requested in trade
-    val creditPointAction: String = "OFFER" // "OFFER" (Requester pays) or "REQUEST" (Requester asks)
+    val creditPointAction: String = "OFFER", // "OFFER" (Requester pays) or "REQUEST" (Requester asks)
+    val securityDeposit: Double = 0.0 // Added field
 ) {
     fun toMap(): Map<String, Any?> {
         return mapOf(
@@ -79,7 +80,8 @@ data class RequestModel(
             "responseMessage" to responseMessage,
             "completedAt" to completedAt,
             "creditPoints" to creditPoints,
-            "creditPointAction" to creditPointAction
+            "creditPointAction" to creditPointAction,
+            "securityDeposit" to securityDeposit
         )
     }
 }

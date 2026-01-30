@@ -20,7 +20,8 @@ data class ProductModel(
     var imageUrl3: String = "",
     var imageUrl4: String = "",
     var imageUrls: List<String> = emptyList(),
-    var isListed: Boolean = false
+    var isListed: Boolean = false,
+    var securityDeposit: Double = 0.0 // Added field
 
 ) : Serializable {
     fun toMap(): Map<String, Any?>{
@@ -42,7 +43,8 @@ data class ProductModel(
             "createdAt" to createdAt,
             "isDeleted" to isDeleted,
             "completedAt" to completedAt,
-            "isListed" to isListed
+            "isListed" to isListed,
+            "securityDeposit" to securityDeposit
         )
     }
 }

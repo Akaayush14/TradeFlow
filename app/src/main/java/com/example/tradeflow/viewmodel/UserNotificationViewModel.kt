@@ -68,6 +68,7 @@ class UserNotificationViewModel(
         rentalPricePerDay: Double = 0.0, // For rent
         creditPoints: Double = 0.0, // Added credit points
         creditPointAction: String = "OFFER", // "OFFER" or "REQUEST"
+        securityDeposit: Double = 0.0, // Added security deposit
         onResult: (Boolean, String) -> Unit
     ) {
         viewModelScope.launch {
@@ -122,7 +123,8 @@ class UserNotificationViewModel(
                     rentalPriceFormatted = rentalPriceFormatted,
                     status = "PENDING",
                     creditPoints = creditPoints,
-                    creditPointAction = creditPointAction
+                    creditPointAction = creditPointAction,
+                    securityDeposit = securityDeposit
                 )
 
                 repository.createRequest(request) { success, requestId ->

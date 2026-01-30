@@ -73,6 +73,7 @@ fun UserAddItemScreen(
     // Form fields
     var name by remember { mutableStateOf(initialProduct?.name ?: "") }
     var price by remember { mutableStateOf(if (initialProduct != null) initialProduct.price.toString() else "") }
+    var securityDeposit by remember { mutableStateOf(if (initialProduct != null) initialProduct.securityDeposit.toString() else "") }
     var location by remember { mutableStateOf(initialProduct?.location ?: "") }
     var description by remember { mutableStateOf(initialProduct?.description ?: "") }
     var selectedPurpose by remember { mutableStateOf(initialProduct?.type ?: "Select purpose") }
@@ -137,6 +138,7 @@ fun UserAddItemScreen(
         if (mode == AddItemMode.EDIT && initialProduct != null) {
             name = initialProduct.name
             price = initialProduct.price.toString()
+            securityDeposit = initialProduct.securityDeposit.toString()
             location = initialProduct.location
             description = initialProduct.description
             selectedPurpose = initialProduct.type
@@ -158,6 +160,7 @@ fun UserAddItemScreen(
     fun resetForm() {
         name = ""
         price = ""
+        securityDeposit = ""
         location = ""
         description = ""
         selectedPurpose = "Select purpose"
@@ -199,6 +202,12 @@ fun UserAddItemScreen(
             return
         }
 
+        val securityDepositValue = try {
+            if (securityDeposit.isNotBlank()) securityDeposit.toDouble() else 0.0
+        } catch (e: NumberFormatException) {
+            0.0
+        }
+
         // Define proceedToSave FIRST so it's in scope for uploadNextImage
         fun proceedToSave(
             mainUrl: String,
@@ -210,6 +219,7 @@ fun UserAddItemScreen(
                 productId = if (mode == AddItemMode.EDIT) initialProduct?.productId ?: "" else "",
                 name = name.trim(),
                 price = priceValue,
+                securityDeposit = securityDepositValue,
                 category = category.trim(),
                 location = location.trim(),
                 description = description.trim(),
@@ -576,6 +586,38 @@ fun UserAddItemScreen(
                             }
                         }
                     }
+                }
+            }
+
+            // SECURITY DEPOSIT (Only for Rent or Both)
+            if (selectedPurpose == "Rent" || selectedPurpose == "Both") {
+                item {
+                    OutlinedTextField(
+                        value = securityDeposit,
+                        onValueChange = { securityDeposit = it },
+                        label = {
+                            Text("Security Deposit (Optional)", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        textStyle = TextStyle(
+                            fontSize = 14.sp,
+                            color = MaterialTheme.colorScheme.onSurface
+                        ),
+                        keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Next),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedContainerColor = MaterialTheme.colorScheme.surface,
+                            unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                            focusedBorderColor = MaterialTheme.colorScheme.primary,
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                            cursorColor = MaterialTheme.colorScheme.primary,
+                            focusedLabelColor = MaterialTheme.colorScheme.primary,
+                            unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                            unfocusedTextColor = MaterialTheme.colorScheme.onSurface
+                        ),
+                        shape = RoundedCornerShape(12.dp)
+                    )
                 }
             }
 

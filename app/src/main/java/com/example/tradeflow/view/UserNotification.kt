@@ -424,26 +424,28 @@ fun EnhancedNotificationCard(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     // User Avatar with status indicator - USING DYNAMIC IMAGE
-                    Box {
-                        AsyncImage(
-                            model = senderImage.ifEmpty { R.drawable.placeholderimage },
-                            contentDescription = "Sender",
-                            modifier = Modifier
-                                .size(40.dp)
-                                .clip(CircleShape),
-                            contentScale = ContentScale.Crop,
-                            error = painterResource(R.drawable.placeholderimage)
-                        )
-                        // Unread indicator
-                        if (!notification.isRead) {
-                            Box(
+                    if (notification.type != "ADMIN_UPDATE") {
+                        Box {
+                            AsyncImage(
+                                model = senderImage.ifEmpty { R.drawable.placeholderimage },
+                                contentDescription = "Sender",
                                 modifier = Modifier
-                                    .size(12.dp)
-                                    .clip(CircleShape)
-                                    .background(MaterialTheme.colorScheme.primary)
-                                    .border(2.dp, MaterialTheme.colorScheme.surface, CircleShape)
-                                    .align(Alignment.TopEnd)
+                                    .size(40.dp)
+                                    .clip(CircleShape),
+                                contentScale = ContentScale.Crop,
+                                error = painterResource(R.drawable.placeholderimage)
                             )
+                            // Unread indicator
+                            if (!notification.isRead) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(12.dp)
+                                        .clip(CircleShape)
+                                        .background(MaterialTheme.colorScheme.primary)
+                                        .border(2.dp, MaterialTheme.colorScheme.surface, CircleShape)
+                                        .align(Alignment.TopEnd)
+                                )
+                            }
                         }
                     }
 
