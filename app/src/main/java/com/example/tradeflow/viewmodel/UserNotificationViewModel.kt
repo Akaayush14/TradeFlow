@@ -19,6 +19,9 @@ class UserNotificationViewModel(
     private val productRepository: ProductRepo
 ) : ViewModel() {
 
+    private val userRepo = com.example.tradeflow.repository.UserRepoImpl()
+    private val pointTransactionRepo = com.example.tradeflow.repository.PointTransactionRepoImpl()
+
     private val _notifications = MutableStateFlow<List<UserNotificationModel>>(emptyList())
     val notifications: StateFlow<List<UserNotificationModel>> = _notifications
 
@@ -63,6 +66,9 @@ class UserNotificationViewModel(
         rentalStartDate: Long = 0L, // For rent
         rentalEndDate: Long = 0L, // For rent
         rentalPricePerDay: Double = 0.0, // For rent
+        creditPoints: Double = 0.0, // Added credit points
+        creditPointAction: String = "OFFER", // "OFFER" or "REQUEST"
+        securityDeposit: Double = 0.0, // Added security deposit
         onResult: (Boolean, String) -> Unit
     ) {
         viewModelScope.launch {
@@ -115,7 +121,10 @@ class UserNotificationViewModel(
                     rentalPricePerDay = rentalPricePerDay,
                     rentalTotalPrice = rentalTotalPrice,
                     rentalPriceFormatted = rentalPriceFormatted,
-                    status = "PENDING"
+                    status = "PENDING",
+                    creditPoints = creditPoints,
+                    creditPointAction = creditPointAction,
+                    securityDeposit = securityDeposit
                 )
 
                 repository.createRequest(request) { success, requestId ->
@@ -157,6 +166,8 @@ class UserNotificationViewModel(
                             offeredItems = offeredItemsList,
                             rentalPeriod = rentalPeriod,
                             rentalPrice = rentalPriceFormatted,
+                            creditPoints = creditPoints,
+                            creditPointAction = creditPointAction,
                             requestId = requestId,
                             isRead = false,
                             status = "" // Empty status means pending action
@@ -326,6 +337,122 @@ class UserNotificationViewModel(
                                     productRepository.updateProductStatus(request.offerProductId, "Completed") { _, _ -> }
                                 }
 
+                                // Transfer credit points if applicable
+                                if (request.creditPoints > 0) {
+                                    val points = request.creditPoints.toLong()
+                                    val isOffer = request.creditPointAction == "OFFER" // Default to OFFER
+
+                                    if (isOffer) {
+                                        // Case 1: Requester PAYS Owner (Original Logic)
+                                        // Deduct from requester
+                                        userRepo.updateUserPoints(request.requesterId, -points) { _, _ -> }
+                                        // Add to owner
+                                        userRepo.updateUserPoints(request.ownerId, points) { _, _ -> }
+
+                                        // Create transaction records
+                                        val requesterTx = com.example.tradeflow.model.PointTransaction(
+                                            userId = request.requesterId,
+                                            type = "DEBIT",
+                                            source = "Barter Offer: ${request.productName}",
+                                            points = -points,
+                                            amount = 0.0,
+                                            timestamp = System.currentTimeMillis()
+                                        )
+                                        pointTransactionRepo.saveTransaction(requesterTx) { success, msg ->
+                                            if (!success) android.util.Log.e("TradeFlow", "Failed to save requester tx: $msg")
+                                        }
+
+                                        val ownerTx = com.example.tradeflow.model.PointTransaction(
+                                            userId = request.ownerId,
+                                            type = "CREDIT",
+                                            source = "Barter Offer: ${request.productName}",
+                                            points = points,
+                                            amount = 0.0,
+                                            timestamp = System.currentTimeMillis()
+                                        )
+                                        pointTransactionRepo.saveTransaction(ownerTx) { success, msg ->
+                                            if (!success) android.util.Log.e("TradeFlow", "Failed to save owner tx: $msg")
+                                        }
+
+                                        // Create notification for Owner (Credit Received)
+                                        val creditMessage = "You earned ${points.toInt()} points from your barter with ${request.requesterName}."
+                                        val creditNotification = UserNotificationModel(
+                                            type = "ACCEPTED",
+                                            requestType = "BARTER",
+                                            title = "Points Credited",
+                                            message = creditMessage,
+                                            senderId = request.requesterId,
+                                            senderName = request.requesterName,
+                                            senderImage = request.requesterImage,
+                                            senderRating = request.requesterRating,
+                                            senderReviewCount = request.requesterReviewCount,
+                                            receiverId = request.ownerId,
+                                            productId = request.productId,
+                                            productName = request.productName,
+                                            productImage = request.productImage,
+                                            requestId = request.requestId,
+                                            status = "COMPLETED",
+                                            creditPoints = request.creditPoints,
+                                            createdAt = System.currentTimeMillis() + 10
+                                        )
+                                        repository.createNotification(creditNotification) { _, _ -> }
+                                    } else {
+                                        // Case 2: Owner PAYS Requester (New Logic)
+                                        // Deduct from owner
+                                        userRepo.updateUserPoints(request.ownerId, -points) { _, _ -> }
+                                        // Add to requester
+                                        userRepo.updateUserPoints(request.requesterId, points) { _, _ -> }
+
+                                        // Create transaction records
+                                        val ownerTx = com.example.tradeflow.model.PointTransaction(
+                                            userId = request.ownerId,
+                                            type = "DEBIT",
+                                            source = "Barter Request: ${request.productName}",
+                                            points = -points,
+                                            amount = 0.0,
+                                            timestamp = System.currentTimeMillis()
+                                        )
+                                        pointTransactionRepo.saveTransaction(ownerTx) { success, msg ->
+                                            if (!success) android.util.Log.e("TradeFlow", "Failed to save owner tx: $msg")
+                                        }
+
+                                        val requesterTx = com.example.tradeflow.model.PointTransaction(
+                                            userId = request.requesterId,
+                                            type = "CREDIT",
+                                            source = "Barter Request: ${request.productName}",
+                                            points = points,
+                                            amount = 0.0,
+                                            timestamp = System.currentTimeMillis()
+                                        )
+                                        pointTransactionRepo.saveTransaction(requesterTx) { success, msg ->
+                                            if (!success) android.util.Log.e("TradeFlow", "Failed to save requester tx: $msg")
+                                        }
+
+                                        // Create notification for Owner (Debit Notification)
+                                        val debitMessage = "You paid ${points.toInt()} points for barter with ${request.requesterName}."
+                                        val debitNotification = UserNotificationModel(
+                                            type = "ACCEPTED",
+                                            requestType = "BARTER",
+                                            title = "Points Debited",
+                                            message = debitMessage,
+                                            senderId = request.requesterId,
+                                            senderName = request.requesterName,
+                                            senderImage = request.requesterImage,
+                                            senderRating = request.requesterRating,
+                                            senderReviewCount = request.requesterReviewCount,
+                                            receiverId = request.ownerId,
+                                            productId = request.productId,
+                                            productName = request.productName,
+                                            productImage = request.productImage,
+                                            requestId = request.requestId,
+                                            status = "COMPLETED",
+                                            creditPoints = request.creditPoints,
+                                            createdAt = System.currentTimeMillis() + 10
+                                        )
+                                        repository.createNotification(debitNotification) { _, _ -> }
+                                    }
+                                }
+
                                 // Update local notification status and sync with DB
                                 _notifications.value = _notifications.value.map { notif ->
                                     if (notif.requestId == requestId) {
@@ -339,7 +466,17 @@ class UserNotificationViewModel(
 
                                 // Create notification for requester
                                 val acceptMessage = when (request.productType) {
-                                    "BARTER" -> "Barter request accepted!"
+                                    "BARTER" -> {
+                                        if (request.creditPoints > 0) {
+                                            if (request.creditPointAction == "REQUEST") {
+                                                "Barter request accepted! ${request.creditPoints.toInt()} points added to your account."
+                                            } else {
+                                                "Barter request accepted! ${request.creditPoints.toInt()} points deducted."
+                                            }
+                                        } else {
+                                            "Barter request accepted!"
+                                        }
+                                    }
                                     "RENT" -> "Your rental request for ${request.productName} has been approved!"
                                     else -> "Your request for ${request.productName} has been accepted!"
                                 }

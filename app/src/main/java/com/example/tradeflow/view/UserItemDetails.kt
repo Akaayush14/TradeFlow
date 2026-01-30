@@ -528,7 +528,12 @@ fun ItemDetailsScreen() {
                         }
 
                         Text(
-                            text = "Status: ${productItem.status}",
+                            text = "Status: ${when {
+                                productItem.status == "Completed" -> "Completed"
+                                productItem.status == "Rented" -> "Rented"
+                                !productItem.isListed -> "Pending"
+                                else -> "Available"
+                            }}",
                             fontSize = 14.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
