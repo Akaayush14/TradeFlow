@@ -109,7 +109,7 @@ fun UserProfileScreen(
         Log.d("ProfileScreen", "Is profileImageUrl empty?: ${userData?.profileImageUrl.isNullOrEmpty()}")
     }
 
-    // Memoized filtering logic
+    // Memoized filtering logic with updated status logic
     val filteredListings = remember(selectedTab, selectedStatus, allProducts) {
         val typeFiltered = when (selectedTab) {
             ListingType.BARTER -> allProducts.filter { it.type == "Barter" && it.isDeleted != true }
@@ -117,11 +117,20 @@ fun UserProfileScreen(
             ListingType.BOTH -> allProducts.filter { it.isDeleted != true }
         }
 
+        // Apply status filtering based on the new logic:
+        // Available: isListed=true AND status not "Completed" or "Rented"
+        // Pending: isListed=false AND status not "Completed" or "Rented"
         when (selectedStatus) {
             ListingStatus.ALL -> typeFiltered
-            ListingStatus.AVAILABLE -> typeFiltered.filter { it.status == "Available" }
-            ListingStatus.PENDING -> typeFiltered.filter { it.status == "Pending" }
-            ListingStatus.COMPLETED -> typeFiltered.filter { it.status == "Completed" || it.status == "Rented" }
+            ListingStatus.AVAILABLE -> typeFiltered.filter {
+                it.isListed && it.status != "Completed" && it.status != "Rented"
+            }
+            ListingStatus.PENDING -> typeFiltered.filter {
+                !it.isListed && it.status != "Completed" && it.status != "Rented"
+            }
+            ListingStatus.COMPLETED -> typeFiltered.filter {
+                it.status == "Completed" || it.status == "Rented"
+            }
         }
     }
 
@@ -641,21 +650,27 @@ fun ProductItemCard(
             Spacer(modifier = Modifier.width(16.dp))
 
             Column(modifier = Modifier.weight(1f)) {
+                // Updated status display logic
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(12.dp))
                         .background(
-                            when (product.status) {
-                                "Available" -> MaterialTheme.colorScheme.primary
-                                "Pending" -> MaterialTheme.colorScheme.secondary
-                                "Completed" -> MaterialTheme.colorScheme.tertiary
-                                else -> MaterialTheme.colorScheme.outline
+                            when {
+                                product.status == "Completed" -> MaterialTheme.colorScheme.tertiary
+                                product.status == "Rented" -> MaterialTheme.colorScheme.tertiary
+                                !product.isListed -> MaterialTheme.colorScheme.secondary // Show as Pending for isListed=false
+                                else -> MaterialTheme.colorScheme.primary // Show as Available for isListed=true
                             }
                         )
                         .padding(horizontal = 8.dp, vertical = 4.dp)
                 ) {
                     Text(
-                        text = product.status,
+                        text = when {
+                            product.status == "Completed" -> "Completed"
+                            product.status == "Rented" -> "Rented"
+                            !product.isListed -> "Pending"  // isListed = false
+                            else -> "Available"  // isListed = true AND status not completed/rented
+                        },
                         color = MaterialTheme.colorScheme.onPrimary,
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Bold
@@ -769,8 +784,8 @@ fun ProductItemCard(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        // Edit Button
-                        if (product.status != "Completed") {
+                        // Edit Button - Show for all non-completed/rented items
+                        if (product.status != "Completed" && product.status != "Rented") {
                             Card(
                                 modifier = Modifier
                                     .weight(1f)
@@ -807,8 +822,8 @@ fun ProductItemCard(
                             }
                         }
 
-                        // Mark as Traded Button
-                        if (product.status != "Completed") {
+                        // Mark as Traded Button - Only show for Available items (isListed=true)
+                        if (product.isListed && product.status != "Completed" && product.status != "Rented") {
                             Card(
                                 modifier = Modifier
                                     .weight(1f)
@@ -823,8 +838,8 @@ fun ProductItemCard(
                                     modifier = Modifier
                                         .fillMaxSize()
                                         .clickable {
-                                            showMarkConfirm = product.status == "Available"
-                                            showMarkBlocked = product.status == "Pending" || product.status == "Completed"
+                                            showMarkConfirm = product.isListed && product.status != "Completed" && product.status != "Rented"
+                                            showMarkBlocked = !product.isListed || product.status == "Completed" || product.status == "Rented"
                                         },
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.Center
@@ -848,8 +863,8 @@ fun ProductItemCard(
                             }
                         }
 
-                        // Delete Button
-                        if (product.status != "Completed") {
+                        // Delete Button - Only show for Pending items (isListed=false)
+                        if (!product.isListed && product.status != "Completed" && product.status != "Rented") {
                             Card(
                                 modifier = Modifier
                                     .weight(1f)
@@ -864,8 +879,8 @@ fun ProductItemCard(
                                     modifier = Modifier
                                         .fillMaxSize()
                                         .clickable {
-                                            showDeleteConfirm = product.status == "Available"
-                                            showDeleteBlocked = product.status == "Pending" || product.status == "Completed"
+                                            showDeleteConfirm = !product.isListed && product.status != "Completed" && product.status != "Rented"
+                                            showDeleteBlocked = product.isListed || product.status == "Completed" || product.status == "Rented"
                                         },
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.Center
@@ -890,7 +905,7 @@ fun ProductItemCard(
                         }
                     }
 
-                    if (product.status == "Completed") {
+                    if (product.status == "Completed" || product.status == "Rented") {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.Start
@@ -902,7 +917,7 @@ fun ProductItemCard(
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
-                                text = "Traded successfully",
+                                text = if (product.status == "Rented") "Rented successfully" else "Traded successfully",
                                 fontSize = 12.sp,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
@@ -1000,7 +1015,7 @@ fun ProductItemCard(
                             },
                             text = {
                                 Text(
-                                    "You can mark this item as traded only after completion.",
+                                    "You can mark this item as traded only when it's available (listed).",
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             },
@@ -1029,23 +1044,15 @@ fun ProductItemCard(
                             },
                             text = {
                                 Text(
-                                    "You can't delete this item while a trade is in progress.",
+                                    "You can only delete pending items (not listed). Available items must be marked as traded first.",
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             },
                             confirmButton = {
                                 TextButton(onClick = { showDeleteBlocked = false }) {
                                     Text(
-                                        "Mark as completed",
+                                        "OK",
                                         color = MaterialTheme.colorScheme.primary
-                                    )
-                                }
-                            },
-                            dismissButton = {
-                                TextButton(onClick = { showDeleteBlocked = false }) {
-                                    Text(
-                                        "Cancel trade",
-                                        color = MaterialTheme.colorScheme.onSurface
                                     )
                                 }
                             },
