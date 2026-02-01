@@ -187,8 +187,7 @@ class PointDealViewModel(
                                 }
 
                                 // Deal reserved, now deduct points
-                                val updatedPoints = user.points - pointsRequired
-                                userRepo.updateUserPoints(userId, updatedPoints) { pointsSuccess, pointsMessage ->
+                                userRepo.updateUserPoints(userId, -pointsRequired) { pointsSuccess, pointsMessage ->
                                     if (pointsSuccess) {
                                         val redemption = UserPointRedemModel(
                                             redemptionId = "",
@@ -272,8 +271,7 @@ class PointDealViewModel(
                     if (success && user != null) {
                         val reward = deal.rewardPoints
                         if (reward > 0L) {
-                            val updatedPoints = user.points + reward
-                            userRepo.updateUserPoints(userId, updatedPoints) { pointsSuccess, pointsMessage ->
+                            userRepo.updateUserPoints(userId, reward) { pointsSuccess, pointsMessage ->
                                 if (pointsSuccess) {
                                     val redemption = UserPointRedemModel(
                                         redemptionId = "",
@@ -328,8 +326,7 @@ class PointDealViewModel(
 
         userRepo.getUserByIdSingle(userId) { success, message, user ->
             if (success && user != null) {
-                val updatedPoints = user.points + points
-                userRepo.updateUserPoints(userId, updatedPoints) { pointsSuccess, pointsMessage ->
+                userRepo.updateUserPoints(userId, points) { pointsSuccess, pointsMessage ->
                     if (pointsSuccess) {
                         txRepo.saveTransaction(
                             PointTransaction(
@@ -395,8 +392,7 @@ class PointDealViewModel(
     fun giftPointsToUser(targetUserId: String, points: Long, dealTitle: String, callback: (Boolean, String) -> Unit) {
         userRepo.getUserByIdSingle(targetUserId) { success, message, user ->
             if (success && user != null) {
-                val updatedPoints = user.points + points
-                userRepo.updateUserPoints(targetUserId, updatedPoints) { pointsSuccess, pointsMessage ->
+                userRepo.updateUserPoints(targetUserId, points) { pointsSuccess, pointsMessage ->
                     if (pointsSuccess) {
                         txRepo.saveTransaction(
                             PointTransaction(
