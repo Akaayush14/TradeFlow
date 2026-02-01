@@ -61,6 +61,7 @@ fun UserNotificationScreen(
     val myRequests by viewModel.myRequests.collectAsState()
     val currentUser = FirebaseAuth.getInstance().currentUser
     val userId = currentUser?.uid ?: ""
+    val context = LocalContext.current
 
     var selectedFilter by remember { mutableStateOf("All") }
     var showAcceptDialog by remember { mutableStateOf(false) }
@@ -213,7 +214,14 @@ fun UserNotificationScreen(
                                         currentUserId = userId,
                                         onClick = {
                                             viewModel.markAsRead(notification.notificationId)
-                                            onNotificationClick(notification)
+                                            if (notification.type == "PAYMENT_REQUIRED") {
+                                                val intent = Intent(context, RentalPaymentActivity::class.java).apply {
+                                                    putExtra("requestId", notification.requestId)
+                                                }
+                                                context.startActivity(intent)
+                                            } else {
+                                                onNotificationClick(notification)
+                                            }
                                         },
                                         onAccept = {
                                             selectedNotification = notification
@@ -721,26 +729,26 @@ fun EnhancedNotificationCard(
                                 )
                             }
                             
-                            // Only show Pay Deposit button to the Requester (Sender)
-                            if (notification.senderId == currentUserId) {
-                                Spacer(modifier = Modifier.height(8.dp))
-                                
-                                Button(
-                                    onClick = {
-                                        val intent = Intent(context, RentalPaymentActivity::class.java)
-                                        intent.putExtra("requestId", notification.requestId)
-                                        intent.putExtra("productId", notification.productId)
-                                        intent.putExtra("ownerId", notification.senderId)
-                                        context.startActivity(intent)
-                                    },
-                                    modifier = Modifier.fillMaxWidth(),
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = Greenish
-                                    ),
-                                    shape = RoundedCornerShape(8.dp)
-                                ) {
-                                    Text("Pay Deposit", fontWeight = FontWeight.Bold)
-                                }
+                            // Show Pay Deposit button to the Requester (Receiver)
+                            // The notification is sent BY Owner TO Requester.
+                            // So we show button if current user is NOT the sender (Owner), or simply if they are the receiver.
+                            Spacer(modifier = Modifier.height(8.dp))
+                            
+                            Button(
+                                onClick = {
+                                    val intent = Intent(context, RentalPaymentActivity::class.java)
+                                    intent.putExtra("requestId", notification.requestId)
+                                    intent.putExtra("productId", notification.productId)
+                                    intent.putExtra("ownerId", notification.senderId)
+                                    context.startActivity(intent)
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = Greenish
+                                ),
+                                shape = RoundedCornerShape(8.dp)
+                            ) {
+                                Text("Pay Deposit", fontWeight = FontWeight.Bold)
                             }
                         }
                     } else {

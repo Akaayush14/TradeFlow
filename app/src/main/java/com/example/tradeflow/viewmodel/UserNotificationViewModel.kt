@@ -468,8 +468,11 @@ class UserNotificationViewModel(
                                 }
 
                                 // Create notification for requester
-                                val acceptMessage = when (request.productType) {
-                                    "BARTER" -> {
+                                val isRent = request.productType.equals("RENT", ignoreCase = true)
+                                val isBarter = request.productType.equals("BARTER", ignoreCase = true)
+
+                                val acceptMessage = when {
+                                    isBarter -> {
                                         if (request.creditPoints > 0) {
                                             if (request.creditPointAction == "REQUEST") {
                                                 "Barter request accepted! ${request.creditPoints.toInt()} points added to your account."
@@ -480,12 +483,14 @@ class UserNotificationViewModel(
                                             "Barter request accepted!"
                                         }
                                     }
-                                    "RENT" -> "Your rental request for ${request.productName} has been approved! Please pay the security deposit to confirm."
+                                    isRent -> "Your rental request for ${request.productName} has been approved! Please pay the security deposit to confirm."
                                     else -> "Your request for ${request.productName} has been accepted!"
                                 }
 
+                                val notificationType = if (isRent) "PAYMENT_REQUIRED" else "ACCEPTED"
+
                                 val notification = UserNotificationModel(
-                                    type = "ACCEPTED",
+                                    type = notificationType,
                                     requestType = request.productType,
                                     title = "Request Accepted",
                                     message = acceptMessage,
@@ -646,7 +651,12 @@ class UserNotificationViewModel(
                     repository.deleteRequest(request.requestId) { deleteSuccess, _ ->
                         if (deleteSuccess) {
                             // 2. Revert Owner's Product to Available
-                            productRepository.updateProductStatus(request.productId, "Available") { _, _ -> }
+                            if (request.productType.equals("RENT", ignoreCase = true)) {
+                                // For Rent, we must also reset rentalEndDate and activeRequestId
+                                productRepository.updateProductRentalInfo(request.productId, "Available", 0L, "") { _, _ -> }
+                            } else {
+                                productRepository.updateProductStatus(request.productId, "Available") { _, _ -> }
+                            }
 
                             // 3. Revert Requester's Offer Product to Available (if Barter)
                             if (request.productType == "BARTER" && request.offerProductId.isNotEmpty()) {

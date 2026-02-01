@@ -578,7 +578,8 @@ fun TradeHistoryItem(
                 // Status Badge
                 val isReturned = request.status.equals("RETURNED", ignoreCase = true)
                 val isAccepted = request.status.equals("ACCEPTED", ignoreCase = true)
-                val isRented = isAccepted && request.productType.equals("RENT", ignoreCase = true)
+                val isConfirmed = request.status.equals("CONFIRMED", ignoreCase = true)
+                val isRented = (isAccepted || isConfirmed) && request.productType.equals("RENT", ignoreCase = true)
                 
                 val statusText = when {
                     isReturned -> "Returned"

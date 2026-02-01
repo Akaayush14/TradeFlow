@@ -429,20 +429,32 @@ class UserNotificationRepoImpl : UserNotificationRepo {
         callback: (Boolean, String, RequestModel?) -> Unit
     ) {
         try {
-            requestsRef.orderByChild("status").equalTo("ACCEPTED")
-                .limitToLast(1)
+            // Fetch recent requests to find the last ACCEPTED or CONFIRMED trade
+            requestsRef.orderByKey().limitToLast(10)
                 .addListenerForSingleValueEvent(object : ValueEventListener {
                     override fun onDataChange(snapshot: DataSnapshot) {
                         if (snapshot.exists() && snapshot.childrenCount > 0) {
-                            val child = snapshot.children.first()
-                            val request = child.getValue(RequestModel::class.java)
-                            if (request != null) {
-                                callback(true, "Success", request.copy(requestId = child.key ?: ""))
+                            // Children are returned in ascending order (oldest first)
+                            // We reverse to check newest first
+                            val children = snapshot.children.toList().reversed()
+                            
+                            val found = children.find { child ->
+                                val status = child.child("status").getValue(String::class.java)
+                                status == "ACCEPTED" || status == "CONFIRMED"
+                            }
+
+                            if (found != null) {
+                                val request = found.getValue(RequestModel::class.java)
+                                if (request != null) {
+                                    callback(true, "Success", request.copy(requestId = found.key ?: ""))
+                                } else {
+                                    callback(false, "Failed to parse request", null)
+                                }
                             } else {
-                                callback(false, "Failed to parse request", null)
+                                callback(false, "No revertible trade found", null)
                             }
                         } else {
-                            callback(false, "No accepted requests found", null)
+                            callback(false, "No requests found", null)
                         }
                     }
 
