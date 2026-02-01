@@ -14,6 +14,11 @@ interface PointTransactionRepo {
         onChange: (List<PointTransaction>) -> Unit
     ): ValueEventListener
 
+    fun getTransactionsSingle(
+        userId: String,
+        callback: (List<PointTransaction>) -> Unit
+    )
+
     fun deleteTransaction(transactionId: String, callback: (Boolean, String) -> Unit)
     fun deleteAllTransactions(userId: String, callback: (Boolean, String) -> Unit)
 

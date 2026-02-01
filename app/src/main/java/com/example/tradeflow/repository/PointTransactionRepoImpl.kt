@@ -56,6 +56,28 @@ class PointTransactionRepoImpl : PointTransactionRepo {
         return listener
     }
 
+    override fun getTransactionsSingle(
+        userId: String,
+        callback: (List<PointTransaction>) -> Unit
+    ) {
+        ref.orderByChild("userId").equalTo(userId).addListenerForSingleValueEvent(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val list = mutableListOf<PointTransaction>()
+                for (child in snapshot.children) {
+                    val tx = child.getValue(PointTransaction::class.java)
+                    if (tx != null) {
+                        list.add(tx)
+                    }
+                }
+                callback(list)
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                callback(emptyList())
+            }
+        })
+    }
+
     override fun deleteTransaction(transactionId: String, callback: (Boolean, String) -> Unit) {
         ref.child(transactionId).removeValue()
             .addOnCompleteListener { task ->

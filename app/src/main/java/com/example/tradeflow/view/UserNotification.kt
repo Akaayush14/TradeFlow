@@ -18,6 +18,7 @@ import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -64,7 +65,10 @@ fun UserNotificationScreen(
     var selectedFilter by remember { mutableStateOf("All") }
     var showAcceptDialog by remember { mutableStateOf(false) }
     var showRejectDialog by remember { mutableStateOf(false) }
+    var showDeleteDialog by remember { mutableStateOf(false) }
+    var showDeleteRequestDialog by remember { mutableStateOf(false) }
     var selectedNotification by remember { mutableStateOf<UserNotificationModel?>(null) }
+    var selectedRequest by remember { mutableStateOf<RequestModel?>(null) }
 
     LaunchedEffect(userId) {
         if (userId.isNotEmpty()) {
@@ -220,7 +224,11 @@ fun UserNotificationScreen(
                                             showRejectDialog = true
                                         },
                                         onViewDetails = { onViewDetails(notification.requestId) },
-                                        onMessage = { onMessageClick(notification.senderId) } // ADDED FROM FRIEND'S CODE
+                                        onMessage = { onMessageClick(notification.senderId) }, // ADDED FROM FRIEND'S CODE
+                                        onDelete = {
+                                            selectedNotification = notification
+                                            showDeleteDialog = true
+                                        }
                                     )
                                 }
                             }
@@ -267,6 +275,10 @@ fun UserNotificationScreen(
                                             if (request.status == "PENDING") {
                                                 viewModel.cancelRequest(request.requestId) { _, _ -> }
                                             }
+                                        },
+                                        onDelete = {
+                                            selectedRequest = request
+                                            showDeleteRequestDialog = true
                                         }
                                     )
                                 }
@@ -378,6 +390,100 @@ fun UserNotificationScreen(
             textContentColor = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
+
+    // Delete Dialog
+    if (showDeleteDialog && selectedNotification != null) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = {
+                Text(
+                    "Delete Notification?",
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            },
+            text = {
+                Text(
+                    "Are you sure you want to delete this notification?",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        viewModel.deleteNotification(selectedNotification!!.notificationId) { _, _ -> }
+                        showDeleteDialog = false
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.errorContainer
+                    ),
+                    contentPadding = PaddingValues(horizontal = 24.dp)
+                ) {
+                    Text(
+                        "Delete",
+                        color = MaterialTheme.colorScheme.onErrorContainer
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = false }) {
+                    Text(
+                        "Cancel",
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+            },
+            containerColor = MaterialTheme.colorScheme.surface,
+            titleContentColor = MaterialTheme.colorScheme.onSurface,
+            textContentColor = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+
+    // Delete Request Dialog
+    if (showDeleteRequestDialog && selectedRequest != null) {
+        AlertDialog(
+            onDismissRequest = { showDeleteRequestDialog = false },
+            title = {
+                Text(
+                    "Delete Request?",
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            },
+            text = {
+                Text(
+                    "Are you sure you want to delete this request from your history?",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        viewModel.deleteRequest(selectedRequest!!.requestId) { _, _ -> }
+                        showDeleteRequestDialog = false
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.errorContainer
+                    ),
+                    contentPadding = PaddingValues(horizontal = 24.dp)
+                ) {
+                    Text(
+                        "Delete",
+                        color = MaterialTheme.colorScheme.onErrorContainer
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteRequestDialog = false }) {
+                    Text(
+                        "Cancel",
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+            },
+            containerColor = MaterialTheme.colorScheme.surface,
+            titleContentColor = MaterialTheme.colorScheme.onSurface,
+            textContentColor = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
 }
 
 @Composable
@@ -388,7 +494,8 @@ fun EnhancedNotificationCard(
     onAccept: () -> Unit = {},
     onReject: () -> Unit = {},
     onViewDetails: () -> Unit = {},
-    onMessage: () -> Unit = {}
+    onMessage: () -> Unit = {},
+    onDelete: () -> Unit = {}
 ) {
     // FROM FRIEND'S CODE: Dynamic user image loading
     var senderImage by remember { mutableStateOf(notification.senderImage) }
@@ -504,12 +611,28 @@ fun EnhancedNotificationCard(
                     }
                 }
 
-                // Time
-                Text(
-                    text = formatTime(notification.createdAt),
-                    fontSize = 11.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                // Time and Delete
+                Column(
+                    horizontalAlignment = Alignment.End,
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Text(
+                        text = formatTime(notification.createdAt),
+                        fontSize = 11.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    IconButton(
+                        onClick = onDelete,
+                        modifier = Modifier.size(20.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Delete,
+                            contentDescription = "Delete Notification",
+                            tint = MaterialTheme.colorScheme.error.copy(alpha = 0.6f),
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                }
             }
 
             Spacer(modifier = Modifier.height(12.dp))
@@ -833,7 +956,8 @@ private fun formatAmount(value: Double): String {
 @Composable
 fun SentRequestCard(
     request: RequestModel,
-    onCancel: () -> Unit
+    onCancel: () -> Unit,
+    onDelete: () -> Unit = {}
 ) {
     // FROM FRIEND'S CODE: Dynamic owner image loading
     var ownerImage by remember { mutableStateOf(request.ownerImage) }
@@ -878,12 +1002,30 @@ fun SentRequestCard(
                 .fillMaxWidth()
                 .padding(16.dp)
         ) {
-            Text(
-                text = if (request.productType == "BARTER") "Barter Request" else "Rent Request",
-                fontSize = 12.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = if (request.productType == "BARTER") "Barter Request" else "Rent Request",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                
+                IconButton(
+                    onClick = onDelete,
+                    modifier = Modifier.size(20.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = "Delete Request",
+                        tint = MaterialTheme.colorScheme.error.copy(alpha = 0.6f),
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+            }
             Spacer(modifier = Modifier.height(8.dp))
             ProductDetailsSection(
                 header = "Item you're requesting",

@@ -285,7 +285,7 @@ fun BarterRequestScreen() {
             // Action button
             item {
                 BarterActionButton(
-                    isEnabled = selectedItems.isNotEmpty() && !isLoading && (creditPointAction == "REQUEST" || creditAmount <= availablePoints),
+                    isEnabled = selectedItems.isNotEmpty() && !isLoading,
                     isLoading = isLoading,
                     selectedCount = selectedItems.size,
                     onClick = {
@@ -306,10 +306,8 @@ fun BarterRequestScreen() {
                         } else if (selectedItems.isEmpty()) {
                             errorMessage = "Please select at least one item to offer"
                             showErrorDialog = true
-                        } else if (creditPointAction == "OFFER" && creditAmount > availablePoints) {
-                            errorMessage = "Insufficient credit points"
-                            showErrorDialog = true
                         } else {
+                            // Validation passed (Overdraft allowed)
                             val selectedProductList = userProducts.filter {
                                 selectedItems.contains(it.productId)
                             }

@@ -49,7 +49,8 @@ data class RequestModel(
     // EARLY RETURN / RENT PAYMENT FIELDS
     val returnDate: Long = 0L,
     val finalRentAmount: Double = 0.0,
-    val isRentPaid: Boolean = false
+    val isRentPaid: Boolean = false,
+    val deletedByRequester: Boolean = false
 ) {
     fun toMap(): Map<String, Any?> {
         return mapOf(
@@ -89,7 +90,8 @@ data class RequestModel(
             "securityDeposit" to securityDeposit,
             "returnDate" to returnDate,
             "finalRentAmount" to finalRentAmount,
-            "isRentPaid" to isRentPaid
+            "isRentPaid" to isRentPaid,
+            "deletedByRequester" to deletedByRequester
         )
     }
 }

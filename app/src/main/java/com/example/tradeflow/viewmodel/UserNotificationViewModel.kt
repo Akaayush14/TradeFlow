@@ -228,7 +228,8 @@ class UserNotificationViewModel(
         viewModelScope.launch {
             repository.getRequestsByRequester(userId) { success, _, requests ->
                 if (success) {
-                    _myRequests.value = requests?.sortedByDescending { it.createdAt } ?: emptyList()
+                    val activeRequests = requests?.filter { !it.deletedByRequester } ?: emptyList()
+                    _myRequests.value = activeRequests.sortedByDescending { it.createdAt }
                 }
             }
         }
@@ -610,6 +611,106 @@ class UserNotificationViewModel(
                     _unreadCount.value = _notifications.value.count { !it.isRead }
                 }
                 onResult(success, message)
+            }
+        }
+    }
+
+    fun deleteRequest(
+        requestId: String,
+        onResult: (Boolean, String) -> Unit
+    ) {
+        viewModelScope.launch {
+            repository.deleteRequestForRequester(requestId) { success, message ->
+                if (success) {
+                    _myRequests.value = _myRequests.value.filter {
+                        it.requestId != requestId
+                    }
+                }
+                onResult(success, message)
+            }
+        }
+    }
+
+    /**
+     * Admin Tool: Revert the last completed trade
+     * Used for development/testing to reset items and points
+     * CLEAN REVERT: Deletes request, history, and notifications.
+     */
+    fun revertLastCompletedTrade(
+        onResult: (Boolean, String, RequestModel?) -> Unit
+    ) {
+        viewModelScope.launch {
+            repository.getLastAcceptedRequest { success, message, request ->
+                if (success && request != null) {
+                    // 1. DELETE Request (Hard Delete)
+                    repository.deleteRequest(request.requestId) { deleteSuccess, _ ->
+                        if (deleteSuccess) {
+                            // 2. Revert Owner's Product to Available
+                            productRepository.updateProductStatus(request.productId, "Available") { _, _ -> }
+
+                            // 3. Revert Requester's Offer Product to Available (if Barter)
+                            if (request.productType == "BARTER" && request.offerProductId.isNotEmpty()) {
+                                productRepository.updateProductStatus(request.offerProductId, "Available") { _, _ -> }
+                            }
+                            
+                            // 3.1 Revert multiple offered items if any
+                            if (request.productType == "BARTER" && request.offeredItems != null) {
+                                request.offeredItems.forEach { item ->
+                                    productRepository.updateProductStatus(item.productId, "Available") { _, _ -> }
+                                }
+                            }
+
+                            // 4. Reverse Points Balance (No Reversal Record, just update balance)
+                            if (request.creditPoints > 0) {
+                                val points = request.creditPoints.toLong()
+                                val isOffer = request.creditPointAction == "OFFER"
+
+                                if (isOffer) {
+                                    // Originally: Requester Paid Owner
+                                    // Revert: Owner PAYS Requester
+                                    userRepo.updateUserPoints(request.ownerId, -points) { _, _ -> }
+                                    userRepo.updateUserPoints(request.requesterId, points) { _, _ -> }
+                                } else {
+                                    // Originally: Owner Paid Requester
+                                    // Revert: Requester PAYS Owner
+                                    userRepo.updateUserPoints(request.requesterId, -points) { _, _ -> }
+                                    userRepo.updateUserPoints(request.ownerId, points) { _, _ -> }
+                                }
+                            }
+
+                            // 5. Clean Up History (Transactions & Notifications)
+                            cleanUpHistory(request)
+
+                            onResult(true, "Trade CLEANED completely: ${request.productName}", request)
+                        } else {
+                            onResult(false, "Failed to delete request", null)
+                        }
+                    }
+                } else {
+                    onResult(false, message, null)
+                }
+            }
+        }
+    }
+
+    private fun cleanUpHistory(request: RequestModel) {
+        val users = listOf(request.requesterId, request.ownerId)
+        users.forEach { userId ->
+            // Delete Notifications
+            repository.getNotifications(userId) { success, _, list ->
+                if (success && list != null) {
+                    list.filter { it.requestId == request.requestId }.forEach { notif ->
+                        repository.deleteNotification(notif.notificationId) { _, _ -> }
+                    }
+                }
+            }
+            // Delete Point Transactions
+            pointTransactionRepo.getTransactionsSingle(userId) { list ->
+                list.filter { tx ->
+                    (tx.source.contains(request.productName, ignoreCase = true))
+                }.forEach { tx ->
+                    pointTransactionRepo.deleteTransaction(tx.id) { _, _ -> }
+                }
             }
         }
     }

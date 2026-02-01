@@ -72,4 +72,18 @@ interface UserNotificationRepo {
         notificationId: String,
         callback: (Boolean, String) -> Unit
     )
+
+    fun deleteRequest(
+        requestId: String,
+        callback: (Boolean, String) -> Unit
+    )
+
+    fun deleteRequestForRequester(
+        requestId: String,
+        callback: (Boolean, String) -> Unit
+    )
+
+    fun getLastAcceptedRequest(
+        callback: (Boolean, String, RequestModel?) -> Unit
+    )
 }

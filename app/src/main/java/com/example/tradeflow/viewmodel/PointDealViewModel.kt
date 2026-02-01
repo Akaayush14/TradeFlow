@@ -300,22 +300,18 @@ class PointDealViewModel(
                                     )
                                     redemptionRepo.saveRedemption(redemption) { rSuccess, _ ->
                                         if (rSuccess) {
-                                            // Only create transaction record for non-gift deals
-                                            // Admin gifts are already visible in "Claimable Gifts" section
-                                            val isGift = deal.serviceCategory == "Admin Gift" || deal.targetUserId.isNotEmpty()
-                                            
-                                            if (!isGift) {
-                                                txRepo.saveTransaction(
-                                                    PointTransaction(
-                                                        userId = userId,
-                                                        type = "CREDIT",
-                                                        source = "Free Points Claim: ${deal.title}",
-                                                        points = reward,
-                                                        amount = 0.0,
-                                                        timestamp = System.currentTimeMillis()
-                                                    )
-                                                ) { _, _ -> }
-                                            }
+                                            // Create transaction record for ALL claims (including gifts)
+                                            // This ensures it appears in the user's Point History
+                                            txRepo.saveTransaction(
+                                                PointTransaction(
+                                                    userId = userId,
+                                                    type = "CREDIT",
+                                                    source = "Free Points Claim: ${deal.title}",
+                                                    points = reward,
+                                                    amount = 0.0,
+                                                    timestamp = System.currentTimeMillis()
+                                                )
+                                            ) { _, _ -> }
                                             
                                             _processingDealIds.remove(dealId)
                                             _redemptionStatus.postValue(Pair(true, "Free points claimed successfully!"))

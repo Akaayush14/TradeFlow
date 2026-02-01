@@ -217,6 +217,7 @@ fun AdminPointDealsScreen(onBackClick: () -> Unit) {
                     Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
                     if (success) {
                         showAddDialog = false
+                        viewModel.getAllPointDeals()
                     }
                 }
             }

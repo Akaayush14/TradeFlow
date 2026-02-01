@@ -390,4 +390,68 @@ class UserNotificationRepoImpl : UserNotificationRepo {
             callback(false, "Exception: ${e.message}")
         }
     }
+
+    override fun deleteRequest(
+        requestId: String,
+        callback: (Boolean, String) -> Unit
+    ) {
+        try {
+            requestsRef.child(requestId).removeValue()
+                .addOnSuccessListener {
+                    callback(true, "Request deleted")
+                }
+                .addOnFailureListener { e ->
+                    callback(false, "Error: ${e.message}")
+                }
+        } catch (e: Exception) {
+            callback(false, "Error: ${e.message}")
+        }
+    }
+
+    override fun deleteRequestForRequester(
+        requestId: String,
+        callback: (Boolean, String) -> Unit
+    ) {
+        try {
+            requestsRef.child(requestId).child("deletedByRequester").setValue(true)
+                .addOnSuccessListener {
+                    callback(true, "Request deleted from list")
+                }
+                .addOnFailureListener { e ->
+                    callback(false, "Failed to delete: ${e.message}")
+                }
+        } catch (e: Exception) {
+            callback(false, "Error: ${e.message}")
+        }
+    }
+
+    override fun getLastAcceptedRequest(
+        callback: (Boolean, String, RequestModel?) -> Unit
+    ) {
+        try {
+            requestsRef.orderByChild("status").equalTo("ACCEPTED")
+                .limitToLast(1)
+                .addListenerForSingleValueEvent(object : ValueEventListener {
+                    override fun onDataChange(snapshot: DataSnapshot) {
+                        if (snapshot.exists() && snapshot.childrenCount > 0) {
+                            val child = snapshot.children.first()
+                            val request = child.getValue(RequestModel::class.java)
+                            if (request != null) {
+                                callback(true, "Success", request.copy(requestId = child.key ?: ""))
+                            } else {
+                                callback(false, "Failed to parse request", null)
+                            }
+                        } else {
+                            callback(false, "No accepted requests found", null)
+                        }
+                    }
+
+                    override fun onCancelled(error: DatabaseError) {
+                        callback(false, "Error: ${error.message}", null)
+                    }
+                })
+        } catch (e: Exception) {
+            callback(false, "Error: ${e.message}", null)
+        }
+    }
 }

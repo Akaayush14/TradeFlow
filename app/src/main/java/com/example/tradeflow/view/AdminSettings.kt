@@ -22,6 +22,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -80,6 +81,16 @@ fun AdminSettingsScreen(onBackClick: () -> Unit = {}) {
 
     // State for admin data
     var adminData by remember { mutableStateOf<com.example.tradeflow.model.AdminModel?>(null) }
+    
+    // Developer Tools State
+    var showRevertDialog by remember { mutableStateOf(false) }
+    var isReverting by remember { mutableStateOf(false) }
+    val userNotificationViewModel = remember {
+        com.example.tradeflow.viewmodel.UserNotificationViewModel(
+            com.example.tradeflow.repository.UserNotificationRepoImpl(),
+            com.example.tradeflow.repository.ProductRepoImpl()
+        )
+    }
 
     // Load admin data using AdminViewModel
     LaunchedEffect(userId) {
@@ -284,7 +295,70 @@ fun AdminSettingsScreen(onBackClick: () -> Unit = {}) {
                     showLogoutDialog = true
                 }
             }
+
+            // Developer Section (Bottom)
+            item {
+                Spacer(modifier = Modifier.height(24.dp))
+                Text(
+                    text = "Developer Tools",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                )
+                AdminSettingsItem("Revert Last Trade", R.drawable.ic_settings) {
+                    showRevertDialog = true
+                }
+            }
         }
+    }
+
+    // Revert Trade Dialog
+    if (showRevertDialog) {
+        AlertDialog(
+            onDismissRequest = { showRevertDialog = false },
+            title = { Text("Revert Last Trade?") },
+            text = { 
+                Text(
+                    "This will CLEAN REVERT the last COMPLETED trade:\n" +
+                    "• DELETE Request (Trace removed)\n" +
+                    "• Make items AVAILABLE again\n" +
+                    "• Undo Points Transfer & Delete History\n" +
+                    "• Delete related Notifications\n\n" +
+                    "It will look like the trade never happened.",
+                    fontSize = 14.sp
+                ) 
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        isReverting = true
+                        userNotificationViewModel.revertLastCompletedTrade { success, message, request ->
+                            isReverting = false
+                            showRevertDialog = false
+                            if (success) {
+                                android.widget.Toast.makeText(context, "Reverted: ${request?.productName}", android.widget.Toast.LENGTH_LONG).show()
+                            } else {
+                                android.widget.Toast.makeText(context, "Failed: $message", android.widget.Toast.LENGTH_LONG).show()
+                            }
+                        }
+                    },
+                    enabled = !isReverting,
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                ) {
+                    if (isReverting) {
+                        CircularProgressIndicator(modifier = Modifier.size(16.dp), color = Color.White)
+                    } else {
+                        Text("Revert Now")
+                    }
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showRevertDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 
     // Logout Dialog
