@@ -123,6 +123,7 @@ fun PointsScreen() {
 
     val userData by userViewModel.users.collectAsState()
     val activeDeals by pointDealViewModel.activeDeals.observeAsState(initial = emptyList())
+    val userGiftDeals by pointDealViewModel.userGiftDeals.observeAsState(initial = emptyList())
     val userRedemptions by pointDealViewModel.userRedemptions.observeAsState(initial = emptySet())
     val txList by pointHistoryViewModel.transactions.collectAsState()
 
@@ -516,29 +517,6 @@ fun PointsScreen() {
                 "Buy Deals" -> {
                     val dealsList = activeDeals ?: emptyList()
 
-                    // Header for Delete All (if any redemptions exist)
-                    if (userRedemptions.isNotEmpty()) {
-                        item {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                                horizontalArrangement = Arrangement.End
-                            ) {
-                                TextButton(
-                                    onClick = {
-                                        pointDealViewModel.deleteAllRedemptions(userId)
-                                    },
-                                    colors = ButtonDefaults.textButtonColors(contentColor = Color.Red)
-                                ) {
-                                    Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(16.dp))
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Text("Delete All Claims")
-                                }
-                            }
-                        }
-                    }
-
                     if (dealsList.isEmpty()) {
                         item {
                             Box(
@@ -563,9 +541,7 @@ fun PointsScreen() {
                                         showRedeemConfirmation = true
                                     }
                                 },
-                                onDeleteClick = if (isClaimed) {
-                                    { pointDealViewModel.deleteRedemption(userId, deal.dealId) }
-                                } else null
+                                onDeleteClick = null // User cannot delete buy deals
                             )
                             Spacer(modifier = Modifier.height(12.dp))
                         }
@@ -577,7 +553,11 @@ fun PointsScreen() {
                     }
                 }
                 "Point history" -> {
-                    if (txList.isEmpty()) {
+                    val gifts = userGiftDeals ?: emptyList()
+                    val hasGifts = gifts.isNotEmpty()
+                    val hasHistory = txList.isNotEmpty()
+
+                    if (!hasGifts && !hasHistory) {
                         item {
                             Box(
                                 modifier = Modifier
@@ -589,39 +569,87 @@ fun PointsScreen() {
                             }
                         }
                     } else {
-                        // Header with Delete All
-                        item {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                                horizontalArrangement = Arrangement.End
-                            ) {
-                                TextButton(
-                                    onClick = {
-                                        pointHistoryViewModel.deleteAllTransactions(userId) { success, msg ->
-                                            Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+                        // Display Gifts Section
+                        if (hasGifts) {
+                            item {
+                                Text(
+                                    text = "Claimable Gifts",
+                                    fontSize = 18.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.padding(16.dp)
+                                )
+                            }
+                            items(gifts) { deal ->
+                                val isClaimed = deal.dealId in userRedemptions
+                                PointDealCard(
+                                    deal = deal,
+                                    userPoints = userPoints,
+                                    isClaimed = isClaimed,
+                                    onRedeemClick = {
+                                        if (!isClaimed) {
+                                            selectedDeal = it
+                                            showRedeemConfirmation = true
                                         }
                                     },
-                                    colors = ButtonDefaults.textButtonColors(contentColor = Color.Red)
-                                ) {
-                                    Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(16.dp))
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Text("Delete All")
+                                    onDeleteClick = if (isClaimed) {
+                                        { pointDealViewModel.deleteRedemption(userId, deal.dealId) }
+                                    } else null
+                                )
+                                Spacer(modifier = Modifier.height(12.dp))
+                            }
+                            // Separator if history exists
+                            if (hasHistory) {
+                                item {
+                                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
                                 }
                             }
                         }
 
-                        items(txList) { tx ->
-                            TransactionItem(
-                                tx = tx,
-                                onDeleteClick = {
-                                    pointHistoryViewModel.deleteTransaction(tx.id) { success, msg ->
-                                        Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+                        // Display History Section
+                        if (hasHistory) {
+                            if (hasGifts) {
+                                item {
+                                    Text(
+                                        text = "Transaction History",
+                                        fontSize = 18.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        modifier = Modifier.padding(16.dp)
+                                    )
+                                }
+                            }
+                            
+                            item {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                                    horizontalArrangement = Arrangement.End
+                                ) {
+                                    TextButton(
+                                        onClick = {
+                                            pointHistoryViewModel.deleteAllTransactions(userId) { success, msg ->
+                                                Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+                                            }
+                                        },
+                                        colors = ButtonDefaults.textButtonColors(contentColor = Color.Red)
+                                    ) {
+                                        Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(16.dp))
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text("Delete All")
                                     }
                                 }
-                            )
-                            Spacer(modifier = Modifier.height(12.dp))
+                            }
+                            items(txList) { tx ->
+                                TransactionItem(
+                                    tx = tx,
+                                    onDeleteClick = {
+                                        pointHistoryViewModel.deleteTransaction(tx.id) { success, msg ->
+                                            Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+                                        }
+                                    }
+                                )
+                                Spacer(modifier = Modifier.height(12.dp))
+                            }
                         }
                     }
                 }

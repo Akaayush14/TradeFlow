@@ -314,105 +314,6 @@ fun NotificationCard(
         else -> Color.White
     }
 
-    // Check if undo is possible (not for deletions, and must have valid ID)
-    val canUndo = notification.type !in listOf("item_deleted", "user_deleted") &&
-            ((notification.type.startsWith("item_") && notification.itemId.isNotEmpty()) ||
-                    (notification.type.startsWith("user_") && notification.userId.isNotEmpty()))
-
-    // Undo function
-    val onUndoClick: () -> Unit = {
-        try {
-            when (notification.type) {
-                "item_listed" -> {
-                    // Undo: unlist the item
-                    if (notification.itemId.isNotEmpty()) {
-                        productViewModel.listProduct(notification.itemId, false) { success, message ->
-                            if (success) {
-                                Toast.makeText(context, "Item unlisted", Toast.LENGTH_SHORT).show()
-                                // Delete the notification after successful undo
-                                notificationViewModel.deleteNotification(notification.notificationId) { _, _ -> }
-                            } else {
-                                Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
-                            }
-                        }
-                    }
-                }
-                "item_unlisted" -> {
-                    // Undo: list the item
-                    if (notification.itemId.isNotEmpty()) {
-                        productViewModel.listProduct(notification.itemId, true) { success, message ->
-                            if (success) {
-                                Toast.makeText(context, "Item listed", Toast.LENGTH_SHORT).show()
-                                // Delete the notification after successful undo
-                                notificationViewModel.deleteNotification(notification.notificationId) { _, _ -> }
-                            } else {
-                                Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
-                            }
-                        }
-                    }
-                }
-                "user_blocked" -> {
-                    // Undo: unblock the user
-                    if (notification.userId.isNotEmpty()) {
-                        userViewModel.blockUser(notification.userId, false) { success, message ->
-                            if (success) {
-                                Toast.makeText(context, "User unblocked", Toast.LENGTH_SHORT).show()
-                                // Delete the notification after successful undo
-                                notificationViewModel.deleteNotification(notification.notificationId) { _, _ -> }
-                            } else {
-                                Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
-                            }
-                        }
-                    }
-                }
-                "user_unblocked" -> {
-                    // Undo: block the user
-                    if (notification.userId.isNotEmpty()) {
-                        userViewModel.blockUser(notification.userId, true) { success, message ->
-                            if (success) {
-                                Toast.makeText(context, "User blocked", Toast.LENGTH_SHORT).show()
-                                // Delete the notification after successful undo
-                                notificationViewModel.deleteNotification(notification.notificationId) { _, _ -> }
-                            } else {
-                                Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
-                            }
-                        }
-                    }
-                }
-                "user_restricted" -> {
-                    // Undo: unrestrict the user
-                    if (notification.userId.isNotEmpty()) {
-                        userViewModel.restrictUser(notification.userId, false) { success, message ->
-                            if (success) {
-                                Toast.makeText(context, "User unrestricted", Toast.LENGTH_SHORT).show()
-                                // Delete the notification after successful undo
-                                notificationViewModel.deleteNotification(notification.notificationId) { _, _ -> }
-                            } else {
-                                Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
-                            }
-                        }
-                    }
-                }
-                "user_unrestricted" -> {
-                    // Undo: restrict the user
-                    if (notification.userId.isNotEmpty()) {
-                        userViewModel.restrictUser(notification.userId, true) { success, message ->
-                            if (success) {
-                                Toast.makeText(context, "User restricted", Toast.LENGTH_SHORT).show()
-                                // Delete the notification after successful undo
-                                notificationViewModel.deleteNotification(notification.notificationId) { _, _ -> }
-                            } else {
-                                Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
-                            }
-                        }
-                    }
-                }
-            }
-        } catch (e: Exception) {
-            Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
-        }
-    }
-
     // State for product image if it's an item notification
     var product by remember { mutableStateOf<ProductModel?>(null) }
     // State for user image if it's a user notification
@@ -424,7 +325,7 @@ fun NotificationCard(
     val userDetailsViewModel = remember { UserViewModel(UserRepoImpl()) }
 
     LaunchedEffect(notification) {
-        if (notification.type.startsWith("item_") && notification.itemId.isNotEmpty()) {
+        if ((notification.type.startsWith("item_") || notification.type == "product_updated") && notification.itemId.isNotEmpty()) {
             itemViewModel.getProductById(notification.itemId)
         } else if (notification.type.startsWith("user_") && notification.userId.isNotEmpty()) {
             userDetailsViewModel.getUserById(notification.userId) { _, _, fetchedUser ->
@@ -502,8 +403,8 @@ fun NotificationCard(
                 }
             }
 
-            // Display item image if available and type is listed/unlisted
-            if ((notification.type == "item_listed" || notification.type == "item_unlisted") && product != null) {
+            // Display item image if available and type is listed/unlisted/updated
+            if ((notification.type == "item_listed" || notification.type == "item_unlisted" || notification.type == "product_updated") && product != null) {
                 Box(
                     modifier = Modifier
                         .padding(end = 12.dp)
@@ -590,21 +491,6 @@ fun NotificationCard(
                         fontSize = 12.sp,
                         color = Color.Gray
                     )
-                    if (canUndo) {
-                        Button(
-                            onClick = onUndoClick,
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = Color(0xFFFFC107) // Yellow color
-                            ),
-                            modifier = Modifier.height(32.dp)
-                        ) {
-                            Text(
-                                text = "Undo",
-                                fontSize = 12.sp,
-                                color = Color.Black
-                            )
-                        }
-                    }
                 }
             }
         }

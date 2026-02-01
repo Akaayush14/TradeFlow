@@ -99,13 +99,16 @@ import androidx.compose.foundation.layout.systemBars
 import com.example.tradeflow.R
 import com.example.tradeflow.model.NotificationModel
 import com.example.tradeflow.model.UserModel
+import com.example.tradeflow.model.UserNotificationModel
 import com.example.tradeflow.repository.NotificationRepoImpl
 import com.example.tradeflow.repository.UserRepoImpl
+import com.example.tradeflow.repository.UserNotificationRepoImpl
 import com.example.tradeflow.ui.theme.DarkGreen
 import com.example.tradeflow.ui.theme.Greenish
 import com.example.tradeflow.ui.theme.White
 import com.example.tradeflow.viewmodel.NotificationViewModel
 import com.example.tradeflow.viewmodel.UserViewModel
+import com.google.firebase.auth.FirebaseAuth
 
 class AdminDashUser : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -245,6 +248,7 @@ fun NoneContent() {
     val context = LocalContext.current
     val userViewModel = remember { UserViewModel(UserRepoImpl()) }
     val notificationViewModel = remember { NotificationViewModel(NotificationRepoImpl()) }
+    val userNotificationRepo = remember { UserNotificationRepoImpl() }
     val allUsers by userViewModel.allUsers.collectAsState()
 
     var showDeleteDialog by remember { mutableStateOf<UserModel?>(null) }
@@ -325,7 +329,8 @@ fun NoneContent() {
         onDismissBlock = { showBlockDialog = null },
         onDismissRestrict = { showRestrictDialog = null },
         userViewModel = userViewModel,
-        notificationViewModel = notificationViewModel
+        notificationViewModel = notificationViewModel,
+        userNotificationRepo = userNotificationRepo
     )
 }
 
@@ -334,6 +339,7 @@ fun RestrictedContent() {
     val context = LocalContext.current
     val userViewModel = remember { UserViewModel(UserRepoImpl()) }
     val notificationViewModel = remember { NotificationRepoImpl() }.let { NotificationViewModel(it) }
+    val userNotificationRepo = remember { UserNotificationRepoImpl() }
     val allUsers by userViewModel.allUsers.collectAsState()
 
     var showDeleteDialog by remember { mutableStateOf<UserModel?>(null) }
@@ -414,7 +420,8 @@ fun RestrictedContent() {
         onDismissBlock = { showBlockDialog = null },
         onDismissRestrict = { showRestrictDialog = null },
         userViewModel = userViewModel,
-        notificationViewModel = notificationViewModel
+        notificationViewModel = notificationViewModel,
+        userNotificationRepo = userNotificationRepo
     )
 }
 
@@ -423,6 +430,7 @@ fun BlockedContent() {
     val context = LocalContext.current
     val userViewModel = remember { UserViewModel(UserRepoImpl()) }
     val notificationViewModel = remember { NotificationViewModel(NotificationRepoImpl()) }
+    val userNotificationRepo = remember { UserNotificationRepoImpl() }
     val allUsers by userViewModel.allUsers.collectAsState()
 
     var showDeleteDialog by remember { mutableStateOf<UserModel?>(null) }
@@ -503,7 +511,8 @@ fun BlockedContent() {
         onDismissBlock = { showBlockDialog = null },
         onDismissRestrict = { showRestrictDialog = null },
         userViewModel = userViewModel,
-        notificationViewModel = notificationViewModel
+        notificationViewModel = notificationViewModel,
+        userNotificationRepo = userNotificationRepo
     )
 }
 
@@ -819,7 +828,8 @@ fun UserDialogs(
     onDismissBlock: () -> Unit,
     onDismissRestrict: () -> Unit,
     userViewModel: UserViewModel,
-    notificationViewModel: NotificationViewModel
+    notificationViewModel: NotificationViewModel,
+    userNotificationRepo: UserNotificationRepoImpl
 ) {
     val context = LocalContext.current
 
@@ -889,6 +899,7 @@ fun UserDialogs(
                                     userId = user.userId
                                 )
                                 notificationViewModel.addNotification(notification) { _, _ -> }
+                                
                                 Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
                                 userViewModel.getAllUser()
                             } else {
@@ -939,6 +950,21 @@ fun UserDialogs(
                                     userId = user.userId
                                 )
                                 notificationViewModel.addNotification(notification) { _, _ -> }
+                                
+                                // Create user notification for Restricted/Unrestricted
+                                val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: ""
+                                val userNotification = UserNotificationModel(
+                                    type = "ADMIN_UPDATE",
+                                    title = if (user.isRestricted) "Account Unrestricted" else "Account Restricted",
+                                    message = if (user.isRestricted) "Your account has been unrestricted by an admin." else "Your account has been restricted by an admin.",
+                                    senderId = currentUserId,
+                                    senderName = "Admin",
+                                    receiverId = user.userId,
+                                    isRead = false,
+                                    createdAt = System.currentTimeMillis()
+                                )
+                                userNotificationRepo.createNotification(userNotification) { _, _ -> }
+                                
                                 Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
                                 userViewModel.getAllUser()
                             } else {

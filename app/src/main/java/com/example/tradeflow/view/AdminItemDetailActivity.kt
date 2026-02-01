@@ -55,6 +55,9 @@ import android.content.Intent
 
 import com.example.tradeflow.model.UserNotificationModel
 import com.example.tradeflow.repository.UserNotificationRepoImpl
+import com.example.tradeflow.model.NotificationModel
+import com.example.tradeflow.repository.NotificationRepoImpl
+import com.example.tradeflow.viewmodel.NotificationViewModel
 
 class AdminItemDetailActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -76,6 +79,7 @@ fun AdminItemDetailsScreen() {
     val userViewModel = remember { UserViewModel(UserRepoImpl()) }
     val reviewViewModel = remember { ReviewViewModel(ReviewRepoImpl()) }
     val userNotificationRepo = remember { UserNotificationRepoImpl() }
+    val notificationViewModel = remember { NotificationViewModel(NotificationRepoImpl()) }
 
     // Admin User Details
     val auth = remember { FirebaseAuth.getInstance() }
@@ -208,6 +212,15 @@ fun AdminItemDetailsScreen() {
                                             createdAt = System.currentTimeMillis()
                                         )
                                         userNotificationRepo.createNotification(notification) { _, _ -> }
+
+                                        // Create admin notification
+                                        val adminNotification = NotificationModel(
+                                            message = "Product '${updatedProduct.name}' updated by admin",
+                                            type = "product_updated",
+                                            userId = updatedProduct.ownerId,
+                                            itemId = updatedProduct.productId
+                                        )
+                                        notificationViewModel.addNotification(adminNotification) { _, _ -> }
 
                                         Toast.makeText(context, "Product Updated Successfully", Toast.LENGTH_SHORT).show()
                                         isEditing = false

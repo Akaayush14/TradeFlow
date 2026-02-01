@@ -375,6 +375,15 @@ fun ListedItemsContent() {
                                      createdAt = System.currentTimeMillis()
                                  )
                                  userNotificationRepo.createNotification(notification) { _, _ -> }
+                                 
+                                 // Create admin notification
+                                 val adminNotification = NotificationModel(
+                                     message = "Product '${product.name}' deleted by admin",
+                                     type = "product_deleted",
+                                     userId = product.ownerId
+                                 )
+                                 notificationViewModel.addNotification(adminNotification) { _, _ -> }
+                                 
                                 Toast.makeText(context, "Item Deleted", Toast.LENGTH_SHORT).show()
                                 productViewModel.getAllProduct()
                             } else {
@@ -500,6 +509,15 @@ fun UnlistedItemsContent() {
                                      createdAt = System.currentTimeMillis()
                                  )
                                  userNotificationRepo.createNotification(notification) { _, _ -> }
+                                 
+                                 // Create admin notification
+                                 val adminNotification = NotificationModel(
+                                     message = "Product '${product.name}' listed by admin",
+                                     type = "product_listed",
+                                     userId = product.ownerId
+                                 )
+                                 notificationViewModel.addNotification(adminNotification) { _, _ -> }
+                                 
                                 Toast.makeText(context, "Item Listed", Toast.LENGTH_SHORT).show()
                                 showListDialog = null
                             } else {
@@ -551,6 +569,15 @@ fun UnlistedItemsContent() {
                                      createdAt = System.currentTimeMillis()
                                  )
                                  userNotificationRepo.createNotification(notification) { _, _ -> }
+                                 
+                                 // Create admin notification
+                                 val adminNotification = NotificationModel(
+                                     message = "Product '${product.name}' deleted by admin",
+                                     type = "product_deleted",
+                                     userId = product.ownerId
+                                 )
+                                 notificationViewModel.addNotification(adminNotification) { _, _ -> }
+                                 
                                 Toast.makeText(context, "Item Deleted", Toast.LENGTH_SHORT).show()
                                 productViewModel.getAllProduct()
                             } else {

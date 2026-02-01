@@ -128,8 +128,13 @@ fun UserExploreScreen() {
     }
 
     val allProducts by productViewModel.allProducts.collectAsState()
-    val savedItems by savedItemViewModel.savedItems.collectAsState()
     val savedProductIds by savedItemViewModel.savedProductIds.collectAsState()
+
+    // Calculate valid saved items count (filtering out deleted/invalid products)
+    val validSavedItemsCount = remember(savedProductIds, allProducts) {
+        allProducts.count { it.productId in savedProductIds }
+    }
+
     val searchHistory by searchHistoryViewModel.searchHistory.collectAsState()
     val userData by userViewModel.users.collectAsState()
     val allUsers by userViewModel.allUsers.collectAsState()
@@ -215,7 +220,7 @@ fun UserExploreScreen() {
     Scaffold(
         floatingActionButton = {
             AnimatedVisibility(
-                visible = savedItems.isNotEmpty(),
+                visible = validSavedItemsCount > 0,
                 enter = fadeIn() + scaleIn(),
                 exit = fadeOut() + scaleOut()
             ) {
@@ -237,7 +242,7 @@ fun UserExploreScreen() {
                             .padding(top = 0.dp, end = 0.dp)
                             .offset(x = 4.dp, y = (-4).dp)
                     ) {
-                        Text(savedItems.size.toString())
+                        Text(validSavedItemsCount.toString())
                     }
                 }
             }

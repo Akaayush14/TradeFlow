@@ -29,6 +29,9 @@ class PointDealViewModel(
     private val _activeDeals = MutableLiveData<List<PointDealModel>?>()
     val activeDeals: MutableLiveData<List<PointDealModel>?> get() = _activeDeals
 
+    private val _userGiftDeals = MutableLiveData<List<PointDealModel>?>()
+    val userGiftDeals: MutableLiveData<List<PointDealModel>?> get() = _userGiftDeals
+
     private val _users = MutableLiveData<List<UserModel>?>()
     val users: MutableLiveData<List<UserModel>?> get() = _users
 
@@ -101,6 +104,7 @@ class PointDealViewModel(
         repo.getActivePointDeals { success, message, deals ->
             if (!success) {
                 _activeDeals.postValue(emptyList())
+                _userGiftDeals.postValue(emptyList())
                 return@getActivePointDeals
             }
             redemptionRepo.getRedemptionsByUserId(userId) { rSuccess, _, redemptions ->
@@ -129,7 +133,13 @@ class PointDealViewModel(
 
                     isTargetUserMatch && isTierMatch
                 } ?: emptyList()
-                _activeDeals.postValue(filtered)
+                
+                // Split into public deals and personal gift deals
+                val publicDeals = filtered.filter { it.targetUserId.isEmpty() }
+                val giftDeals = filtered.filter { it.targetUserId == userId }
+
+                _activeDeals.postValue(publicDeals)
+                _userGiftDeals.postValue(giftDeals)
             }
         }
     }
@@ -267,6 +277,13 @@ class PointDealViewModel(
                     return@getPointDealById
                 }
 
+                // Check expiration
+                if (deal.validTill > 0 && deal.validTill < System.currentTimeMillis()) {
+                    _processingDealIds.remove(dealId)
+                    _redemptionStatus.postValue(Pair(false, "This deal has expired"))
+                    return@getPointDealById
+                }
+
                 userRepo.getUserByIdSingle(userId) { success, message, user ->
                     if (success && user != null) {
                         val reward = deal.rewardPoints
@@ -283,16 +300,23 @@ class PointDealViewModel(
                                     )
                                     redemptionRepo.saveRedemption(redemption) { rSuccess, _ ->
                                         if (rSuccess) {
-                                            txRepo.saveTransaction(
-                                                PointTransaction(
-                                                    userId = userId,
-                                                    type = "CREDIT",
-                                                    source = "Free Points Claim: ${deal.title}",
-                                                    points = reward,
-                                                    amount = 0.0,
-                                                    timestamp = System.currentTimeMillis()
-                                                )
-                                            ) { _, _ -> }
+                                            // Only create transaction record for non-gift deals
+                                            // Admin gifts are already visible in "Claimable Gifts" section
+                                            val isGift = deal.serviceCategory == "Admin Gift" || deal.targetUserId.isNotEmpty()
+                                            
+                                            if (!isGift) {
+                                                txRepo.saveTransaction(
+                                                    PointTransaction(
+                                                        userId = userId,
+                                                        type = "CREDIT",
+                                                        source = "Free Points Claim: ${deal.title}",
+                                                        points = reward,
+                                                        amount = 0.0,
+                                                        timestamp = System.currentTimeMillis()
+                                                    )
+                                                ) { _, _ -> }
+                                            }
+                                            
                                             _processingDealIds.remove(dealId)
                                             _redemptionStatus.postValue(Pair(true, "Free points claimed successfully!"))
                                         } else {
@@ -389,51 +413,28 @@ class PointDealViewModel(
         }
     }
 
-    fun giftPointsToUser(targetUserId: String, points: Long, dealTitle: String, callback: (Boolean, String) -> Unit) {
+    fun giftPointsToUser(targetUserId: String, points: Long, dealTitle: String, validTill: Long, callback: (Boolean, String) -> Unit) {
         userRepo.getUserByIdSingle(targetUserId) { success, message, user ->
             if (success && user != null) {
-                userRepo.updateUserPoints(targetUserId, points) { pointsSuccess, pointsMessage ->
-                    if (pointsSuccess) {
-                        txRepo.saveTransaction(
-                            PointTransaction(
-                                userId = targetUserId,
-                                type = "CREDIT",
-                                source = "Admin Gift: $dealTitle",
-                                points = points,
-                                amount = 0.0,
-                                timestamp = System.currentTimeMillis()
-                            )
-                        ) { _, _ -> }
-
-                        // Create Notification and Deal Record
-                        val notification = UserNotificationModel(
-                            receiverId = targetUserId,
-                            title = "You received a gift!",
-                            message = "Admin has gifted you $points points. Enjoy!",
-                            type = "GIFT",
-                            createdAt = System.currentTimeMillis()
-                        )
-                        
-                        notificationRepo.createNotification(notification) { notifSuccess, notificationId ->
-                             val dealRecord = PointDealModel(
-                                 title = "Gift to ${user.name}",
-                                 offer = "Gifted $points Points",
-                                 tier = "All",
-                                 serviceCategory = "Admin Gift",
-                                 pointsRequired = 0,
-                                 rewardPoints = points,
-                                 targetUserId = targetUserId,
-                                 isActive = false,
-                                 notificationId = if (notifSuccess) notificationId else ""
-                             )
-                             repo.addPointDeal(dealRecord) { _, _ -> }
-                        }
-
-                        callback(true, "Points gifted successfully to ${user.name}!")
+                 val dealRecord = PointDealModel(
+                     title = "Gift to ${user.name}",
+                     offer = "Claim $points Free Points",
+                     tier = "All",
+                     serviceCategory = "Admin Gift",
+                     pointsRequired = 0,
+                     rewardPoints = points,
+                     targetUserId = targetUserId,
+                     isActive = true,
+                     validTill = validTill,
+                     notificationId = ""
+                 )
+                 repo.addPointDeal(dealRecord) { dealSuccess, dealMsg -> 
+                    if (dealSuccess) {
+                        callback(true, "Gift sent to ${user.name}! They can now claim it.")
                     } else {
-                        callback(false, pointsMessage)
+                        callback(false, "Failed to create gift deal: $dealMsg")
                     }
-                }
+                 }
             } else {
                 callback(false, message)
             }

@@ -49,6 +49,9 @@ import com.example.tradeflow.repository.ProductRepoImpl
 import com.example.tradeflow.viewmodel.ProductViewModel
 import com.example.tradeflow.model.UserNotificationModel
 import com.example.tradeflow.repository.UserNotificationRepoImpl
+import com.example.tradeflow.model.NotificationModel
+import com.example.tradeflow.repository.NotificationRepoImpl
+import com.example.tradeflow.viewmodel.NotificationViewModel
 import com.google.firebase.auth.FirebaseAuth
 import com.example.tradeflow.model.UserModel
 
@@ -71,6 +74,7 @@ fun AdminUserDetailScreen() {
     val viewModel = remember { UserViewModel(UserRepoImpl()) }
     val productViewModel = remember { ProductViewModel(ProductRepoImpl()) }
     val userNotificationRepo = remember { UserNotificationRepoImpl() }
+    val notificationViewModel = remember { NotificationViewModel(NotificationRepoImpl()) }
     val user by viewModel.users.collectAsState()
 
     // Admin User Details
@@ -165,6 +169,14 @@ fun AdminUserDetailScreen() {
                                         createdAt = System.currentTimeMillis()
                                     )
                                     userNotificationRepo.createNotification(notification) { _, _ -> }
+
+                                    // Create admin notification
+                                    val adminNotification = NotificationModel(
+                                        message = "User '${user!!.name}' profile updated by admin",
+                                        type = "user_profile_updated",
+                                        userId = userId
+                                    )
+                                    notificationViewModel.addNotification(adminNotification) { _, _ -> }
 
                                     Toast.makeText(context, "User Updated Successfully", Toast.LENGTH_SHORT).show()
                                     isEditing = false

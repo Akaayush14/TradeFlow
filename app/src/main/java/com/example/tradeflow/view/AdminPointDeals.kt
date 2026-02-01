@@ -210,9 +210,9 @@ fun AdminPointDealsScreen(onBackClick: () -> Unit) {
                     }
                 }
             },
-            onGiftUser = { userId, points, title ->
+            onGiftUser = { userId, points, title, validTill ->
                 isProcessing = true
-                viewModel.giftPointsToUser(userId, points, title) { success, msg ->
+                viewModel.giftPointsToUser(userId, points, title, validTill) { success, msg ->
                     isProcessing = false
                     Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
                     if (success) {
@@ -280,7 +280,7 @@ fun AddDealDialog(
     onDismiss: () -> Unit,
     onAdd: (PointDealModel) -> Unit,
     onUpdate: (PointDealModel) -> Unit,
-    onGiftUser: (String, Long, String) -> Unit
+    onGiftUser: (String, Long, String, Long) -> Unit
 ) {
     var tier by remember { mutableStateOf(dealToEdit?.tier ?: "Bronze") }
     var dealType by remember {
@@ -511,7 +511,7 @@ fun AddDealDialog(
 
                         // Case 1: Direct Gift to User (New Transaction, not a Deal)
                         if (isGift && targetUserId.isNotEmpty() && dealToEdit == null) {
-                            onGiftUser(targetUserId, points, "Admin Gift Points")
+                            onGiftUser(targetUserId, points, "Admin Gift Points", validTillMillis)
                         }
                         // Case 2: Create/Update Point Deal
                         else {
