@@ -729,26 +729,32 @@ fun EnhancedNotificationCard(
                                 )
                             }
                             
-                            // Show Pay Deposit button to the Requester (Receiver)
-                            // The notification is sent BY Owner TO Requester.
-                            // So we show button if current user is NOT the sender (Owner), or simply if they are the receiver.
-                            Spacer(modifier = Modifier.height(8.dp))
-                            
-                            Button(
-                                onClick = {
-                                    val intent = Intent(context, RentalPaymentActivity::class.java)
-                                    intent.putExtra("requestId", notification.requestId)
-                                    intent.putExtra("productId", notification.productId)
-                                    intent.putExtra("ownerId", notification.senderId)
-                                    context.startActivity(intent)
-                                },
-                                modifier = Modifier.fillMaxWidth(),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = Greenish
-                                ),
-                                shape = RoundedCornerShape(8.dp)
-                            ) {
-                                Text("Pay Deposit", fontWeight = FontWeight.Bold)
+                            // Show Pay Deposit button ONLY if:
+                            // 1. It's a PAYMENT_REQUIRED notification (User is receiver of the notification)
+                            // 2. OR It's a REQUEST initiated by the user (User is sender of the request)
+                            val currentUserId = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: ""
+                            val isPaymentNotification = notification.type == "PAYMENT_REQUIRED"
+                            val isMyRequest = notification.type == "REQUEST" && notification.senderId == currentUserId
+
+                            if (isPaymentNotification || isMyRequest) {
+                                Spacer(modifier = Modifier.height(8.dp))
+                                
+                                Button(
+                                    onClick = {
+                                        val intent = Intent(context, RentalPaymentActivity::class.java)
+                                        intent.putExtra("requestId", notification.requestId)
+                                        intent.putExtra("productId", notification.productId)
+                                        intent.putExtra("ownerId", if (isMyRequest) notification.receiverId else notification.senderId)
+                                        context.startActivity(intent)
+                                    },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = Greenish
+                                    ),
+                                    shape = RoundedCornerShape(8.dp)
+                                ) {
+                                    Text("Pay Deposit", fontWeight = FontWeight.Bold)
+                                }
                             }
                         }
                     } else {
