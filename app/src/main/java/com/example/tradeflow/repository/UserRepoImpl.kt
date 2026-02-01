@@ -331,6 +331,39 @@ class UserRepoImpl: UserRepo {
             }
     }
 
+    override fun resetAllUserPoints(callback: (Boolean, String) -> Unit) {
+        ref.addListenerForSingleValueEvent(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                if (snapshot.exists()) {
+                    val updates = mutableMapOf<String, Any>()
+                    for (child in snapshot.children) {
+                        val userId = child.key
+                        if (userId != null) {
+                            updates["$userId/points"] = 0L
+                        }
+                    }
+                    if (updates.isNotEmpty()) {
+                        ref.updateChildren(updates).addOnCompleteListener {
+                            if (it.isSuccessful) {
+                                callback(true, "All user points reset to 0")
+                            } else {
+                                callback(false, it.exception?.message ?: "Failed to reset points")
+                            }
+                        }
+                    } else {
+                        callback(true, "No users to update")
+                    }
+                } else {
+                    callback(true, "No users found")
+                }
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                callback(false, error.message)
+            }
+        })
+    }
+
     override fun uploadImage(context: Context, imageUri: Uri, callback: (String?) -> Unit) {
         val executor = Executors.newSingleThreadExecutor()
         executor.execute {

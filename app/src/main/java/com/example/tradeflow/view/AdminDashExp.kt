@@ -61,6 +61,8 @@ import coil.compose.AsyncImage
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.material3.TabRowDefaults
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextFieldDefaults
@@ -583,6 +585,7 @@ fun MetricsContent(
     val hasInternet = isInternetAvailableExp(context)
     val scrollState = rememberScrollState()
     var isRefreshing by remember { mutableStateOf(false) }
+    var isResetting by remember { mutableStateOf(false) }
 
     PullToRefreshLayout(
         isRefreshing = isRefreshing,
@@ -630,12 +633,35 @@ fun MetricsContent(
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 // User Metrics Section
-                Text(
-                    text = "User Statistics",
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.Black
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "User Statistics",
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.Black
+                    )
+
+                    if (isResetting) {
+                        CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                    } else {
+                        TextButton(onClick = {
+                            isResetting = true
+                            userViewModel.resetAllUserPoints { success, msg ->
+                                isResetting = false
+                                Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+                                if (success) {
+                                    userViewModel.getAllUser()
+                                }
+                            }
+                        }) {
+                            Text("Reset Points", color = Color.Red)
+                        }
+                    }
+                }
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),

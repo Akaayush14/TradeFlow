@@ -75,6 +75,10 @@ interface UserRepo {
         callback: (Boolean, String) -> Unit
     )
 
+    fun resetAllUserPoints(
+        callback: (Boolean, String) -> Unit
+    )
+
     fun uploadImage(
         context: Context,
         imageUri: Uri,

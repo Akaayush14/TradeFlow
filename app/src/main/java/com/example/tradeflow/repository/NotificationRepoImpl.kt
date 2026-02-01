@@ -66,7 +66,7 @@ class NotificationRepoImpl : NotificationRepo {
         ref.addListenerForSingleValueEvent(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 val updates = mutableMapOf<String, Any>()
-                val excludedTypes = listOf("ADMIN_UPDATE", "REQUEST", "ACCEPTED", "REJECTED", "MESSAGE", "COMPLETED", "GIFT")
+                val excludedTypes = listOf("ADMIN_UPDATE", "REQUEST", "ACCEPTED", "REJECTED", "MESSAGE", "COMPLETED", "GIFT", "points_awarded", "deal_created")
                 for (child in snapshot.children) {
                     val type = child.child("type").getValue(String::class.java) ?: ""
                     if (type !in excludedTypes) {
@@ -92,7 +92,7 @@ class NotificationRepoImpl : NotificationRepo {
         ref.addListenerForSingleValueEvent(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 var count = 0
-                val excludedTypes = listOf("ADMIN_UPDATE", "REQUEST", "ACCEPTED", "REJECTED", "MESSAGE", "COMPLETED", "GIFT")
+                val excludedTypes = listOf("ADMIN_UPDATE", "REQUEST", "ACCEPTED", "REJECTED", "MESSAGE", "COMPLETED", "GIFT", "points_awarded", "deal_created")
                 for (child in snapshot.children) {
                     val isRead = child.child("isRead").getValue(Boolean::class.java) ?: false
                     val type = child.child("type").getValue(String::class.java) ?: ""
@@ -118,7 +118,7 @@ class NotificationRepoImpl : NotificationRepo {
         unreadCountListener = object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 var count = 0
-                val excludedTypes = listOf("ADMIN_UPDATE", "REQUEST", "ACCEPTED", "REJECTED", "MESSAGE", "COMPLETED", "GIFT")
+                val excludedTypes = listOf("ADMIN_UPDATE", "REQUEST", "ACCEPTED", "REJECTED", "MESSAGE", "COMPLETED", "GIFT", "points_awarded", "deal_created")
                 for (child in snapshot.children) {
                     val isRead = child.child("isRead").getValue(Boolean::class.java) ?: false
                     val type = child.child("type").getValue(String::class.java) ?: ""
